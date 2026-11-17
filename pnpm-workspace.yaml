@@ -1,0 +1,15 @@
+allowBuilds:
+  sharp: false
+  unrs-resolver: false
+  lefthook: true
+  esbuild: false
+  "@parcel/watcher": false
+  "@swc/core": false
+  cbor-extract: false
+  core-js: false
+  ssh2: false
+  cpu-features: false
+  protobufjs: false
+  workerd: false
+trustPolicy: no-downgrade
+trustPolicyIgnoreAfter: 10080

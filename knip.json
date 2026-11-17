@@ -1,0 +1,7 @@
+{
+  "ignoreFiles": [".claude/**"],
+  "ignoreIssues": {
+    "src/shared/api/generated/**": ["exports", "types", "files"],
+    "src/shared/ui/**": ["exports", "types"]
+  }
+}

@@ -1,0 +1,3 @@
+{
+  "extends": ["./config/standards/nextjs/oxlint.json"]
+}

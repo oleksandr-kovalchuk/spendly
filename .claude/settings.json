@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "deny": [
+      "Read(.env*)",
+      "Read(!.env.example)",
+      "Read(*.pem)",
+      "Read(*.key)",
+      "Read(*.p8)",
+      "Read(*.p12)",
+      "Read(*.jks)",
+      "Read(*.keystore)",
+      "Bash(rm -rf *)",
+      "Bash(rm -fr *)",
+      "Bash(git push *--force*)",
+      "Bash(git push -f*)",
+      "Bash(git push * -f*)",
+      "Bash(git push *+*)",
+      "Bash(* --no-verify*)",
+      "Bash(git commit -n*)",
+      "Bash(npm install *)",
+      "Bash(npm i *)",
+      "Bash(npm add *)",
+      "Bash(npm ci *)"
+    ],
+    "ask": [
+      "Edit(package.json)",
+      "Edit(pnpm-workspace.yaml)",
+      "Bash(pnpm approve-builds *)",
+      "Bash(pnpm approve *)",
+      "Bash(pnpm permissions approve *)",
+      "Bash(pnpm add *)",
+      "Bash(pnpm * add *)",
+      "Bash(pnpm install *)",
+      "Bash(pnpm i *)",
+      "Bash(pnpm update *)",
+      "Bash(pnpm up *)",
+      "Bash(pnpm upgrade *)",
+      "Bash(pn *)",
+      "Bash(npx expo install *)"
+    ]
+  },
+  "sandbox": {
+    "enabled": true,
+    "excludedCommands": [
+      "docker compose *",
+      "pnpm dlx *",
+      "pnpm standards *",
+      "pnpm add *",
+      "pnpm * add *",
+      "pnpm install *",
+      "pnpm i *",
+      "pnpm ci *",
+      "pnpm update *",
+      "pnpm up *",
+      "pnpm upgrade *",
+      "pn *",
+      "npx expo install *",
+      "pnpm approve-builds *",
+      "pnpm approve *",
+      "pnpm permissions approve *",
+      "pnpm test*"
+    ]
+  },
+  "plansDirectory": "docs/plans",
+  "enabledPlugins": {
+    "typescript-lsp@claude-plugins-official": true,
+    "security-guidance@claude-plugins-official": true,
+    "dev-standards@peppernode": true
+  },
+  "extraKnownMarketplaces": {
+    "peppernode": {
+      "source": {
+        "source": "github",
+        "repo": "peppernode/dev-standards"
+      },
+      "autoUpdate": true
+    }
+  },
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/standards/checks.mjs",
+              "start"
+            ],
+            "timeout": 60
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/standards/format.mjs"
+            ]
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks/standards/checks.mjs",
+              "stop"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

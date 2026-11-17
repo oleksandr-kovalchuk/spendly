@@ -1,0 +1,52 @@
+{
+  "scripts": {
+    "lint": "oxlint && oxfmt --check",
+    "format": "oxfmt",
+    "typecheck": "next typegen && tsc --noEmit",
+    "test": "vitest run --dir src --exclude \".claude/**\"",
+    "unused": "knip"
+  },
+  "allowBuilds": {
+    "lefthook": true,
+    "sharp": false,
+    "unrs-resolver": false,
+    "esbuild": false,
+    "@parcel/watcher": false,
+    "@swc/core": false,
+    "cbor-extract": false,
+    "core-js": false,
+    "ssh2": false,
+    "cpu-features": false,
+    "protobufjs": false,
+    "workerd": false
+  },
+  "tools": [
+    "typescript",
+    "@types/node",
+    "vitest",
+    "oxlint",
+    "oxlint-tsgolint",
+    "oxfmt",
+    "knip",
+    "lefthook"
+  ],
+  "settings": {
+    "sandbox": {
+      "excludedCommands": ["pnpm test*"]
+    }
+  },
+  "create": {
+    "commands": [
+      "pnpm create next-app@latest . --ts --tailwind --react-compiler --cache-components --app --src-dir --no-linter --use-pnpm --import-alias \"@/*\" --agents-md --yes",
+      "node -e \"for (const name of ['file', 'globe', 'next', 'vercel', 'window']) fs.rmSync('public/' + name + '.svg', { force: true })\"",
+      "pnpm add -D jsdom @testing-library/react @testing-library/jest-dom"
+    ],
+    "afterSync": [
+      "pnpm dlx shadcn@latest init -b base -p nova",
+      "node -e \"const f = 'src/app/globals.css'; fs.writeFileSync(f, fs.readFileSync(f, 'utf8').replace('--font-sans: var(--font-sans);', '--font-sans: var(--font-geist-sans, ui-sans-serif, system-ui, sans-serif);'))\"",
+      "node -e \"const c = JSON.parse(fs.readFileSync('components.json')); c.aliases = { components: '@/shared/ui', ui: '@/shared/ui', lib: '@/shared/ui/lib', hooks: '@/shared/ui/hooks', utils: '@/shared/ui/lib/utils' }; fs.writeFileSync('components.json', JSON.stringify(c, null, 2)); fs.rmSync('src/lib', { recursive: true })\"",
+      "pnpm dlx shadcn@latest add button",
+      "pnpm format"
+    ]
+  }
+}

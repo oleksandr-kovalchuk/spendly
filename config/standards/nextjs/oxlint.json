@@ -1,0 +1,117 @@
+{
+  "plugins": [
+    "typescript",
+    "unicorn",
+    "oxc",
+    "react",
+    "nextjs",
+    "jsx-a11y",
+    "import",
+    "node"
+  ],
+  "categories": { "correctness": "error" },
+  "options": { "typeAware": true, "denyWarnings": true },
+  "rules": {
+    "react/unsupported-syntax": "error",
+    "react/rules-of-hooks": "error",
+    "react/only-export-components": "error",
+    "typescript/no-explicit-any": "error",
+    "typescript/no-non-null-assertion": "error",
+    "typescript/ban-ts-comment": "error",
+    "typescript/no-floating-promises": "error",
+    "typescript/no-deprecated": "error",
+    "typescript/only-throw-error": "error",
+    "typescript/switch-exhaustiveness-check": "error",
+    "unicorn/no-array-sort": ["error", { "allowExpressionStatement": false }],
+    "unicorn/no-array-reverse": ["error", { "allowExpressionStatement": false }],
+    "import/no-cycle": "error",
+    "import/no-default-export": "error",
+    "import/namespace": "off",
+    "no-console": "error",
+    "no-empty": "error",
+    "no-nested-ternary": "error",
+    "preserve-caught-error": "error",
+    "node/no-process-env": "error"
+  },
+  "overrides": [
+    {
+      "files": ["*.config.*", "src/app/**", "src/i18n/request.ts"],
+      "rules": { "import/no-default-export": "off", "react/only-export-components": "off" }
+    },
+    {
+      "files": [
+        "src/env.ts",
+        "src/instrumentation.ts",
+        "*.config.{js,mjs,cjs,ts,mts}",
+        "vitest.global-setup.ts"
+      ],
+      "rules": { "node/no-process-env": "off" }
+    },
+    {
+      "files": ["scripts/**", ".claude/**"],
+      "rules": { "no-console": "off" }
+    },
+    {
+      "files": ["src/features/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@/features/**", "@/views/**", "@/app/**"],
+                "message": "A feature imports only shared code; files of its own feature are imported relatively."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/views/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@/app/**"],
+                "message": "Views don't import from app."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/shared/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@/features/**", "@/views/**", "@/app/**"],
+                "message": "Shared code imports nothing above it."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["src/shared/ui/**"],
+      "rules": {
+        "jsx-a11y/anchor-has-content": "off",
+        "jsx-a11y/click-events-have-key-events": "off",
+        "jsx-a11y/label-has-associated-control": "off",
+        "jsx-a11y/no-noninteractive-element-interactions": "off",
+        "jsx-a11y/no-noninteractive-tabindex": "off",
+        "jsx-a11y/prefer-tag-over-role": "off",
+        "react/only-export-components": "off",
+        "react/set-state-in-effect": "off",
+        "typescript/restrict-template-expressions": "off"
+      }
+    }
+  ]
+}

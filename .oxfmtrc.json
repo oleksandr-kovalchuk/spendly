@@ -1,0 +1,22 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "sortPackageJson": false,
+  "sortTailwindcss": {
+    "stylesheet": "./src/app/globals.css"
+  },
+  "ignorePatterns": [
+    "pnpm-lock.yaml",
+    "config/standards/",
+    "docs/standards/",
+    ".claude/rules/standards/",
+    ".claude/hooks/standards/",
+    ".agents/",
+    ".claude/skills/",
+    ".claude/workflows/",
+    ".claude/settings.json",
+    ".mcp.json",
+    "src/shared/api/generated/",
+    "drizzle/",
+    "CLAUDE-SECURITY-*/"
+  ]
+}

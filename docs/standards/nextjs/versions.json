@@ -1,0 +1,235 @@
+{
+  "$schema": "../../versions.schema.json",
+  "stack": "nextjs",
+  "packages": {
+    "node": {
+      "range": "^26.13.1",
+      "reason": "LTS only (production.md): new projects start on Node 26, the Active LTS line; add the next LTS major once it starts. 26.13.1 is a security release that fixes nine high CVEs in http2 and TLS",
+      "source": "https://nodejs.org/en/blog/release/v26.13.1",
+      "verified": "2026-11-12"
+    },
+    "next": {
+      "range": ">=16.4.5 <17",
+      "reason": "16.4.5 (November 3, 2026 security release) fixes seven medium advisories, among them cross-user cache disclosure and poisoning in \"use cache\" and HttpOnly cookie exposure on Edge routes; 16.4.1 fixed an RCE in \"use cache\" and one in Image Optimization",
+      "source": "https://github.com/vercel/next.js/releases/tag/v16.4.5",
+      "verified": "2026-11-04",
+      "watch": {
+        "note": "Next 17 makes Cache Components the framework default (create-next-app already does since 16.4); on each minor, check whether experimental.turbopackRustReactCompiler and @next/playwright became stable"
+      }
+    },
+    "react": {
+      "range": "^19.3.0",
+      "reason": "Stable ViewTransition, used by the styling rules",
+      "source": "https://react.dev/blog",
+      "verified": "2026-10-27"
+    },
+    "react-dom": {
+      "range": "^19.3.0",
+      "reason": "Same version as react",
+      "source": "https://react.dev/blog",
+      "verified": "2026-10-27"
+    },
+    "typescript": {
+      "range": "^7.0.0",
+      "reason": "The rules assume TS 7: its defaults (strict on, no baseUrl), and next build type-checks through the tsc CLI since Next 16.3",
+      "source": "https://www.npmjs.com/package/typescript",
+      "verified": "2026-11-17",
+      "watch": {
+        "note": "A typescript-eslint release whose typescript peer range includes 7.x (8.73.0 still stops below 6.1; TS 7.1, which adds the programmatic API, is in beta): typescript-eslint and other API-based tools can move to TS 7. Once no stack is on TS 6: replace typescript-lsp and the global typescript-language-server and typescript@6 (plugin.json, settings.json, USAGE.md, tooling/claude-code/stack.md) with an lspServers entry in plugin.json that starts the project's own TS 7 with tsc --lsp --stdio; Claude Code starts the command from PATH, so check that pnpm exec reaches the project's tsc"
+      }
+    },
+    "pnpm": {
+      "range": "^12.11.0",
+      "reason": "12.11.0 adds the permissions setting that approves the skills a dependency ships (tooling/claude-code/rules.md); 12.7.0 makes pnpm runtime's Node follow .node-version and .nvmrc; 12.0 to 12.2 treat an explicit minimumReleaseAge as non-strict and silently let younger versions in; pnpm 12 (stable since August 26, 2026) is a Rust rewrite with the same commands, settings and lockfile as 11; unknown keys in pnpm-workspace.yaml now fail",
+      "source": "https://github.com/pnpm/pnpm/releases/tag/v12.11.0",
+      "verified": "2026-11-17"
+    },
+    "tailwindcss": {
+      "range": "^4"
+    },
+    "next-themes": {
+      "range": ">=0.4.6 <1",
+      "reason": "Still 0.x: pin the exact version in the project",
+      "source": "https://www.npmjs.com/package/next-themes",
+      "verified": "2026-11-07",
+      "watch": {
+        "note": "No release since 0.4.6, and React warns about its theme script on client renders since Next.js 16.2 (pacocoursey/next-themes#385): replace it once shadcn's Next.js dark mode guide does, or follow a fix release"
+      }
+    },
+    "react-hook-form": {
+      "range": "^7",
+      "reason": "v8 adds React Compiler support but is still in beta",
+      "source": "https://www.npmjs.com/package/react-hook-form",
+      "verified": "2026-10-27",
+      "watch": {
+        "note": "React Hook Form 8 stable release: re-evaluate"
+      }
+    },
+    "zod": {
+      "range": "^4.6.6",
+      "reason": "Earlier versions are affected by known GitHub advisories (worst: high)",
+      "source": "https://github.com/advisories?query=zod",
+      "verified": "2026-10-27"
+    },
+    "next-safe-action": {
+      "range": "^8"
+    },
+    "next-intl": {
+      "range": "^4.9.2",
+      "reason": "Earlier versions are affected by GHSA-8f24-v5vv-gm5j (medium, an open redirect; fixed in 4.9.1) and GHSA-4c35-wcg5-mm9h (medium, prototype pollution through translation catalog keys; fixed in 4.9.2)",
+      "source": "https://github.com/advisories/GHSA-4c35-wcg5-mm9h",
+      "verified": "2026-11-11"
+    },
+    "orval": {
+      "range": "^8.41.0",
+      "reason": "Earlier versions are affected by known advisories (worst: critical): an OpenAPI document can inject code into the generated client, such as GHSA-v36f-hqj9-q8rr, fixed in 8.40.0, and GHSA-f96w-763g-hg7v, fixed in 8.41.0; Orval publishes most of them only in its repository, so pnpm audit doesn't report them",
+      "source": "https://github.com/orval-labs/orval/security/advisories",
+      "verified": "2026-11-01"
+    },
+    "@faker-js/faker": {
+      "range": "^10.5.0",
+      "reason": "10.5.0 fixes GHSA-qxc2-j82w-r537 (high): helpers.fake can be exploited into arbitrary code execution",
+      "source": "https://github.com/advisories/GHSA-qxc2-j82w-r537",
+      "verified": "2026-10-27"
+    },
+    "postgresql": {
+      "range": ">=18",
+      "reason": "The rules rely on uuidv7, built in since PostgreSQL 18",
+      "source": "https://www.postgresql.org/support/versioning/",
+      "verified": "2026-10-28",
+      "watch": {
+        "note": "PostgreSQL 19 GA: re-evaluate; once hosted Supabase offers Postgres 18 or later, Next.js projects on Supabase drop their uuidv7 deviation",
+        "expected": "2026-11-19"
+      }
+    },
+    "drizzle-orm": {
+      "range": ">=0.45.2 <1",
+      "reason": "0.45.2 fixes CVE-2026-39356 in identifier escaping; 1.0 is still a release candidate",
+      "source": "https://nvd.nist.gov/vuln/detail/CVE-2026-39356",
+      "verified": "2026-10-28",
+      "watch": {
+        "note": "Drizzle 1.0 stable release: new projects start on 1.0; ORM, Kit and Seed move to one shared version, and drizzle-zod becomes drizzle-orm/zod"
+      }
+    },
+    "drizzle-kit": {
+      "range": "^0.31",
+      "reason": "The 0.x line that matches drizzle-orm 0.45",
+      "source": "https://www.npmjs.com/package/drizzle-kit",
+      "verified": "2026-10-27"
+    },
+    "drizzle-seed": {
+      "range": "^0.3",
+      "reason": "The 0.x line that matches drizzle-orm 0.45",
+      "source": "https://www.npmjs.com/package/drizzle-seed",
+      "verified": "2026-10-27"
+    },
+    "better-auth": {
+      "range": ">=1.7.16 <2",
+      "reason": "1.7.16 fixes 12 advisories (worst: critical GHSA-4wq4-2ppv-q3hg, the Expo plugin's proxy lets an attacker sign in as a user from their email address; GHSA-q747-mqgr-4gh7, high: unverified phone numbers can be claimed), published only in Better Auth's repository, so pnpm audit doesn't report them",
+      "source": "https://github.com/better-auth/better-auth/security/advisories/GHSA-4wq4-2ppv-q3hg",
+      "verified": "2026-11-04"
+    },
+    "@clerk/nextjs": {
+      "range": "^7.9.26",
+      "reason": "7.9.26 is the first version on @clerk/backend 3.28.0, which fixes GHSA-wpqf-h9rq-rg73 (medium): OIDC ID tokens accepted as session tokens; published only in Clerk's repository, so pnpm audit doesn't report it. Earlier 7.x versions are also affected by GHSA-vqx2-fgx2-5wq9 (critical, a middleware route protection bypass) and GHSA-w24r-5266-9c3c (high, an authorization bypass)",
+      "source": "https://github.com/clerk/javascript/security/advisories/GHSA-wpqf-h9rq-rg73",
+      "verified": "2026-11-17"
+    },
+    "ai": {
+      "range": "^7"
+    },
+    "payload": {
+      "range": "^3.93.0",
+      "reason": "3.93.0 \"contains vital security updates\" (block child read access in queries, pasteURL restrictions on remote URL uploads, escaped values in the Lexical HTML converters), not yet published as advisories; 3.92.0 pins undici 7.30.1 against the high advisories of undici 7.29; earlier versions are affected by known GitHub advisories (worst: critical); 4.0 is still in beta",
+      "source": "https://github.com/payloadcms/payload/releases/tag/v3.93.0",
+      "verified": "2026-11-07",
+      "watch": {
+        "note": "Payload 4.0 stable release: re-evaluate"
+      }
+    },
+    "date-fns": {
+      "range": "^4"
+    },
+    "@tanstack/react-table": {
+      "range": "^9",
+      "reason": "v9 is compatible with React Compiler without \"use no memo\"",
+      "source": "https://www.npmjs.com/package/@tanstack/react-table",
+      "verified": "2026-10-27"
+    },
+    "@dnd-kit/react": {
+      "range": ">=0.5.0 <1",
+      "reason": "Still 0.x: pin the exact version in the project",
+      "source": "https://www.npmjs.com/package/@dnd-kit/react",
+      "verified": "2026-10-27"
+    },
+    "vitest": {
+      "range": "^5.0.5",
+      "reason": "5.0.5 fixes GHSA-p458-7748-mcp3 (medium) in @vitest/browser and @vitest/ui, which vitest pins to its own version: the dev server served .env files, keys and .git despite server.fs.deny",
+      "source": "https://github.com/advisories/GHSA-p458-7748-mcp3",
+      "verified": "2026-10-29"
+    },
+    "@vitest/coverage-v8": {
+      "range": "^5",
+      "reason": "Same version as vitest, which pins it as an exact peer dependency",
+      "source": "https://www.npmjs.com/package/vitest",
+      "verified": "2026-10-28"
+    },
+    "msw": {
+      "range": "^3"
+    },
+    "@lhci/cli": {
+      "range": ">=0.16.0 <1",
+      "reason": "Still 0.x: pin the exact version in the project. 0.16.0 drops tmp ^0.1.0, which has GHSA-ph9p-34f9-6g65 (high, path traversal; fixed only in tmp 0.2.6), and binds its fallback server to loopback; CI's pnpm audit --prod doesn't check dev dependencies",
+      "source": "https://github.com/GoogleChrome/lighthouse-ci/releases/tag/v0.16.0",
+      "verified": "2026-11-04"
+    },
+    "sanitize-html": {
+      "range": "^2.18.2",
+      "reason": "2.18.2 fixes GHSA-8g6g-w2rq-xcmc and GHSA-2rjc-9xvg-45j7 (medium, XSS) and GHSA-6wrv-5cp6-h3c5 (low); published only in ApostropheCMS's repository, so pnpm audit doesn't report them. Earlier versions are also affected by known GitHub advisories (worst: critical)",
+      "source": "https://github.com/apostrophecms/apostrophe/security/advisories/GHSA-8g6g-w2rq-xcmc",
+      "verified": "2026-11-16"
+    },
+    "oxlint": {
+      "range": "^1.79.0",
+      "reason": "The shared configs need options.typeAware (1.51.0), options.denyWarnings (1.52.0), per-extension never in import/extensions (1.73.0) and the per-category React Compiler rules, including react/unsupported-syntax (1.79.0)",
+      "source": "https://github.com/oxc-project/oxc/blob/main/crates/oxc_linter/CHANGELOG.md",
+      "verified": "2026-10-28"
+    },
+    "oxlint-tsgolint": {
+      "range": "^7",
+      "reason": "The major tracks TypeScript 7",
+      "source": "https://www.npmjs.com/package/oxlint-tsgolint",
+      "verified": "2026-11-17",
+      "watch": {
+        "note": "Oxlint 1.92 discovers tsrs, a Rust port of TypeScript 7, for type-aware linting, and Vite+ 1.7 already runs on it: when Oxlint's docs make tsrs the type-aware backend, replace oxlint-tsgolint in the stacks' setup.json and here; trustPolicy: no-downgrade rejects the tsrs release Vite+ 1.7 bundles (oxc-project/tsrs#945), so check that its release installs"
+      }
+    },
+    "oxfmt": {
+      "range": ">=0.77.0 <1",
+      "reason": "Still 0.x: the Renovate preset pins the exact version in the project. 0.77.0 is the version create was verified with on every stack (ADR 0001)",
+      "source": "https://oxc.rs/docs/guide/usage/formatter",
+      "verified": "2026-11-10",
+      "watch": {
+        "note": "Oxfmt 1.0 stable release: drop the exact pin"
+      }
+    },
+    "knip": {
+      "range": "^6"
+    },
+    "@sentry/nextjs": {
+      "range": "^11.9.0",
+      "reason": "The rules use v11's dataCollection; 11.9.0 fixes GHSA-fvxq-xq4h-rqgm (medium): with tunnelRoute, the browser's cookies, HttpOnly session cookies included, were forwarded to Sentry; published only in Sentry's repository, so pnpm audit doesn't report it",
+      "source": "https://github.com/getsentry/sentry-javascript/security/advisories/GHSA-fvxq-xq4h-rqgm",
+      "verified": "2026-11-01"
+    },
+    "pino": {
+      "range": "^10"
+    },
+    "@opennextjs/cloudflare": {
+      "range": ">=1.20.16 <2",
+      "reason": "1.20.16 fixes GHSA-5crp-j778-fgmr and GHSA-3grv-rf6r-fj3x (medium, middleware bypass), published only in its repository, and requires the Next.js November 3, 2026 patches",
+      "source": "https://github.com/opennextjs/opennextjs-cloudflare/security/advisories/GHSA-5crp-j778-fgmr",
+      "verified": "2026-11-04"
+    }
+  }
+}
