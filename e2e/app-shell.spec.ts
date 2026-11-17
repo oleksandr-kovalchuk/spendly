@@ -91,12 +91,25 @@ test("switches the language and keeps the page", async ({ page }) => {
 });
 
 test("shows the 404 page in the current language with a link home", async ({ page }) => {
-  const response = await page.goto("/uk/no-such-page");
+  await page.goto("/uk/no-such-page");
 
-  expect(response?.status()).toBe(404);
+  await expect(page).toHaveTitle("Сторінку не знайдено | Spendly");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Сторінку не знайдено");
   await page.getByRole("link", { name: "На головну" }).click();
   await expect(page).toHaveURL(/\/uk$/);
+});
+
+test.describe("without JavaScript", () => {
+  test.use({ javaScriptEnabled: false });
+
+  test("the 404 page is in the HTML with a title and a link home", async ({ page }) => {
+    await page.goto("/en/no-such-page");
+
+    await expect(page).toHaveTitle("Page not found | Spendly");
+    await expect(page.locator("html")).toHaveAttribute("lang", "en");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Page not found");
+    await expect(page.getByRole("link", { name: "Back to home" })).toHaveAttribute("href", "/en");
+  });
 });
 
 test("the first Tab stop is the skip link to the main content", async ({ page }) => {
