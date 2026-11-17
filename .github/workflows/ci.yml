@@ -39,4 +39,3 @@ jobs:
       - run: pnpm unused
       - run: pnpm build
       - run: pnpm audit --prod --audit-level=high
-      - uses: peppernode/dev-standards@fecf452283a6d90861a6086652d79c418c67e972 # main
