@@ -1,0 +1,19 @@
+schema: spec-driven
+
+context: |
+  Spendly: an expense tracker web app with accounts and a mobile-first responsive UI.
+  Next.js on Vercel, set up with peppernode/dev-standards (see AGENTS.md).
+  All artifacts in English, short and to the point.
+
+rules:
+  proposal:
+    - Under 150 words
+    - State what is out of scope
+  specs:
+    - Requirements and scenarios only, no prose
+  design:
+    - Only when a decision needs it
+    - Under 200 words
+  tasks:
+    - One line each
+    - Group into parts, one PR per group

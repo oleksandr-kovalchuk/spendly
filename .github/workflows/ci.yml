@@ -37,5 +37,6 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm unused
+      - run: pnpm spec validate --all
       - run: pnpm build
       - run: pnpm audit --prod --audit-level=high
