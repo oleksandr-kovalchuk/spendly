@@ -12,3 +12,21 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 - Stack: [stack.md](docs/standards/nextjs/stack.md); before adding or setting up a library, read its section there and check [versions.json](docs/standards/nextjs/versions.json).
 - Rules: [.claude/rules/standards/](.claude/rules/standards/); Claude Code loads them, other agents read them there.
+
+## Project
+
+### Commands
+
+- `pnpm dev`: the dev server; `pnpm build`, then `pnpm start`
+- `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm unused`: what CI runs; `pnpm format` fixes formatting
+- `pnpm standards check`: compares the project with the dev standards
+
+### Structure
+
+- `src/app/`: Next file conventions only; pages are composed in `src/views/`, features live in `src/features/`, shared code in `src/shared/` (shadcn/ui components in `src/shared/ui/`)
+- Vitest tests sit next to their code in `src/`
+
+### Constraints
+
+- Node from `.nvmrc`, pnpm from `packageManager`; no npm or yarn
+- Never edit the copied standards: `.claude/rules/standards/`, `docs/standards/`, `config/standards/`, `.claude/hooks/standards/`
