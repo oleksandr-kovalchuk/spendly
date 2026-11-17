@@ -14,10 +14,10 @@ How to check:
 2. Switch to Українська: the text and the URL (`/uk`) change.
 3. Pick dark and reload: the page stays dark, with no flash.
 
-- [ ] 1.1 Add next-intl with `en` and `uk`, `[locale]` routes and the `/` redirect by browser language; verify with unit tests of locale detection
-- [ ] 1.2 Add the header with the language switcher and the theme toggle (system by default); verify with a component test of switching
-- [ ] 1.3 Add the placeholder home page, the translated 404, the skip link and per-page titles; verify `pnpm build` passes
-- [ ] 1.4 Set up Playwright with axe in CI against the production build; verify an E2E test of both languages and themes reports no violations
+- [x] 1.1 Add next-intl with `en` and `uk`, `[locale]` routes and the `/` redirect by browser language; verify with unit tests of locale detection
+- [x] 1.2 Add the header with the language switcher and the theme toggle (system by default); verify with a component test of switching
+- [x] 1.3 Add the placeholder home page, the translated 404, the skip link and per-page titles; verify `pnpm build` passes
+- [x] 1.4 Set up Playwright with axe in CI against the production build; verify an E2E test of both languages and themes reports no violations
 
 ## 2. Accounts
 
