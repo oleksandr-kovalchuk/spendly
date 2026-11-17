@@ -20,6 +20,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - `pnpm dev`: the dev server; `pnpm build`, then `pnpm start`
 - `pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm unused`: what CI runs; `pnpm format` fixes formatting
 - `pnpm standards check`: compares the project with the dev standards
+- `pnpm spec`: OpenSpec CLI; specs live in `openspec/`: propose (`/openspec-propose`), apply (`/openspec-apply-change`), archive (`/openspec-archive-change`); `pnpm spec validate --all` runs in CI
 
 ### Structure
 
