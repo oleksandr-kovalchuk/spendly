@@ -1,0 +1,83 @@
+"use client";
+
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useLocale, useTranslations } from "next-intl";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useForm, useFormState } from "react-hook-form";
+import { useState } from "react";
+
+import { authClient } from "@/shared/auth/auth-client";
+import { Button } from "@/shared/ui/button";
+import { FieldError } from "@/shared/ui/field";
+
+import { AuthField } from "./auth-field";
+import { fieldErrorOf, formErrorOf, isFieldError, type FormError } from "./auth-errors";
+import { signUpSchema, type SignUpValues } from "./auth-schemas";
+
+export function SignUpForm() {
+  const t = useTranslations("Auth");
+  const locale = useLocale();
+  const router = useRouter();
+  const [formError, setFormError] = useState<FormError>();
+  const form = useForm<SignUpValues>({
+    resolver: zodResolver(signUpSchema),
+    mode: "onBlur",
+    reValidateMode: "onChange",
+    defaultValues: { email: "", password: "" },
+  });
+  const { errors, isSubmitting } = useFormState({ control: form.control });
+
+  async function handleSubmit({ email, password }: SignUpValues) {
+    setFormError(undefined);
+    // Better Auth requires a name, and the app has none
+    const { error } = await authClient.signUp.email({ email, password, name: "" });
+    if (!error) {
+      const query = new URLSearchParams({ email, registered: "1" });
+      router.push(`/${locale}/sign-in?${query}`);
+      return;
+    }
+
+    const fieldError = fieldErrorOf(error);
+    if (fieldError) {
+      form.setError(fieldError.field, { message: fieldError.error });
+      return;
+    }
+    setFormError(formErrorOf(error));
+  }
+
+  function messageOf(message: string | undefined) {
+    return isFieldError(message) ? t(`errors.${message}`) : undefined;
+  }
+
+  return (
+    <form onSubmit={form.handleSubmit(handleSubmit)} noValidate className="grid gap-4">
+      <AuthField
+        label={t("fields.email")}
+        type="email"
+        autoComplete="email"
+        inputMode="email"
+        error={messageOf(errors.email?.message)}
+        {...form.register("email")}
+      />
+      <AuthField
+        label={t("fields.password")}
+        type="password"
+        autoComplete="new-password"
+        error={messageOf(errors.password?.message)}
+        {...form.register("password")}
+      />
+      <p className="text-sm text-muted-foreground">{t("signUp.passwordHint")}</p>
+      {formError ? <FieldError>{t(`errors.${formError}`)}</FieldError> : null}
+      <Button type="submit" size="lg" disabled={isSubmitting}>
+        {t("signUp.submit")}
+      </Button>
+      <p className="text-sm text-muted-foreground">
+        {t("signUp.hasAccount")}{" "}
+        <Link href={`/${locale}/sign-in`} className="text-foreground underline underline-offset-4">
+          {t("signUp.signInLink")}
+        </Link>
+      </p>
+    </form>
+  );
+}

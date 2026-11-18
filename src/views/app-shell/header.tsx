@@ -4,8 +4,16 @@ import { Suspense } from "react";
 
 import { LANGUAGE_NAMES, OTHER_LOCALE } from "@/features/language-switcher/language-names";
 import { LanguageSwitcher } from "@/features/language-switcher/language-switcher";
+import { SignOutButton } from "@/features/sign-out/sign-out-button";
 import { ThemeToggle } from "@/features/theme-toggle/theme-toggle";
+import { getCurrentUser } from "@/shared/auth/session";
 import { buttonVariants } from "@/shared/ui/button";
+
+async function SessionControls() {
+  const user = await getCurrentUser();
+
+  return user ? <SignOutButton /> : null;
+}
 
 export async function Header() {
   const currentLocale = await getLocale();
@@ -21,6 +29,9 @@ export async function Header() {
           Spendly
         </Link>
         <div className="flex items-center gap-1">
+          <Suspense fallback={null}>
+            <SessionControls />
+          </Suspense>
           <Suspense
             fallback={
               <Link

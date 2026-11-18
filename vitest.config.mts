@@ -10,6 +10,12 @@ export default defineConfig({
   test: {
     globals: true,
     setupFiles: ["./vitest.setup.ts"],
+    globalSetup: ["./vitest.global-setup.ts"],
+    // Vitest doesn't load .env; DATABASE_URL comes from the global setup
+    env: {
+      BETTER_AUTH_SECRET: "test-secret-test-secret-test-secret-0123456789",
+      BETTER_AUTH_URL: "http://localhost:3000",
+    },
     // next-intl's middleware imports "next/server" without the extension Node's ESM loader needs
     server: { deps: { inline: ["next-intl"] } },
   },

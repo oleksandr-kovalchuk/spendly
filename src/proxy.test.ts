@@ -3,9 +3,12 @@ import { describe, expect, test } from "vitest";
 
 import { proxy } from "./proxy";
 
-function redirectTarget(path: string, acceptLanguage?: string) {
+function redirectTarget(path: string, acceptLanguage?: string, cookie?: string) {
   const request = new NextRequest(new URL(path, "http://localhost"), {
-    headers: acceptLanguage ? { "accept-language": acceptLanguage } : {},
+    headers: {
+      ...(acceptLanguage ? { "accept-language": acceptLanguage } : {}),
+      ...(cookie ? { cookie } : {}),
+    },
   });
   const response = proxy(request);
   const location = response.headers.get("location");
@@ -35,7 +38,28 @@ describe("paths", () => {
     expect(redirectTarget("/no-such-page", "uk")).toBe("/uk/no-such-page");
   });
 
-  test.each(["/en", "/uk", "/uk/no-such-page"])("%s is left alone", (path) => {
+  test.each(["/en/sign-in", "/uk/sign-up", "/uk/no-such-page"])("%s is left alone", (path) => {
     expect(redirectTarget(path, "uk")).toBeNull();
+  });
+});
+
+describe("the private main page", () => {
+  test.each([
+    ["/en", "/en/sign-in"],
+    ["/uk", "/uk/sign-in"],
+    ["/uk/", "/uk/sign-in"],
+  ])("%s without a session cookie goes to %s", (path, expected) => {
+    expect(redirectTarget(path)).toBe(expected);
+  });
+
+  test.each(["better-auth.session_token=abc", "__Secure-better-auth.session_token=abc"])(
+    "opens with the cookie %s",
+    (cookie) => {
+      expect(redirectTarget("/uk", undefined, cookie)).toBeNull();
+    },
+  );
+
+  test("sign-in is not bounced away by a cookie, since the cookie may be expired", () => {
+    expect(redirectTarget("/en/sign-in", undefined, "better-auth.session_token=abc")).toBeNull();
   });
 });

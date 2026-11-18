@@ -1,0 +1,84 @@
+"use client";
+
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useLocale, useTranslations } from "next-intl";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { useForm, useFormState } from "react-hook-form";
+
+import { authClient } from "@/shared/auth/auth-client";
+import { Button } from "@/shared/ui/button";
+import { FieldError } from "@/shared/ui/field";
+
+import { AuthField } from "./auth-field";
+import { formErrorOf, isFieldError, type FormError } from "./auth-errors";
+import { signInSchema, type SignInValues } from "./auth-schemas";
+
+type SignInFormProps = { defaultEmail?: string; hasJustRegistered: boolean };
+
+export function SignInForm({ defaultEmail = "", hasJustRegistered }: SignInFormProps) {
+  const t = useTranslations("Auth");
+  const locale = useLocale();
+  const router = useRouter();
+  const [formError, setFormError] = useState<FormError>();
+  const form = useForm<SignInValues>({
+    resolver: zodResolver(signInSchema),
+    mode: "onBlur",
+    reValidateMode: "onChange",
+    defaultValues: { email: defaultEmail, password: "" },
+  });
+  const { errors, isSubmitting } = useFormState({ control: form.control });
+
+  async function handleSubmit(values: SignInValues) {
+    setFormError(undefined);
+    const { error } = await authClient.signIn.email(values);
+    if (error) {
+      setFormError(formErrorOf(error));
+      return;
+    }
+
+    router.push(`/${locale}`);
+    // The header is part of the layout, which a client navigation keeps as it was
+    router.refresh();
+  }
+
+  function messageOf(message: string | undefined) {
+    return isFieldError(message) ? t(`errors.${message}`) : undefined;
+  }
+
+  return (
+    <form onSubmit={form.handleSubmit(handleSubmit)} noValidate className="grid gap-4">
+      {hasJustRegistered ? (
+        <output className="block rounded-lg bg-muted px-3 py-2 text-sm">
+          {t("signIn.registered")}
+        </output>
+      ) : null}
+      <AuthField
+        label={t("fields.email")}
+        type="email"
+        autoComplete="email"
+        inputMode="email"
+        error={messageOf(errors.email?.message)}
+        {...form.register("email")}
+      />
+      <AuthField
+        label={t("fields.password")}
+        type="password"
+        autoComplete="current-password"
+        error={messageOf(errors.password?.message)}
+        {...form.register("password")}
+      />
+      {formError ? <FieldError>{t(`errors.${formError}`)}</FieldError> : null}
+      <Button type="submit" size="lg" disabled={isSubmitting}>
+        {t("signIn.submit")}
+      </Button>
+      <p className="text-sm text-muted-foreground">
+        {t("signIn.noAccount")}{" "}
+        <Link href={`/${locale}/sign-up`} className="text-foreground underline underline-offset-4">
+          {t("signIn.signUpLink")}
+        </Link>
+      </p>
+    </form>
+  );
+}
