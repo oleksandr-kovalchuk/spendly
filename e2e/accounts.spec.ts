@@ -42,6 +42,12 @@ function newEmail(testInfo: { project: { name: string }; workerIndex: number }) 
   return `${testInfo.project.name}-${testInfo.workerIndex}-${crypto.randomUUID()}@example.com`;
 }
 
+// Every test would otherwise share one IP and hit the sign-in rate limit; the server reads x-real-ip
+test.beforeEach(async ({ context }) => {
+  const [a = 0, b = 0, c = 0] = crypto.getRandomValues(new Uint8Array(3));
+  await context.setExtraHTTPHeaders({ "x-real-ip": `10.${a}.${b}.${c}` });
+});
+
 for (const locale of ["en", "uk"] as const) {
   const text = TEXTS[locale];
 
