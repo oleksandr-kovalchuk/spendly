@@ -8,19 +8,14 @@ import en from "@/i18n/messages/en.json";
 
 import { SignInForm } from "./sign-in-form";
 
-const { push, refresh, signIn } = vi.hoisted(() => ({
-  push: vi.fn(),
-  refresh: vi.fn(),
-  signIn: vi.fn(),
-}));
+const { assign, signIn } = vi.hoisted(() => ({ assign: vi.fn(), signIn: vi.fn() }));
 
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push, refresh }) }));
 vi.mock("@/shared/auth/auth-client", () => ({ authClient: { signIn: { email: signIn } } }));
 
 beforeEach(() => {
-  push.mockReset();
-  refresh.mockReset();
+  assign.mockReset();
   signIn.mockReset();
+  vi.stubGlobal("location", { assign });
 });
 
 function renderForm(props: { defaultEmail?: string; hasJustRegistered?: boolean } = {}) {
@@ -52,14 +47,13 @@ test("a password is not checked for its length on sign in", async () => {
   expect(signIn).toHaveBeenCalledWith({ email: "ann@example.com", password: "x" });
 });
 
-test("a successful sign in opens the main page and refreshes the layout", async () => {
+test("a successful sign in loads the main page in full", async () => {
   signIn.mockResolvedValue({ error: null });
   const user = renderForm({ defaultEmail: "ann@example.com" });
   await user.type(screen.getByLabelText("Password"), "long-enough-password");
   await user.click(screen.getByRole("button", { name: "Sign in" }));
 
-  expect(push).toHaveBeenCalledWith("/en");
-  expect(refresh).toHaveBeenCalled();
+  expect(assign).toHaveBeenCalledWith("/en");
 });
 
 test("wrong credentials show one form error and keep the user on the page", async () => {
@@ -69,7 +63,7 @@ test("wrong credentials show one form error and keep the user on the page", asyn
   await user.click(screen.getByRole("button", { name: "Sign in" }));
 
   expect(await screen.findByRole("alert")).toHaveTextContent("The email or password is incorrect.");
-  expect(push).not.toHaveBeenCalled();
+  expect(assign).not.toHaveBeenCalled();
 });
 
 test("a rate limit answer says to try again later", async () => {

@@ -3,7 +3,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useLocale, useTranslations } from "next-intl";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm, useFormState } from "react-hook-form";
 
@@ -20,7 +19,6 @@ type SignInFormProps = { defaultEmail?: string; hasJustRegistered: boolean };
 export function SignInForm({ defaultEmail = "", hasJustRegistered }: SignInFormProps) {
   const t = useTranslations("Auth");
   const locale = useLocale();
-  const router = useRouter();
   const [formError, setFormError] = useState<FormError>();
   const form = useForm<SignInValues>({
     resolver: zodResolver(signInSchema),
@@ -38,9 +36,8 @@ export function SignInForm({ defaultEmail = "", hasJustRegistered }: SignInFormP
       return;
     }
 
-    router.push(`/${locale}`);
-    // The header is part of the layout, which a client navigation keeps as it was
-    router.refresh();
+    // A client navigation would reuse the signed-out redirect that Next prefetched for the main page
+    window.location.assign(`/${locale}`);
   }
 
   function messageOf(message: string | undefined) {
