@@ -1,16 +1,16 @@
 import { drizzle } from "drizzle-orm/node-postgres";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { Client } from "pg";
+import { z } from "zod";
 
 const LOCK_TIMEOUT_MS = 5_000;
 const MIGRATIONS_FOLDER = "./drizzle";
 
 // A standalone script: the app's env module needs the secrets it doesn't use
 // oxlint-disable-next-line node/no-process-env
-const connectionString = process.env.DATABASE_URL;
-if (!connectionString) throw new Error("DATABASE_URL is not set");
+const { DATABASE_URL } = z.object({ DATABASE_URL: z.url() }).parse(process.env);
 
-const client = new Client({ connectionString });
+const client = new Client({ connectionString: DATABASE_URL });
 await client.connect();
 
 try {
