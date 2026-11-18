@@ -9,12 +9,46 @@
       "light": "Light",
       "dark": "Dark",
       "system": "System"
+    },
+    "signOut": "Sign out",
+    "signOutFailed": "Sign out failed, try again"
+  },
+  "Auth": {
+    "fields": {
+      "email": "Email",
+      "password": "Password"
+    },
+    "signUp": {
+      "title": "Sign up",
+      "heading": "Create your account",
+      "passwordHint": "Use 8 to 128 characters.",
+      "submit": "Sign up",
+      "hasAccount": "Already have an account?",
+      "signInLink": "Sign in"
+    },
+    "signIn": {
+      "title": "Sign in",
+      "heading": "Sign in to Spendly",
+      "registered": "Your account is ready. Sign in to continue.",
+      "submit": "Sign in",
+      "noAccount": "No account yet?",
+      "signUpLink": "Sign up"
+    },
+    "errors": {
+      "emailInvalid": "Enter a valid email address.",
+      "passwordTooShort": "The password must have at least 8 characters.",
+      "passwordTooLong": "The password must have at most 128 characters.",
+      "passwordRequired": "Enter your password.",
+      "invalidCredentials": "The email or password is incorrect.",
+      "tooManyAttempts": "Too many attempts. Try again in a minute.",
+      "unknown": "Something went wrong. Try again."
     }
   },
   "Home": {
     "title": "Home",
     "heading": "Welcome to Spendly",
-    "text": "Track your income and expenses in one place. More is coming soon."
+    "text": "Track your income and expenses in one place. More is coming soon.",
+    "signedInAs": "Signed in as {email}"
   },
   "NotFound": {
     "title": "Page not found",

@@ -13,7 +13,7 @@ const LOCALES = [
 ] as const;
 
 const PAGES = [
-  { name: "home", path: "" },
+  { name: "sign in", path: "/sign-in" },
   { name: "not found", path: "/no-such-page" },
 ] as const;
 
@@ -43,7 +43,7 @@ for (const { locale, dark, light } of LOCALES) {
 for (const colorScheme of ["light", "dark"] as const) {
   test(`follows the ${colorScheme} system theme by default`, async ({ page }) => {
     await page.emulateMedia({ colorScheme });
-    await page.goto("/en");
+    await page.goto("/en/sign-in");
 
     await expect(page.locator("html")).toHaveClass(colorScheme === "dark" ? /dark/ : /^(?!.*dark)/);
     await expectNoViolations(page);
@@ -51,7 +51,7 @@ for (const colorScheme of ["light", "dark"] as const) {
 }
 
 test("remembers the dark theme from the first paint", async ({ page }) => {
-  await page.goto("/en");
+  await page.goto("/en/sign-in");
   await page.getByRole("button", { name: "Dark", exact: true }).click();
   await page.addInitScript(() => {
     document.addEventListener("DOMContentLoaded", () => {
@@ -65,14 +65,14 @@ test("remembers the dark theme from the first paint", async ({ page }) => {
 });
 
 for (const { browserLocale, expected } of [
-  { browserLocale: "uk-UA", expected: "/uk" },
-  { browserLocale: "en-US", expected: "/en" },
-  { browserLocale: "fr-FR", expected: "/en" },
+  { browserLocale: "uk-UA", expected: "/uk/sign-in" },
+  { browserLocale: "en-US", expected: "/en/sign-in" },
+  { browserLocale: "fr-FR", expected: "/en/sign-in" },
 ]) {
   test.describe(`browser language ${browserLocale}`, () => {
     test.use({ locale: browserLocale });
 
-    test(`redirects / to ${expected}`, async ({ page }) => {
+    test(`redirects / to the sign-in page ${expected}`, async ({ page }) => {
       await page.goto("/");
 
       expect(new URL(page.url()).pathname).toBe(expected);
@@ -81,13 +81,13 @@ for (const { browserLocale, expected } of [
 }
 
 test("switches the language and keeps the page", async ({ page }) => {
-  await page.goto("/en");
+  await page.goto("/en/sign-in");
   await page.getByRole("link", { name: "Українська" }).click();
 
-  await expect(page).toHaveURL(/\/uk$/);
+  await expect(page).toHaveURL(/\/uk\/sign-in$/);
   await expect(page.locator("html")).toHaveAttribute("lang", "uk");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Ласкаво просимо до Spendly");
-  await expect(page).toHaveTitle("Головна | Spendly");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Вхід до Spendly");
+  await expect(page).toHaveTitle("Вхід | Spendly");
 });
 
 test("shows the 404 page in the current language with a link home", async ({ page }) => {
@@ -96,7 +96,7 @@ test("shows the 404 page in the current language with a link home", async ({ pag
   await expect(page).toHaveTitle("Сторінку не знайдено | Spendly");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Сторінку не знайдено");
   await page.getByRole("link", { name: "На головну" }).click();
-  await expect(page).toHaveURL(/\/uk$/);
+  await expect(page).toHaveURL(/\/uk\/sign-in$/);
 });
 
 test.describe("without JavaScript", () => {
@@ -113,7 +113,7 @@ test.describe("without JavaScript", () => {
 });
 
 test("the first Tab stop is the skip link to the main content", async ({ page }) => {
-  await page.goto("/en");
+  await page.goto("/en/sign-in");
   await page.keyboard.press("Tab");
 
   await expect(page.getByRole("link", { name: "Skip to main content" })).toBeFocused();
@@ -122,7 +122,7 @@ test("the first Tab stop is the skip link to the main content", async ({ page })
 });
 
 test("fits the screen without horizontal scrolling", async ({ page }) => {
-  await page.goto("/uk");
+  await page.goto("/uk/sign-in");
 
   const overflow = await page.evaluate(
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,

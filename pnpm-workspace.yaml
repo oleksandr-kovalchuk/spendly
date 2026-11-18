@@ -16,3 +16,8 @@ trustPolicyIgnoreAfter: 10080
 auditConfig:
   ignoreGhsas:
     - GHSA-fc5q-39xc-vjpf
+trustPolicyExclude:
+  - "@vercel/functions"
+  - "@vercel/oidc"
+  - "@vercel/cli-config"
+  - "@vercel/cli-exec"

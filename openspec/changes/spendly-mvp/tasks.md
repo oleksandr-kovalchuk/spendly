@@ -31,12 +31,12 @@ How to check:
 2. Reload: the main page stays signed in.
 3. Sign out and open the main page: the sign-in page opens.
 
-- [ ] 2.1 Add the env module, Drizzle with a `pg` pool, migrations in the Vercel build step and `.env.example`; verify migrations run on an empty database
-- [ ] 2.2 Configure Better Auth (`autoSignIn: false`, database rate limiter, `nextCookies()`) and its generated migration; verify with integration tests on Testcontainers
-- [ ] 2.3 Add the sign-up and sign-in forms with field errors; verify with component tests of validation
-- [ ] 2.4 Protect private pages in `proxy.ts` (optimistic) and the DAL (session); verify a test that every data action rejects a request without a session
-- [ ] 2.5 Add sign out in the header with a full page load; verify an E2E test of sign up, sign in and sign out against a Postgres service in CI
-- [ ] 2.6 List the stored personal data in README; verify it names email, password hash and sessions
+- [x] 2.1 Add the env module, Drizzle with a `pg` pool, migrations in the Vercel build step and `.env.example`; verify migrations run on an empty database
+- [x] 2.2 Configure Better Auth (`autoSignIn: false`, database rate limiter, `nextCookies()`) and its generated migration; verify with integration tests on Testcontainers
+- [x] 2.3 Add the sign-up and sign-in forms with field errors; verify with component tests of validation
+- [x] 2.4 Protect private pages in `proxy.ts` (optimistic) and the DAL (session); verify a test that every data action rejects a request without a session
+- [x] 2.5 Add sign out in the header with a full page load; verify an E2E test of sign up, sign in and sign out against a Postgres service in CI
+- [x] 2.6 List the stored personal data in README; verify it names email, password hash and sessions
 
 ## 3. Add and list transactions
 
