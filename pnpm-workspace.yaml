@@ -13,3 +13,6 @@ allowBuilds:
   workerd: false
 trustPolicy: no-downgrade
 trustPolicyIgnoreAfter: 10080
+auditConfig:
+  ignoreGhsas:
+    - GHSA-fc5q-39xc-vjpf
