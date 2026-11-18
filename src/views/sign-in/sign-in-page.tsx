@@ -18,7 +18,10 @@ async function SignInContent({ searchParams }: { searchParams: Promise<unknown> 
 
   const { email, registered } = searchParamsSchema.parse(params);
 
-  return <SignInForm defaultEmail={email} hasJustRegistered={registered === "1"} />;
+  // Next keeps a visited sign-in page mounted, so a new email needs a fresh form
+  return (
+    <SignInForm key={email ?? ""} defaultEmail={email} hasJustRegistered={registered === "1"} />
+  );
 }
 
 function FormSkeleton() {

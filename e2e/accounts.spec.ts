@@ -88,6 +88,7 @@ for (const locale of ["en", "uk"] as const) {
     await field(page, text.email).fill(email);
     await field(page, text.password).fill(PASSWORD);
     await page.getByRole("button", { name: text.signUp }).click();
+    await expect(page).toHaveURL(new RegExp(`/${locale}/sign-in\\?`));
     await field(page, text.password).fill(PASSWORD);
     await page.getByRole("button", { name: text.signIn }).click();
     await expect(page).toHaveURL(new RegExp(`/${locale}$`));
@@ -120,6 +121,7 @@ test("the signed-in main page fits a small screen", async ({ page }, testInfo) =
   await field(page, TEXTS.uk.email).fill(newEmail(testInfo));
   await field(page, TEXTS.uk.password).fill(PASSWORD);
   await page.getByRole("button", { name: TEXTS.uk.signUp }).click();
+  await expect(page).toHaveURL(/\/uk\/sign-in\?/);
   await field(page, TEXTS.uk.password).fill(PASSWORD);
   await page.getByRole("button", { name: TEXTS.uk.signIn }).click();
   await expect(page.getByRole("button", { name: TEXTS.uk.signOut })).toBeVisible();

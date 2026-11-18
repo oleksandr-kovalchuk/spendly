@@ -12,14 +12,20 @@ const RATE_LIMIT_WINDOW_SECONDS = 60;
 const RATE_LIMIT_MAX_REQUESTS = 100;
 const AUTH_ATTEMPTS_PER_WINDOW = 10;
 
-const previewOrigins = [env.VERCEL_URL, env.VERCEL_BRANCH_URL]
+// Preview deployments have no BETTER_AUTH_URL: their own Vercel hosts are the base URL and a trusted origin
+const previewOrigins = [env.VERCEL_BRANCH_URL, env.VERCEL_URL]
   .filter((host) => host !== undefined)
   .map((host) => `https://${host}`);
 
+const baseURL = env.BETTER_AUTH_URL ?? previewOrigins[0];
+if (!baseURL) throw new Error("BETTER_AUTH_URL is not set");
+
+const trustedOrigins = env.BETTER_AUTH_URL ? [] : previewOrigins;
+
 export const auth = betterAuth({
-  baseURL: env.BETTER_AUTH_URL,
+  baseURL,
   secret: env.BETTER_AUTH_SECRET,
-  trustedOrigins: previewOrigins,
+  trustedOrigins,
   database: drizzleAdapter(db, { provider: "pg", schema }),
   emailAndPassword: {
     enabled: true,
