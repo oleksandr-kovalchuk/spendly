@@ -46,7 +46,7 @@ export function TransactionList({ groups, editingId }: { groups: DayGroup[]; edi
                 <li
                   key={transaction.id}
                   aria-current={isEditing ? "true" : undefined}
-                  className="grid gap-1 px-3 py-2 aria-[current=true]:bg-muted"
+                  className="grid gap-1 px-3 py-2 aria-[current=true]:ring-2 aria-[current=true]:ring-primary aria-[current=true]:ring-inset"
                 >
                   <div className="flex items-baseline justify-between gap-4">
                     <div className="min-w-0">
