@@ -9,6 +9,7 @@ import { CATEGORY_TYPES, type CategoryType } from "@/shared/db/app-schema";
 import { Button } from "@/shared/ui/button";
 import { FieldError } from "@/shared/ui/field";
 import { Input } from "@/shared/ui/input";
+import { NativeSelect, NativeSelectOption } from "@/shared/ui/native-select";
 
 import { addTransaction } from "./add-transaction.action";
 import { TransactionField } from "./transaction-field";
@@ -21,10 +22,13 @@ type FormError = "categoryNotFound" | "unknown";
 type FieldName = "amount" | "categoryId" | "date" | "note";
 
 const FIELD_NAMES = ["amount", "categoryId", "date", "note"] as const satisfies FieldName[];
-const SELECT_CLASS =
-  "h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2 py-1 text-base transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 md:text-sm";
 
-export function TransactionForm({ categories, today }: TransactionFormProps) {
+// The first visit renders with UTC "today" until the time zone cookie is set, so a new "today" remounts the form to reset the date default
+export function TransactionForm(props: TransactionFormProps) {
+  return <TransactionFormFields key={props.today} {...props} />;
+}
+
+function TransactionFormFields({ categories, today }: TransactionFormProps) {
   const t = useTranslations("Transactions");
   const [formError, setFormError] = useState<FormError>();
   const [isAdded, setIsAdded] = useState(false);
@@ -141,8 +145,8 @@ export function TransactionForm({ categories, today }: TransactionFormProps) {
         render={({ field, fieldState }) => (
           <TransactionField label={t("form.category")} error={messageOf(fieldState.error?.message)}>
             {(controlProps) => (
-              <select
-                className={SELECT_CLASS}
+              <NativeSelect
+                className="w-full"
                 {...controlProps}
                 name={field.name}
                 ref={field.ref}
@@ -153,11 +157,11 @@ export function TransactionForm({ categories, today }: TransactionFormProps) {
                 {categories
                   .filter((category) => category.type === type)
                   .map((category) => (
-                    <option key={category.id} value={category.id}>
+                    <NativeSelectOption key={category.id} value={category.id}>
                       {category.label}
-                    </option>
+                    </NativeSelectOption>
                   ))}
-              </select>
+              </NativeSelect>
             )}
           </TransactionField>
         )}

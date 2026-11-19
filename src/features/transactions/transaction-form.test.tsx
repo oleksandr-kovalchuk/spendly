@@ -114,3 +114,16 @@ test("a failed request shows the unknown error", async () => {
 
   expect(await screen.findByText(en.Transactions.errors.unknown)).toBeVisible();
 });
+
+test("a new today from the server replaces the date default", () => {
+  const ui = (today: string) => (
+    <NextIntlClientProvider locale="en" messages={en}>
+      <TransactionForm categories={CATEGORIES} today={today} />
+    </NextIntlClientProvider>
+  );
+  const { rerender } = render(ui("2026-03-10"));
+
+  rerender(ui("2026-03-11"));
+
+  expect(screen.getByLabelText("Date")).toHaveValue("2026-03-11");
+});
