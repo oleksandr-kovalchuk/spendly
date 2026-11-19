@@ -12,23 +12,48 @@ import { Input } from "@/shared/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/shared/ui/native-select";
 
 import { addTransaction } from "./add-transaction.action";
+import { amountInputOf } from "./amount";
 import { TransactionField } from "./transaction-field";
 import { isFieldError } from "./transaction-errors";
 import { transactionSchema, type TransactionValues } from "./transaction-schema";
+import type { TransactionDto } from "./transactions.dal";
+import { updateTransaction } from "./update-transaction.action";
 
 export type CategoryOption = { id: string; type: CategoryType; label: string };
-type TransactionFormProps = { categories: CategoryOption[]; today: string };
-type FormError = "categoryNotFound" | "unknown";
+type TransactionFormProps = {
+  categories: CategoryOption[];
+  today: string;
+  // Edits this transaction instead of adding one
+  transaction?: TransactionDto;
+  onSaved?: () => void;
+  onCancel?: () => void;
+};
+type FormError = "categoryNotFound" | "transactionNotFound" | "unknown";
 type FieldName = "amount" | "categoryId" | "date" | "note";
 
 const FIELD_NAMES = ["amount", "categoryId", "date", "note"] as const satisfies FieldName[];
 
 // The first visit renders with UTC "today" until the time zone cookie is set, so a new "today" remounts the form to reset the date default
 export function TransactionForm(props: TransactionFormProps) {
-  return <TransactionFormFields key={props.today} {...props} />;
+  return (
+    <TransactionFormFields key={`${props.transaction?.id ?? "new"}-${props.today}`} {...props} />
+  );
 }
 
-function TransactionFormFields({ categories, today }: TransactionFormProps) {
+function formErrorOf(serverError: string): FormError {
+  if (serverError === "categoryNotFound" || serverError === "transactionNotFound") {
+    return serverError;
+  }
+  return "unknown";
+}
+
+function TransactionFormFields({
+  categories,
+  today,
+  transaction,
+  onSaved,
+  onCancel,
+}: TransactionFormProps) {
   const t = useTranslations("Transactions");
   const [formError, setFormError] = useState<FormError>();
   const [isAdded, setIsAdded] = useState(false);
@@ -41,13 +66,21 @@ function TransactionFormFields({ categories, today }: TransactionFormProps) {
     resolver: zodResolver(transactionSchema),
     mode: "onBlur",
     reValidateMode: "onChange",
-    defaultValues: {
-      type: "expense",
-      amount: "",
-      categoryId: firstCategoryOf("expense"),
-      date: today,
-      note: "",
-    },
+    defaultValues: transaction
+      ? {
+          type: transaction.type,
+          amount: amountInputOf(transaction.amountKopecks),
+          categoryId: transaction.categoryId,
+          date: transaction.occurredOn,
+          note: transaction.note ?? "",
+        }
+      : {
+          type: "expense",
+          amount: "",
+          categoryId: firstCategoryOf("expense"),
+          date: today,
+          note: "",
+        },
   });
   const { errors, isSubmitting } = useFormState({ control: form.control });
   const type = useWatch({ control: form.control, name: "type" });
@@ -63,7 +96,9 @@ function TransactionFormFields({ categories, today }: TransactionFormProps) {
     setIsAdded(false);
 
     try {
-      const result = await addTransaction(values);
+      const result = transaction
+        ? await updateTransaction({ ...values, id: transaction.id })
+        : await addTransaction(values);
 
       const fieldErrors = result.validationErrors;
       if (fieldErrors) {
@@ -74,11 +109,16 @@ function TransactionFormFields({ categories, today }: TransactionFormProps) {
         return;
       }
       if (result.serverError) {
-        setFormError(result.serverError === "categoryNotFound" ? "categoryNotFound" : "unknown");
+        setFormError(formErrorOf(result.serverError));
         return;
       }
     } catch {
       setFormError("unknown");
+      return;
+    }
+
+    if (transaction) {
+      onSaved?.();
       return;
     }
 
@@ -94,7 +134,7 @@ function TransactionFormFields({ categories, today }: TransactionFormProps) {
       className="@container grid gap-4"
     >
       <h2 id="transaction-form-heading" className="text-lg font-medium">
-        {t("form.heading")}
+        {t(transaction ? "form.editHeading" : "form.heading")}
       </h2>
       <fieldset className="grid gap-2">
         <legend className="mb-2 text-sm font-medium">{t("form.type")}</legend>
@@ -175,9 +215,16 @@ function TransactionFormFields({ categories, today }: TransactionFormProps) {
       {isAdded ? (
         <output className="block rounded-lg bg-muted px-3 py-2 text-sm">{t("form.added")}</output>
       ) : null}
-      <Button type="submit" size="lg" disabled={isSubmitting}>
-        {t("form.submit")}
-      </Button>
+      <div className="grid gap-2 @md:grid-cols-2">
+        <Button type="submit" size="lg" disabled={isSubmitting}>
+          {t(transaction ? "form.save" : "form.submit")}
+        </Button>
+        {transaction ? (
+          <Button type="button" variant="outline" size="lg" onClick={onCancel}>
+            {t("form.cancel")}
+          </Button>
+        ) : null}
+      </div>
     </form>
   );
 }

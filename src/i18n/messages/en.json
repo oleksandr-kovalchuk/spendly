@@ -83,7 +83,10 @@
       "date": "Date",
       "note": "Note (optional)",
       "submit": "Add",
-      "added": "Transaction added."
+      "added": "Transaction added.",
+      "editHeading": "Edit transaction",
+      "save": "Save",
+      "cancel": "Cancel"
     },
     "errors": {
       "amountRequired": "Enter an amount.",
@@ -93,13 +96,24 @@
       "dateInvalid": "Enter a valid date.",
       "noteTooLong": "The note must have at most 200 characters.",
       "categoryNotFound": "This category is not available. Reload the page and try again.",
-      "unknown": "Something went wrong. Try again."
+      "unknown": "Something went wrong. Try again.",
+      "transactionNotFound": "This transaction no longer exists. Reload the page."
     },
     "list": {
       "heading": "Transactions",
       "empty": "No transactions this month yet. Add your first one above.",
       "loadFailed": "We could not load your transactions.",
-      "retry": "Try again"
+      "retry": "Try again",
+      "edit": "Edit {category}",
+      "editAction": "Edit",
+      "editing": "Editing",
+      "delete": "Delete {category}"
+    },
+    "delete": {
+      "title": "Delete this transaction?",
+      "description": "This {category} transaction will be deleted for good.",
+      "action": "Delete",
+      "cancel": "Cancel"
     }
   }
 }

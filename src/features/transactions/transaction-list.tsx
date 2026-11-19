@@ -1,14 +1,20 @@
-import { useFormatter, useTranslations } from "next-intl";
+import { useFormatter, useLocale, useTranslations } from "next-intl";
+import Link from "next/link";
 
 import { categoryLabel } from "@/shared/categories/category-label";
 
+import { buttonVariants } from "@/shared/ui/button";
+
+import { DeleteTransactionButton } from "./delete-transaction-button";
 import type { DayGroup } from "./group-by-day";
 
 const CURRENCY = "UAH";
 const KOPECKS_PER_HRYVNIA = 100;
 
-export function TransactionList({ groups }: { groups: DayGroup[] }) {
+// The transaction open in the form has no actions: deleting it would leave the form without one
+export function TransactionList({ groups, editingId }: { groups: DayGroup[]; editingId?: string }) {
   const t = useTranslations("Transactions");
+  const locale = useLocale();
   const tCategories = useTranslations("Categories");
   const format = useFormatter();
 
@@ -33,29 +39,47 @@ export function TransactionList({ groups }: { groups: DayGroup[] }) {
             {group.transactions.map((transaction) => {
               const sign = transaction.type === "income" ? 1 : -1;
 
+              const label = categoryLabel(transaction.category, tCategories);
+              const isEditing = transaction.id === editingId;
+
               return (
                 <li
                   key={transaction.id}
-                  className="flex items-baseline justify-between gap-4 px-3 py-2"
+                  aria-current={isEditing ? "true" : undefined}
+                  className="grid gap-1 px-3 py-2 aria-[current=true]:bg-muted"
                 >
-                  <div className="min-w-0">
-                    <p className="font-medium">
-                      {categoryLabel(transaction.category, tCategories)}
+                  <div className="flex items-baseline justify-between gap-4">
+                    <div className="min-w-0">
+                      <p className="font-medium">{label}</p>
+                      {transaction.note ? (
+                        <p className="text-sm break-words text-muted-foreground">
+                          {transaction.note}
+                        </p>
+                      ) : null}
+                    </div>
+                    <p className="shrink-0 font-medium tabular-nums">
+                      {format.number((sign * transaction.amountKopecks) / KOPECKS_PER_HRYVNIA, {
+                        style: "currency",
+                        currency: CURRENCY,
+                        currencyDisplay: "narrowSymbol",
+                        signDisplay: "always",
+                      })}
                     </p>
-                    {transaction.note ? (
-                      <p className="text-sm break-words text-muted-foreground">
-                        {transaction.note}
-                      </p>
-                    ) : null}
                   </div>
-                  <p className="shrink-0 font-medium tabular-nums">
-                    {format.number((sign * transaction.amountKopecks) / KOPECKS_PER_HRYVNIA, {
-                      style: "currency",
-                      currency: CURRENCY,
-                      currencyDisplay: "narrowSymbol",
-                      signDisplay: "always",
-                    })}
-                  </p>
+                  {isEditing ? (
+                    <p className="text-sm text-muted-foreground">{t("list.editing")}</p>
+                  ) : (
+                    <div className="flex justify-end gap-1">
+                      <Link
+                        href={{ pathname: `/${locale}`, query: { edit: transaction.id } }}
+                        aria-label={t("list.edit", { category: label })}
+                        className={buttonVariants({ variant: "ghost", size: "sm" })}
+                      >
+                        {t("list.editAction")}
+                      </Link>
+                      <DeleteTransactionButton transactionId={transaction.id} label={label} />
+                    </div>
+                  )}
                 </li>
               );
             })}

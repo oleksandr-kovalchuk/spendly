@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { render, screen, within } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 
 import en from "@/i18n/messages/en.json";
 import uk from "@/i18n/messages/uk.json";
@@ -10,6 +10,8 @@ import { groupByDay } from "./group-by-day";
 import { TransactionList } from "./transaction-list";
 import type { TransactionDto } from "./transactions.dal";
 
+vi.mock("./delete-transaction.action", () => ({ deleteTransaction: vi.fn() }));
+
 const TRANSACTIONS: TransactionDto[] = [
   {
     id: "1",
@@ -17,6 +19,7 @@ const TRANSACTIONS: TransactionDto[] = [
     amountKopecks: 12_550,
     occurredOn: "2026-03-10",
     note: "lunch",
+    categoryId: "0198a8c0-0000-7000-8000-000000000001",
     category: { defaultKey: "food", name: null },
   },
   {
@@ -25,6 +28,7 @@ const TRANSACTIONS: TransactionDto[] = [
     amountKopecks: 5_000_000,
     occurredOn: "2026-03-05",
     note: null,
+    categoryId: "0198a8c0-0000-7000-8000-000000000001",
     category: { defaultKey: "salary", name: null },
   },
   {
@@ -33,14 +37,15 @@ const TRANSACTIONS: TransactionDto[] = [
     amountKopecks: 100,
     occurredOn: "2026-03-05",
     note: null,
+    categoryId: "0198a8c0-0000-7000-8000-000000000001",
     category: { defaultKey: null, name: "Pets" },
   },
 ];
 
-function renderList(locale: "en" | "uk", transactions: TransactionDto[]) {
+function renderList(locale: "en" | "uk", transactions: TransactionDto[], editingId?: string) {
   render(
     <NextIntlClientProvider locale={locale} messages={locale === "en" ? en : uk}>
-      <TransactionList groups={groupByDay(transactions)} />
+      <TransactionList groups={groupByDay(transactions)} editingId={editingId} />
     </NextIntlClientProvider>,
   );
 }
@@ -82,4 +87,21 @@ test("shows the empty state without transactions", () => {
 
   expect(screen.getByText(en.Transactions.list.empty)).toBeVisible();
   expect(screen.queryByRole("list")).not.toBeInTheDocument();
+});
+
+test("each item links to its edit form and has a delete button", () => {
+  renderList("en", TRANSACTIONS);
+
+  expect(screen.getByRole("link", { name: "Edit Food" })).toHaveAttribute("href", "/en?edit=1");
+  expect(screen.getByRole("link", { name: "Edit Pets" })).toHaveAttribute("href", "/en?edit=3");
+  expect(screen.getAllByRole("button", { name: /^Delete / })).toHaveLength(3);
+});
+
+test("the transaction in the form has no actions and is marked", () => {
+  renderList("en", TRANSACTIONS, "1");
+
+  expect(screen.queryByRole("link", { name: "Edit Food" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Delete Food" })).not.toBeInTheDocument();
+  expect(screen.getByText("Editing").closest("li")).toHaveAttribute("aria-current", "true");
+  expect(screen.getByRole("link", { name: "Edit Pets" })).toBeVisible();
 });

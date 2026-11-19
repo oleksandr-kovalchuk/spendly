@@ -63,8 +63,8 @@ How to check:
 2. Delete another one, cancel, then delete and confirm: it disappears.
 3. Reload: both changes stay.
 
-- [ ] 4.1 Open a transaction in the form and save it with an update action; verify with tests that another user's ID gives a 404 or a rejection
-- [ ] 4.2 Add delete with a confirmation dialog and a delete action; verify with integration tests and an E2E edit and delete test
+- [x] 4.1 Open a transaction in the form and save it with an update action; verify with tests that another user's ID gives a 404 or a rejection
+- [x] 4.2 Add delete with a confirmation dialog and a delete action; verify with integration tests and an E2E edit and delete test
 
 ## 5. Categories
 

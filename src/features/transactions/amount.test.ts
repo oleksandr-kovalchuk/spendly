@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { parseAmount } from "./amount";
+import { amountInputOf, parseAmount } from "./amount";
 
 describe("parseAmount", () => {
   test.each([
@@ -45,5 +45,20 @@ describe("parseAmount", () => {
 
   test("more than 2 decimals is invalid even just above the maximum", () => {
     expect(parseAmount("999999999.995")).toEqual({ error: "amountInvalid" });
+  });
+});
+
+describe("amountInputOf", () => {
+  test.each([
+    [12_550, "125.50"],
+    [1, "0.01"],
+    [700, "7.00"],
+    [99_999_999_999, "999999999.99"],
+  ])("%i kopecks is %j", (kopecks, text) => {
+    expect(amountInputOf(kopecks)).toBe(text);
+  });
+
+  test.each([12_550, 1, 29, 99_999_999_999])("parses back to %i kopecks", (kopecks) => {
+    expect(parseAmount(amountInputOf(kopecks))).toEqual({ kopecks });
   });
 });
