@@ -1,13 +1,6 @@
-import type { Metadata } from "next";
-import { getTranslations } from "next-intl/server";
+import { notFound } from "next/navigation";
 
-import { pageTitle } from "@/shared/lib/page-title";
-import { NotFoundPage } from "@/views/not-found/not-found-page";
-
-// notFound() here is rendered by the client after the shell, so the HTML would have no content or title
-export async function generateMetadata(): Promise<Metadata> {
-  const t = await getTranslations("NotFound");
-  return { title: pageTitle(t("title")), robots: { index: false } };
+// Called while prerendering, so the response keeps the 404 status
+export default function Page() {
+  notFound();
 }
-
-export default NotFoundPage;

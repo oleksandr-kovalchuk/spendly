@@ -39,7 +39,7 @@ export default async function RootLayout({ children }: LayoutProps<"/[locale]">)
   if (!hasLocale(routing.locales, current)) notFound();
 
   const t = await getTranslations("Layout");
-  const { Header: header, Auth: auth } = await getMessages();
+  const { Header: header, Auth: auth, Error: error } = await getMessages();
 
   return (
     // The theme script of next-themes sets the class before hydration
@@ -49,7 +49,7 @@ export default async function RootLayout({ children }: LayoutProps<"/[locale]">)
       suppressHydrationWarning
     >
       <body className="flex min-h-full flex-col">
-        <NextIntlClientProvider messages={{ Header: header, Auth: auth }}>
+        <NextIntlClientProvider messages={{ Header: header, Auth: auth, Error: error }}>
           <AppProviders>
             <a
               href="#main-content"

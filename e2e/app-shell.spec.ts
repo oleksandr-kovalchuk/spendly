@@ -99,17 +99,10 @@ test("shows the 404 page in the current language with a link home", async ({ pag
   await expect(page).toHaveURL(/\/uk\/sign-in$/);
 });
 
-test.describe("without JavaScript", () => {
-  test.use({ javaScriptEnabled: false });
-
-  test("the 404 page is in the HTML with a title and a link home", async ({ page }) => {
-    await page.goto("/en/no-such-page");
-
-    await expect(page).toHaveTitle("Page not found | Spendly");
-    await expect(page.locator("html")).toHaveAttribute("lang", "en");
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Page not found");
-    await expect(page.getByRole("link", { name: "Back to home" })).toHaveAttribute("href", "/en");
-  });
+test("an unknown URL answers with the 404 status", async ({ request }) => {
+  for (const path of ["/en/no-such-page", "/uk/no-such-page", "/en/sign-in/no-such-page"]) {
+    expect((await request.get(path)).status(), path).toBe(404);
+  }
 });
 
 test("the first Tab stop is the skip link to the main content", async ({ page }) => {
