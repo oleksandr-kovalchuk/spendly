@@ -221,6 +221,8 @@ for (const locale of ["en", "uk"] as const) {
     await second.getByRole("button", { name: new RegExp(`^${text.del}`) }).click();
     const dialog = page.getByRole("alertdialog", { name: text.deleteTitle });
     await expect(dialog).toBeVisible();
+    // axe would read the colors of the open animation's intermediate frames
+    await page.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished)));
     await expectNoViolations(page);
     await dialog.getByRole("button", { name: text.cancel }).click();
     await expect(dialog).toHaveCount(0);
@@ -257,7 +259,7 @@ test("another user's transaction opens the 404 page", async ({ page, browser }, 
 
   // With Cache Components the shell streams first with a 200, so the 404 page and its noindex meta are checked instead of the status.
   await expect(otherPage.getByRole("heading", { level: 1, name: "Page not found" })).toBeVisible();
-  await expect(otherPage.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
+  await expect(otherPage.locator('head meta[name="robots"]')).toHaveAttribute("content", /noindex/);
   await expect(otherPage.getByRole("textbox", { name: TEXTS.en.amount })).toHaveCount(0);
   await other.close();
 });
