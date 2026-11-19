@@ -253,9 +253,11 @@ test("another user's transaction opens the 404 page", async ({ page, browser }, 
   const other = await browser.newContext({ timezoneId: "UTC" });
   const otherPage = await other.newPage();
   await signUpAndIn(otherPage, "en", testInfo);
-  const response = await otherPage.goto(editUrl);
+  await otherPage.goto(editUrl);
 
-  expect(response?.status()).toBe(404);
+  // With Cache Components the shell streams first with a 200, so the 404 page and its noindex meta are checked instead of the status.
+  await expect(otherPage.getByRole("heading", { level: 1, name: "Page not found" })).toBeVisible();
+  await expect(otherPage.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
   await expect(otherPage.getByRole("textbox", { name: TEXTS.en.amount })).toHaveCount(0);
   await other.close();
 });
