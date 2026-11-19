@@ -3,6 +3,7 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
 
 import { env } from "@/env";
+import { createDefaultCategories } from "@/shared/categories/default-categories";
 import { db } from "@/shared/db/client";
 import * as schema from "@/shared/db/auth-schema";
 
@@ -47,5 +48,8 @@ export const auth = betterAuth({
   },
   // Vercel overwrites this header with the client's address, so it can't be spoofed
   advanced: { ipAddress: { ipAddressHeaders: ["x-real-ip"] } },
+  databaseHooks: {
+    user: { create: { after: (created) => createDefaultCategories(created.id) } },
+  },
   plugins: [nextCookies()],
 });

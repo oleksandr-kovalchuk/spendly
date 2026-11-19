@@ -8,6 +8,20 @@
       "when": 1794990578314,
       "tag": "0000_init",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1795079286053,
+      "tag": "0001_categories_and_transactions",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1795079287210,
+      "tag": "0002_backfill_default_categories",
+      "breakpoints": true
     }
   ]
 }

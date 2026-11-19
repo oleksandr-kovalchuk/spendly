@@ -4,7 +4,8 @@ import { Pool } from "pg";
 
 import { env } from "@/env";
 
-import * as schema from "./auth-schema";
+import * as appSchema from "./app-schema";
+import * as authSchema from "./auth-schema";
 
 const POOL_MAX_CONNECTIONS = 10;
 const CONNECTION_TIMEOUT_MS = 5_000;
@@ -26,4 +27,4 @@ globalForDb.pool = pool;
 
 attachDatabasePool(pool);
 
-export const db = drizzle(pool, { schema, casing: "snake_case" });
+export const db = drizzle(pool, { schema: { ...authSchema, ...appSchema }, casing: "snake_case" });

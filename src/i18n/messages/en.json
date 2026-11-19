@@ -46,9 +46,7 @@
   },
   "Home": {
     "title": "Home",
-    "heading": "Welcome to Spendly",
-    "text": "Track your income and expenses in one place. More is coming soon.",
-    "signedInAs": "Signed in as {email}"
+    "heading": "This month"
   },
   "NotFound": {
     "title": "Page not found",
@@ -59,5 +57,49 @@
     "title": "Something went wrong",
     "text": "We could not load this page. Try again.",
     "retry": "Try again"
+  },
+  "Categories": {
+    "defaults": {
+      "food": "Food",
+      "transport": "Transport",
+      "housing": "Housing",
+      "utilities": "Utilities",
+      "health": "Health",
+      "shopping": "Shopping",
+      "entertainment": "Entertainment",
+      "other": "Other",
+      "salary": "Salary",
+      "gifts": "Gifts"
+    }
+  },
+  "Transactions": {
+    "form": {
+      "heading": "Add transaction",
+      "type": "Type",
+      "expense": "Expense",
+      "income": "Income",
+      "amount": "Amount (UAH)",
+      "category": "Category",
+      "date": "Date",
+      "note": "Note (optional)",
+      "submit": "Add",
+      "added": "Transaction added."
+    },
+    "errors": {
+      "amountRequired": "Enter an amount.",
+      "amountInvalid": "Enter an amount above zero with at most 2 decimals.",
+      "amountTooLarge": "The amount must be at most 999,999,999.99.",
+      "categoryInvalid": "Choose a category.",
+      "dateInvalid": "Enter a valid date.",
+      "noteTooLong": "The note must have at most 200 characters.",
+      "categoryNotFound": "This category is not available. Reload the page and try again.",
+      "unknown": "Something went wrong. Try again."
+    },
+    "list": {
+      "heading": "Transactions",
+      "empty": "No transactions this month yet. Add your first one above.",
+      "loadFailed": "We could not load your transactions.",
+      "retry": "Try again"
+    }
   }
 }
