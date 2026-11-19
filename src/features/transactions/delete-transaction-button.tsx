@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { useAction } from "next-safe-action/hooks";
 import { useState } from "react";
 
 import {
@@ -19,8 +20,6 @@ import { FieldError } from "@/shared/ui/field";
 
 import { deleteTransaction } from "./delete-transaction.action";
 
-type DeleteError = "transactionNotFound" | "unknown";
-
 export function DeleteTransactionButton({
   transactionId,
   label,
@@ -30,31 +29,16 @@ export function DeleteTransactionButton({
 }) {
   const t = useTranslations("Transactions");
   const [isOpen, setIsOpen] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [error, setError] = useState<DeleteError>();
+  const { execute, isPending, hasErrored, result, reset } = useAction(deleteTransaction, {
+    onSuccess: () => setIsOpen(false),
+  });
+  const error = result.serverError === "transactionNotFound" ? "transactionNotFound" : "unknown";
 
   function handleOpenChange(open: boolean) {
     // A request in flight can't be cancelled, so the dialog stays until it ends
-    if (isDeleting) return;
+    if (isPending) return;
     setIsOpen(open);
-    setError(undefined);
-  }
-
-  async function handleConfirm() {
-    setError(undefined);
-    setIsDeleting(true);
-    try {
-      const result = await deleteTransaction({ id: transactionId });
-      if (result.serverError || result.validationErrors) {
-        setError(result.serverError === "transactionNotFound" ? "transactionNotFound" : "unknown");
-        return;
-      }
-      setIsOpen(false);
-    } catch {
-      setError("unknown");
-    } finally {
-      setIsDeleting(false);
-    }
+    reset();
   }
 
   return (
@@ -73,10 +57,14 @@ export function DeleteTransactionButton({
             {t("delete.description", { category: label })}
           </AlertDialogDescription>
         </AlertDialogHeader>
-        {error ? <FieldError>{t(`errors.${error}`)}</FieldError> : null}
+        {hasErrored ? <FieldError>{t(`errors.${error}`)}</FieldError> : null}
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={isDeleting}>{t("delete.cancel")}</AlertDialogCancel>
-          <AlertDialogAction variant="destructive" disabled={isDeleting} onClick={handleConfirm}>
+          <AlertDialogCancel disabled={isPending}>{t("delete.cancel")}</AlertDialogCancel>
+          <AlertDialogAction
+            variant="destructive"
+            disabled={isPending}
+            onClick={() => execute({ id: transactionId })}
+          >
             {t("delete.action")}
           </AlertDialogAction>
         </AlertDialogFooter>
