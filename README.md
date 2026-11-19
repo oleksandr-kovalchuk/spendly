@@ -17,3 +17,5 @@
 - Password hash (scrypt, by Better Auth); the password itself is never stored or logged
 - Sessions: a token, expiry, IP address and user agent per signed-in device; deleted on sign out
 - Rate limit counters per IP address and path, kept in the database
+- Transactions: amount, date, category and an optional note per transaction, and the user's categories
+- A `time-zone` cookie with the browser's time zone name, to know the user's current day

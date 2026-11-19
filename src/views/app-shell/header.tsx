@@ -21,14 +21,14 @@ export async function Header() {
 
   return (
     <header className="border-b border-border">
-      <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-2 px-4 py-2">
+      <div className="mx-auto flex w-full max-w-3xl flex-wrap items-center justify-between gap-2 px-4 py-2">
         <Link
           href={`/${currentLocale}`}
           className={buttonVariants({ variant: "ghost", size: "lg", className: "text-base" })}
         >
           Spendly
         </Link>
-        <div className="flex items-center gap-1">
+        <div className="ms-auto flex items-center gap-1">
           <Suspense fallback={null}>
             <SessionControls />
           </Suspense>

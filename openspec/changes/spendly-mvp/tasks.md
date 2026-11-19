@@ -48,10 +48,10 @@ How to check:
 2. Both show under their days, newest first, with minus and plus amounts.
 3. Switch to Українська: dates, amounts and category names are translated.
 
-- [ ] 3.1 Add the `categories` and `transactions` tables, defaults created on sign-up and backfilled for existing users; verify with DAL integration tests
-- [ ] 3.2 Add the time zone cookie and the "today" helper; verify with unit tests across time zones
-- [ ] 3.3 Add the transaction form and its Server Action; verify with tests of validation and of another user's category
-- [ ] 3.4 Show the current month grouped by day with loading, empty and error states; verify with grouping unit tests and an E2E add test
+- [x] 3.1 Add the `categories` and `transactions` tables, defaults created on sign-up and backfilled for existing users; verify with DAL integration tests
+- [x] 3.2 Add the time zone cookie and the "today" helper; verify with unit tests across time zones
+- [x] 3.3 Add the transaction form and its Server Action; verify with tests of validation and of another user's category
+- [x] 3.4 Show the current month grouped by day with loading, empty and error states; verify with grouping unit tests and an E2E add test
 
 ## 4. Edit and delete transactions
 

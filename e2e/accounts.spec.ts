@@ -10,7 +10,7 @@ const TEXTS = {
     signOut: "Sign out",
     email: "Email",
     password: "Password",
-    heading: "Welcome to Spendly",
+    heading: "This month",
     signInHeading: "Sign in to Spendly",
     invalidEmail: "Enter a valid email address.",
     wrongCredentials: "The email or password is incorrect.",
@@ -21,7 +21,7 @@ const TEXTS = {
     signOut: "Вийти",
     email: "Електронна пошта",
     password: "Пароль",
-    heading: "Ласкаво просимо до Spendly",
+    heading: "Цей місяць",
     signInHeading: "Вхід до Spendly",
     invalidEmail: "Введіть дійсну адресу електронної пошти.",
     wrongCredentials: "Електронна пошта або пароль неправильні.",
@@ -72,7 +72,7 @@ for (const locale of ["en", "uk"] as const) {
 
     await expect(page).toHaveURL(new RegExp(`/${locale}$`));
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(text.heading);
-    await expect(page.getByText(email)).toBeVisible();
+    await expect(page.getByRole("button", { name: text.signOut })).toBeVisible();
     await expectNoViolations(page);
 
     await page.reload();

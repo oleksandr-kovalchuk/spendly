@@ -1,0 +1,32 @@
+import { MAX_AMOUNT_KOPECKS } from "@/shared/db/app-schema";
+
+type AmountError = "amountRequired" | "amountInvalid" | "amountTooLarge";
+export type ParsedAmount = { kopecks: number } | { error: AmountError };
+
+// Digits with an optional decimal part of 1 or 2 digits; a comma is accepted as the decimal sign
+const AMOUNT_PATTERN = /^(\d+)(?:[.,](\d{1,2}))?$/;
+const KOPECKS_PER_HRYVNIA = 100;
+
+// Exact: the text is split into whole and fractional digits, so no float is involved
+export function parseAmount(input: string): ParsedAmount {
+  const text = input.trim();
+  if (text === "") return { error: "amountRequired" };
+
+  const match = AMOUNT_PATTERN.exec(text);
+  if (!match) return { error: "amountInvalid" };
+
+  const [, whole = "0", fraction = ""] = match;
+  const kopecks = Number(whole) * KOPECKS_PER_HRYVNIA + Number(fraction.padEnd(2, "0"));
+  if (kopecks === 0) return { error: "amountInvalid" };
+  if (kopecks > MAX_AMOUNT_KOPECKS) return { error: "amountTooLarge" };
+
+  return { kopecks };
+}
+
+// For text that has already passed `parseAmount`
+export function kopecksOf(input: string) {
+  const parsed = parseAmount(input);
+  if ("error" in parsed) throw new Error("The amount is invalid", { cause: parsed.error });
+
+  return parsed.kopecks;
+}
