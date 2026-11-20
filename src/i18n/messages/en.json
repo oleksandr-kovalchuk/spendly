@@ -115,10 +115,11 @@
       "date": "Date",
       "note": "Note (optional)",
       "submit": "Add",
-      "added": "Transaction added.",
       "editHeading": "Edit transaction",
-      "save": "Save",
-      "cancel": "Cancel"
+      "save": "Save"
+    },
+    "sheet": {
+      "close": "Close"
     },
     "errors": {
       "amountRequired": "Enter an amount.",
@@ -134,11 +135,7 @@
     "list": {
       "empty": "No transactions in this period.",
       "loadFailed": "We could not load your transactions.",
-      "retry": "Try again",
-      "edit": "Edit {category}",
-      "editAction": "Edit",
-      "editing": "Editing",
-      "delete": "Delete {category}"
+      "retry": "Try again"
     },
     "delete": {
       "title": "Delete this transaction?",

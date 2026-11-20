@@ -5,6 +5,7 @@ import { AppNavLinks } from "@/features/navigation/app-nav-links";
 import { SignOutButton } from "@/features/sign-out/sign-out-button";
 import { ThemeToggle } from "@/features/theme-toggle/theme-toggle";
 
+import { AddTransactionControl } from "./add-transaction-control";
 import { HomeLink } from "./home-link";
 import { LanguageControl } from "./language-control";
 import { ScreenMain } from "./screen-main";
@@ -18,6 +19,7 @@ export async function AppShell({ children }: { children: ReactNode }) {
     <div className="flex flex-1">
       <header className="sticky top-0 hidden h-svh w-64 shrink-0 flex-col gap-6 border-e border-sidebar-border bg-sidebar p-4 text-sidebar-foreground app-nav-anchor lg:flex">
         <HomeLink className="self-start" />
+        <AddTransactionControl placement="sidebar" />
         <nav aria-label={t("nav")}>
           <AppNavLinks layout="sidebar" />
         </nav>
@@ -49,7 +51,7 @@ export async function AppShell({ children }: { children: ReactNode }) {
         aria-label={t("nav")}
         className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background app-nav-anchor lg:hidden"
       >
-        <AppNavLinks layout="bar" />
+        <AppNavLinks layout="bar" action={<AddTransactionControl placement="bar" />} />
       </nav>
     </div>
   );

@@ -24,6 +24,7 @@ const TEXTS = {
     amount: "Amount (UAH)",
     category: "Category",
     addTransaction: "Add",
+    openAdd: "Add transaction",
     transactions: "Transactions",
   },
   uk: {
@@ -46,6 +47,7 @@ const TEXTS = {
     amount: "Сума (грн)",
     category: "Категорія",
     addTransaction: "Додати",
+    openAdd: "Додати транзакцію",
     transactions: "Транзакції",
   },
 } as const;
@@ -93,9 +95,12 @@ for (const locale of ["en", "uk"] as const) {
     // An expense in Food before the rename
     await page.getByRole("link", { name: text.transactions, exact: true }).click();
     await expect(page).toHaveURL(new RegExp(`/${locale}/transactions$`));
+    await page.getByRole("button", { name: text.openAdd }).click();
+    const sheet = page.getByRole("dialog", { name: text.openAdd });
     await field(page, text.amount).fill("42");
-    await page.getByLabel(text.category, { exact: true }).selectOption({ label: text.food });
-    await page.getByRole("button", { name: text.addTransaction, exact: true }).click();
+    await sheet.getByLabel(text.category, { exact: true }).selectOption({ label: text.food });
+    await sheet.getByRole("button", { name: text.addTransaction, exact: true }).click();
+    await expect(sheet).toHaveCount(0);
     await expect(page.getByRole("listitem").filter({ hasText: text.food })).toBeVisible();
 
     await page.getByRole("link", { name: text.categories }).click();
@@ -139,13 +144,19 @@ for (const locale of ["en", "uk"] as const) {
     await expect(expenses.getByRole("button", { name: `${text.rename} Groceries` })).toBeFocused();
     await expect(expenses.getByRole("listitem").filter({ hasText: text.food })).toHaveCount(0);
 
-    // The form offers the new names, and the old expense shows the new name
-    await page.getByRole("link", { name: text.transactions, exact: true }).click();
-    await expect(page).toHaveURL(new RegExp(`/${locale}/transactions$`));
-    const picker = page.getByLabel(text.category, { exact: true });
+    // The add form, opened on this screen, offers the new names
+    await page.getByRole("button", { name: text.openAdd }).click();
+    const addSheet = page.getByRole("dialog", { name: text.openAdd });
+    const picker = addSheet.getByLabel(text.category, { exact: true });
     await expect(picker.getByRole("option", { name: "Coffee" })).toHaveCount(1);
     await expect(picker.getByRole("option", { name: "Groceries" })).toHaveCount(1);
     await expect(picker.getByRole("option", { name: text.food })).toHaveCount(0);
+    await page.keyboard.press("Escape");
+    await expect(addSheet).toHaveCount(0);
+
+    // The old expense shows the new name
+    await page.getByRole("link", { name: text.transactions, exact: true }).click();
+    await expect(page).toHaveURL(new RegExp(`/${locale}/transactions$`));
     await expect(page.getByRole("listitem").filter({ hasText: "Groceries" })).toBeVisible();
   });
 }

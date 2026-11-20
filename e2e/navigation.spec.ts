@@ -107,15 +107,18 @@ test("Tab reaches every control, and the bottom navigation covers none", async (
   await page.getByRole("link", { name: "Transactions", exact: true }).click();
   await expect(page).toHaveURL(/\/en\/transactions$/);
   for (const note of ["first", "second", "third"]) {
+    await page.getByRole("button", { name: "Add transaction" }).click();
+    const sheet = page.getByRole("dialog", { name: "Add transaction" });
     await field(page, "Amount (UAH)").fill("10");
     await field(page, "Note (optional)").fill(note);
-    await page.getByRole("button", { name: "Add", exact: true }).click();
+    await sheet.getByRole("button", { name: "Add", exact: true }).click();
+    await expect(sheet).toHaveCount(0);
     await expect(page.getByRole("listitem").filter({ hasText: note })).toBeVisible();
   }
   await page.reload();
-  // The page streams in after the shell: wait for the list and the form, not the navigation's items
+  // The page streams in after the shell: wait for the list and the Add button, not the navigation's items
   await expect(page.getByRole("listitem").filter({ hasText: "third" })).toBeVisible();
-  await expect(field(page, "Amount (UAH)")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Add transaction" })).toBeVisible();
 
   const navTop = isPhone(page)
     ? ((await page.getByRole("navigation").boundingBox())?.y ?? 0)
@@ -146,8 +149,16 @@ test("Tab reaches every control, and the bottom navigation covers none", async (
     }
   }
   expect(reached).toEqual(
-    expect.arrayContaining(["Overview", "Transactions", "Categories", "Sign out", "Edit Food"]),
+    expect.arrayContaining([
+      "Overview",
+      "Transactions",
+      "Categories",
+      "Sign out",
+      "Add transaction",
+    ]),
   );
+  // Each list item is one Tab stop, its link
+  expect(reached.filter((name) => /^Food\s?(first|second|third)/.test(name))).toHaveLength(3);
 
   const overview = page.getByRole("link", { name: "Overview", exact: true });
   await overview.focus();

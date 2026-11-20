@@ -16,13 +16,12 @@ const TEXTS = {
     date: "Date",
     note: "Note (optional)",
     add: "Add",
-    added: "Transaction added.",
+    addTransaction: "Add transaction",
     empty: "No transactions in this period.",
     amountRequired: "Enter an amount.",
     food: "Food",
     salary: "Salary",
     other: "Українська",
-    edit: "Edit",
     save: "Save",
     cancel: "Cancel",
     del: "Delete",
@@ -56,13 +55,12 @@ const TEXTS = {
     date: "Дата",
     note: "Примітка (необов'язково)",
     add: "Додати",
-    added: "Транзакцію додано.",
+    addTransaction: "Додати транзакцію",
     empty: "У цьому періоді немає транзакцій.",
     amountRequired: "Введіть суму.",
     food: "Їжа",
     salary: "Зарплата",
     other: "English",
-    edit: "Редагувати",
     save: "Зберегти",
     cancel: "Скасувати",
     del: "Видалити",
@@ -134,41 +132,108 @@ function isoDay(date: Date) {
   return date.toISOString().slice(0, 10);
 }
 
+// axe would read the colors of an open animation's intermediate frames
+async function animationsDone(page: Page) {
+  await page.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished)));
+}
+
+type NewTransaction = {
+  amount: string;
+  note?: string;
+  category?: string;
+  isIncome?: boolean;
+  date?: string;
+};
+
+// The Add button of the bottom navigation on a phone, of the sidebar on a desktop
+async function openAddSheet(page: Page, locale: "en" | "uk") {
+  const text = TEXTS[locale];
+  await page.getByRole("button", { name: text.addTransaction }).click();
+  const sheet = page.getByRole("dialog", { name: text.addTransaction });
+  await expect(sheet).toBeVisible();
+  return sheet;
+}
+
+async function addTransaction(page: Page, locale: "en" | "uk", values: NewTransaction) {
+  const text = TEXTS[locale];
+  const sheet = await openAddSheet(page, locale);
+  if (values.isIncome) await sheet.getByLabel(text.income, { exact: true }).check({ force: true });
+  await field(page, text.amount).fill(values.amount);
+  if (values.note !== undefined) await field(page, text.note).fill(values.note);
+  if (values.category !== undefined) {
+    await sheet.getByLabel(text.category, { exact: true }).selectOption({ label: values.category });
+  }
+  if (values.date !== undefined)
+    await sheet.getByLabel(text.date, { exact: true }).fill(values.date);
+  await sheet.getByRole("button", { name: text.add, exact: true }).click();
+  await expect(sheet).toHaveCount(0);
+}
+
+// The whole item is the link to its edit form
+function item(page: Page, note: string) {
+  return page.getByRole("listitem").filter({ hasText: note });
+}
+
+async function openEditSheet(page: Page, locale: "en" | "uk", note: string) {
+  await item(page, note).getByRole("link").click();
+  await expect(page).toHaveURL(/[?&]edit=/);
+  const sheet = page.getByRole("dialog", { name: TEXTS[locale].editHeading });
+  await expect(sheet).toBeVisible();
+  return sheet;
+}
+
+function addDays(day: string, days: number) {
+  const date = new Date(`${day}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return isoDay(date);
+}
+
+function money(locale: "en" | "uk", hryvnias: number) {
+  return new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency: "UAH",
+    currencyDisplay: "narrowSymbol",
+  }).format(hryvnias);
+}
+
+// Another day of the same month, on the 1st or the 2nd
+function otherDayOfMonth(now: Date) {
+  return isoDay(
+    new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() === 1 ? 2 : 1)),
+  );
+}
+
 for (const locale of ["en", "uk"] as const) {
   const text = TEXTS[locale];
 
   test(`an expense and an income are listed by day in ${locale}`, async ({ page }, testInfo) => {
     const now = new Date();
     const today = isoDay(now);
-    // Another day of the same month, on the 1st or the 2nd
-    const otherDay = isoDay(
-      new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() === 1 ? 2 : 1)),
-    );
+    const otherDay = otherDayOfMonth(now);
     const isOtherEarlier = otherDay < today;
 
     await signUpAndIn(page, locale, testInfo);
     await openScreen(page, locale, "transactions");
     await expect(page.getByText(text.empty)).toBeVisible();
-    await expect(page.getByLabel(text.date, { exact: true })).toHaveValue(today);
     await expectNoViolations(page);
 
-    await page.getByRole("button", { name: text.add }).click();
-    await expect(page.getByText(text.amountRequired)).toBeVisible();
+    const sheet = await openAddSheet(page, locale);
+    await expect(sheet.getByLabel(text.date, { exact: true })).toHaveValue(today);
+    await expect(sheet.getByLabel(text.expense, { exact: true })).toBeChecked();
+    await sheet.getByRole("button", { name: text.add, exact: true }).click();
+    await expect(sheet.getByText(text.amountRequired)).toBeVisible();
+    await animationsDone(page);
     await expectNoViolations(page);
+    await page.keyboard.press("Escape");
+    await expect(sheet).toHaveCount(0);
 
-    await field(page, text.amount).fill("125,50");
-    await field(page, text.note).fill("lunch");
-    await page.getByLabel(text.category, { exact: true }).selectOption({ label: text.food });
-    await page.getByRole("button", { name: text.add }).click();
-    await expect(page.getByText(text.added)).toBeVisible();
-    await expect(field(page, text.amount)).toHaveValue("");
-
-    await page.getByLabel(text.income, { exact: true }).check({ force: true });
-    await field(page, text.amount).fill("3000");
-    await page.getByLabel(text.date, { exact: true }).fill(otherDay);
-    await page.getByLabel(text.category, { exact: true }).selectOption({ label: text.salary });
-    await page.getByRole("button", { name: text.add }).click();
-    await expect(page.getByText(text.added)).toBeVisible();
+    await addTransaction(page, locale, { amount: "125,50", note: "lunch", category: text.food });
+    await addTransaction(page, locale, {
+      amount: "3000",
+      isIncome: true,
+      date: otherDay,
+      category: text.salary,
+    });
 
     // Day headings hold their date; the chart's heading above the list doesn't
     const days = page.getByRole("heading", { level: 2 }).filter({ has: page.locator("time") });
@@ -178,9 +243,9 @@ for (const locale of ["en", "uk"] as const) {
       .evaluateAll((nodes) => nodes.map((node) => node.getAttribute("datetime")));
     expect(times).toEqual(isOtherEarlier ? [today, otherDay] : [otherDay, today]);
 
-    const expenseRow = page.getByRole("listitem").filter({ hasText: "lunch" });
+    const expenseRow = item(page, "lunch");
     await expect(expenseRow).toContainText(text.food);
-    const incomeRow = page.getByRole("listitem").filter({ hasText: text.salary });
+    const incomeRow = item(page, text.salary);
     await expect(incomeRow).toContainText("+");
     await expectNoViolations(page);
 
@@ -190,23 +255,19 @@ for (const locale of ["en", "uk"] as const) {
 
       await page.getByRole("link", { name: text.other }).click();
       await expect(page).toHaveURL(/\/uk\/transactions$/);
-      const translated = page.getByRole("listitem").filter({ hasText: "lunch" });
+      const translated = item(page, "lunch");
       await expect(translated).toContainText(TEXTS.uk.food);
       await expect(translated).toContainText(/125,50\s*₴/);
-      await expect(page.getByRole("listitem").filter({ hasText: TEXTS.uk.salary })).toContainText(
-        /3\s?000,00\s*₴/,
-      );
+      await expect(item(page, TEXTS.uk.salary)).toContainText(/3\s?000,00\s*₴/);
     }
   });
 }
 
-test("the main page with transactions fits a small screen", async ({ page }, testInfo) => {
+test("the Transactions screen with a long note fits a small screen", async ({ page }, testInfo) => {
   await signUpAndIn(page, "en", testInfo);
   await openScreen(page, "en", "transactions");
-  await field(page, TEXTS.en.amount).fill("99");
-  await field(page, TEXTS.en.note).fill("a very long note ".repeat(10));
-  await page.getByRole("button", { name: TEXTS.en.add }).click();
-  await expect(page.getByText(TEXTS.en.added)).toBeVisible();
+  await addTransaction(page, "en", { amount: "99", note: "a very long note ".repeat(10) });
+  await expect(item(page, "a very long note")).toBeVisible();
 
   const overflow = await page.evaluate(
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
@@ -214,86 +275,108 @@ test("the main page with transactions fits a small screen", async ({ page }, tes
   expect(overflow).toBeLessThanOrEqual(0);
 });
 
+test("Add opens the form over the screen, and Escape returns focus to Add", async ({
+  page,
+}, testInfo) => {
+  await signUpAndIn(page, "en", testInfo);
+  const add = page.getByRole("button", { name: TEXTS.en.addTransaction });
+
+  const sheet = await openAddSheet(page, "en");
+  await field(page, TEXTS.en.amount).fill("5");
+  await page.keyboard.press("Escape");
+
+  await expect(sheet).toHaveCount(0);
+  await expect(add).toBeFocused();
+  await expect(page).toHaveURL(/\/en$/);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(TEXTS.en.overview);
+
+  // Nothing was saved: the form opens empty again
+  await add.click();
+  await expect(field(page, TEXTS.en.amount)).toHaveValue("");
+});
+
 for (const locale of ["en", "uk"] as const) {
   const text = TEXTS[locale];
 
   test(`a transaction is edited and deleted in ${locale}`, async ({ page }, testInfo) => {
-    const now = new Date();
-    // Another day of the same month, on the 1st or the 2nd
-    const otherDay = isoDay(
-      new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() === 1 ? 2 : 1)),
-    );
+    const otherDay = otherDayOfMonth(new Date());
 
     await signUpAndIn(page, locale, testInfo);
     await openScreen(page, locale, "transactions");
-    for (const [amount, note] of [
-      ["10", "first"],
-      ["20", "second"],
-    ] as const) {
-      await field(page, text.amount).fill(amount);
-      await field(page, text.note).fill(note);
-      await page.getByRole("button", { name: text.add, exact: true }).click();
-      await expect(page.getByRole("listitem").filter({ hasText: note })).toBeVisible();
-    }
+    await addTransaction(page, locale, { amount: "10", note: "first" });
+    await addTransaction(page, locale, { amount: "20", note: "second" });
 
     // Edit: the amount and the date change, and the item moves to the new day
-    const first = page.getByRole("listitem").filter({ hasText: "first" });
-    await first.getByRole("link", { name: new RegExp(`^${text.edit}`) }).click();
-    await expect(page).toHaveURL(/\?edit=/);
-    await expect(page.getByRole("heading", { name: text.editHeading })).toBeVisible();
+    let sheet = await openEditSheet(page, locale, "first");
     await expect(field(page, text.amount)).toHaveValue("10.00");
     await expect(field(page, text.note)).toHaveValue("first");
+    await animationsDone(page);
     await expectNoViolations(page);
 
     await field(page, text.amount).fill("12,34");
-    await page.getByLabel(text.date, { exact: true }).fill(otherDay);
-    await page.getByRole("button", { name: text.save }).click();
-    await expect(page).not.toHaveURL(/\?edit=/);
-    await expect(page.getByRole("heading", { name: text.editHeading })).toHaveCount(0);
+    await sheet.getByLabel(text.date, { exact: true }).fill(otherDay);
+    await sheet.getByRole("button", { name: text.save }).click();
+    await expect(sheet).toHaveCount(0);
+    await expect(page).not.toHaveURL(/edit=/);
 
-    const movedRow = page.getByRole("listitem").filter({ hasText: "first" });
+    const movedRow = item(page, "first");
     await expect(movedRow).toContainText(/12[.,]34/);
     const dayOfMoved = await movedRow
       .locator("xpath=ancestor::div[./h2][1]//time")
       .getAttribute("datetime");
     expect(dayOfMoved).toBe(otherDay);
-    await expect(page.getByRole("listitem").filter({ hasText: "second" })).toBeVisible();
+    await expect(item(page, "second")).toBeVisible();
 
-    // Delete: cancel keeps the item, confirm removes it
-    const second = page.getByRole("listitem").filter({ hasText: "second" });
-    await second.getByRole("button", { name: new RegExp(`^${text.del}`) }).click();
+    // Delete: cancel keeps the transaction and its form, confirm removes it
+    sheet = await openEditSheet(page, locale, "second");
+    await sheet.getByRole("button", { name: text.del, exact: true }).click();
     const dialog = page.getByRole("alertdialog", { name: text.deleteTitle });
     await expect(dialog).toBeVisible();
-    // axe would read the colors of the open animation's intermediate frames
-    await page.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished)));
+    await animationsDone(page);
     await expectNoViolations(page);
     await dialog.getByRole("button", { name: text.cancel }).click();
     await expect(dialog).toHaveCount(0);
-    await expect(second).toBeVisible();
+    await expect(sheet).toBeVisible();
 
-    await second.getByRole("button", { name: new RegExp(`^${text.del}`) }).click();
-    await page
-      .getByRole("alertdialog", { name: text.deleteTitle })
-      .getByRole("button", { name: text.del, exact: true })
-      .click();
-    await expect(second).toHaveCount(0);
+    await sheet.getByRole("button", { name: text.del, exact: true }).click();
+    await dialog.getByRole("button", { name: text.del, exact: true }).click();
+    await expect(sheet).toHaveCount(0);
+    await expect(page).toHaveURL(new RegExp(`/${locale}/transactions$`));
+    await expect(item(page, "second")).toHaveCount(0);
 
     // Both changes stay after a reload
     await page.reload();
-    await expect(page.getByRole("listitem").filter({ hasText: "first" })).toContainText(/12[.,]34/);
-    await expect(page.getByRole("listitem").filter({ hasText: "second" })).toHaveCount(0);
+    await expect(item(page, "first")).toContainText(/12[.,]34/);
+    await expect(item(page, "second")).toHaveCount(0);
   });
 }
+
+test("closing the edit form keeps the period and returns focus to the item", async ({
+  page,
+}, testInfo) => {
+  const year = String(new Date().getUTCFullYear());
+  await signUpAndIn(page, "en", testInfo);
+  await openScreen(page, "en", "transactions");
+  await addTransaction(page, "en", { amount: "3", note: "kept" });
+  await page.getByRole("button", { name: "Year", exact: true }).click();
+  await expect(page).toHaveURL(/\/en\/transactions\?period=year$/);
+  await expect(page.locator('[aria-live="polite"]').filter({ visible: true })).toHaveText(year);
+
+  const sheet = await openEditSheet(page, "en", "kept");
+  await expect(page).toHaveURL(/\?period=year&edit=/);
+  await sheet.getByRole("button", { name: "Close" }).click();
+
+  await expect(sheet).toHaveCount(0);
+  await expect(page).toHaveURL(/\/en\/transactions\?period=year$/);
+  await expect(item(page, "kept").getByRole("link")).toBeFocused();
+  await expect(page.locator('[aria-live="polite"]').filter({ visible: true })).toHaveText(year);
+});
 
 test("another user's transaction opens the 404 page", async ({ page, browser }, testInfo) => {
   await signUpAndIn(page, "en", testInfo);
   await openScreen(page, "en", "transactions");
-  await field(page, TEXTS.en.amount).fill("5");
-  await field(page, TEXTS.en.note).fill("private");
-  await page.getByRole("button", { name: TEXTS.en.add, exact: true }).click();
-  const row = page.getByRole("listitem").filter({ hasText: "private" });
-  await row.getByRole("link", { name: /^Edit/ }).click();
-  await expect(page).toHaveURL(/\?edit=/);
+  await addTransaction(page, "en", { amount: "5", note: "private" });
+  await openEditSheet(page, "en", "private");
   const editUrl = page.url();
 
   const other = await browser.newContext({ timezoneId: "UTC" });
@@ -304,15 +387,9 @@ test("another user's transaction opens the 404 page", async ({ page, browser }, 
   // With Cache Components the shell streams first with a 200, so the 404 page and its noindex meta are checked instead of the status.
   await expect(otherPage.getByRole("heading", { level: 1, name: "Page not found" })).toBeVisible();
   await expect(otherPage.locator('head meta[name="robots"]')).toHaveAttribute("content", /noindex/);
-  await expect(otherPage.getByRole("textbox", { name: TEXTS.en.amount })).toHaveCount(0);
+  await expect(otherPage.getByRole("dialog")).toHaveCount(0);
   await other.close();
 });
-
-function addDays(day: string, days: number) {
-  const date = new Date(`${day}T00:00:00Z`);
-  date.setUTCDate(date.getUTCDate() + days);
-  return isoDay(date);
-}
 
 for (const locale of ["en", "uk"] as const) {
   const text = TEXTS[locale];
@@ -326,22 +403,13 @@ for (const locale of ["en", "uk"] as const) {
 
     await signUpAndIn(page, locale, testInfo);
     await openScreen(page, locale, "transactions");
-    for (const [day, note] of [
-      [monday, "this-week"],
-      [sunday, "last-week"],
-    ] as const) {
-      await field(page, text.amount).fill("10");
-      await field(page, text.note).fill(note);
-      await page.getByLabel(text.date, { exact: true }).fill(day);
-      await page.getByRole("button", { name: text.add, exact: true }).click();
-      await expect(page.getByText(text.added)).toBeVisible();
-      await expect(field(page, text.amount)).toHaveValue("");
-    }
+    await addTransaction(page, locale, { amount: "10", note: "this-week", date: monday });
+    await addTransaction(page, locale, { amount: "10", note: "last-week", date: sunday });
 
     await page.getByRole("button", { name: text.week, exact: true }).click();
     await expect(page).toHaveURL(new RegExp(`/${locale}/transactions\\?period=week$`));
-    await expect(page.getByRole("listitem").filter({ hasText: "this-week" })).toBeVisible();
-    await expect(page.getByRole("listitem").filter({ hasText: "last-week" })).toHaveCount(0);
+    await expect(item(page, "this-week")).toBeVisible();
+    await expect(item(page, "last-week")).toHaveCount(0);
     await expect(page.getByRole("button", { name: text.thisWeek })).toBeDisabled();
     const thisWeekLabel = await periodLabel.textContent();
     await expectNoViolations(page);
@@ -349,8 +417,8 @@ for (const locale of ["en", "uk"] as const) {
     await page.getByRole("button", { name: text.previousWeek }).click();
     await expect(page).toHaveURL(new RegExp(`\\?period=week&date=${addDays(monday, -7)}$`));
     await expect(periodLabel).not.toHaveText(thisWeekLabel ?? "");
-    await expect(page.getByRole("listitem").filter({ hasText: "last-week" })).toBeVisible();
-    await expect(page.getByRole("listitem").filter({ hasText: "this-week" })).toHaveCount(0);
+    await expect(item(page, "last-week")).toBeVisible();
+    await expect(item(page, "this-week")).toHaveCount(0);
     const lastWeekLabel = (await periodLabel.textContent()) ?? "";
 
     // The same week opens from the URL in a new tab
@@ -359,14 +427,14 @@ for (const locale of ["en", "uk"] as const) {
     await expect(shared.locator('[aria-live="polite"]').filter({ visible: true })).toHaveText(
       lastWeekLabel,
     );
-    await expect(shared.getByRole("listitem").filter({ hasText: "last-week" })).toBeVisible();
-    await expect(shared.getByRole("listitem").filter({ hasText: "this-week" })).toHaveCount(0);
+    await expect(item(shared, "last-week")).toBeVisible();
+    await expect(item(shared, "this-week")).toHaveCount(0);
     await shared.close();
 
     await page.getByRole("button", { name: text.nextWeek }).click();
     await expect(periodLabel).toHaveText(thisWeekLabel ?? "");
-    await expect(page.getByRole("listitem").filter({ hasText: "this-week" })).toBeVisible();
-    await expect(page.getByRole("listitem").filter({ hasText: "last-week" })).toHaveCount(0);
+    await expect(item(page, "this-week")).toBeVisible();
+    await expect(item(page, "last-week")).toHaveCount(0);
   });
 }
 
@@ -380,14 +448,6 @@ test("an invalid period in the URL shows the current month", async ({ page }, te
   );
   await expect(page.getByRole("button", { name: "This month" })).toBeDisabled();
 });
-
-function money(locale: "en" | "uk", hryvnias: number) {
-  return new Intl.NumberFormat(locale, {
-    style: "currency",
-    currency: "UAH",
-    currencyDisplay: "narrowSymbol",
-  }).format(hryvnias);
-}
 
 for (const locale of ["en", "uk"] as const) {
   const text = TEXTS[locale];
@@ -409,25 +469,23 @@ for (const locale of ["en", "uk"] as const) {
       .getByRole("heading", { level: 2, name: text.byCategory })
       .locator("xpath=..");
     const legend = page.getByRole("table", { name: text.byCategory }).locator("tbody tr");
-    const add = async (category: string, amount: string, note: string) => {
-      await field(page, text.amount).fill(amount);
-      await field(page, text.note).fill(note);
-      await page.getByLabel(text.category, { exact: true }).selectOption({ label: category });
-      await page.getByRole("button", { name: text.add, exact: true }).click();
-      await expect(page.getByRole("listitem").filter({ hasText: note })).toBeVisible();
-    };
 
     await signUpAndIn(page, locale, testInfo);
     await expectTotals(0, 0);
     await expect(byCategory.getByText(text.noExpenses)).toBeVisible();
 
-    await openScreen(page, locale, "transactions");
-    await add(text.food, "300", "groceries");
-    await add(text.transport, "200", "bus");
-    await page.getByLabel(text.income, { exact: true }).check({ force: true });
-    await add(text.salary, "1000", "pay");
+    // Added from Overview: the sheet closes and the totals change on the same screen
+    await addTransaction(page, locale, { amount: "300", note: "groceries", category: text.food });
+    await expect(page).toHaveURL(new RegExp(`/${locale}$`));
+    await expectTotals(0, 300);
+    await addTransaction(page, locale, { amount: "200", note: "bus", category: text.transport });
+    await addTransaction(page, locale, {
+      amount: "1000",
+      note: "pay",
+      isIncome: true,
+      category: text.salary,
+    });
 
-    await openScreen(page, locale, "overview");
     await expectTotals(1000, 500);
     await expect(legend).toHaveCount(2);
     await expect(legend.nth(0)).toContainText(text.food);
@@ -446,16 +504,11 @@ for (const locale of ["en", "uk"] as const) {
 
     // Edit: Transport grows past Food and moves to the top
     await openScreen(page, locale, "transactions");
-    await page
-      .getByRole("listitem")
-      .filter({ hasText: "bus" })
-      .getByRole("link", { name: new RegExp(`^${text.edit}`) })
-      .click();
-    await expect(page.getByRole("heading", { name: text.editHeading })).toBeVisible();
+    const sheet = await openEditSheet(page, locale, "bus");
     await expect(field(page, text.amount)).toHaveValue("200.00");
     await field(page, text.amount).fill("500");
-    await page.getByRole("button", { name: text.save }).click();
-    await expect(page).not.toHaveURL(/\?edit=/);
+    await sheet.getByRole("button", { name: text.save }).click();
+    await expect(page).not.toHaveURL(/edit=/);
     await openScreen(page, locale, "overview");
     await expectTotals(1000, 800);
     await expect(legend.nth(0)).toContainText(text.transport);
@@ -464,16 +517,13 @@ for (const locale of ["en", "uk"] as const) {
 
     // Delete: the income goes, and the balance turns negative
     await openScreen(page, locale, "transactions");
-    await page
-      .getByRole("listitem")
-      .filter({ hasText: "pay" })
-      .getByRole("button", { name: new RegExp(`^${text.del}`) })
-      .click();
+    const paySheet = await openEditSheet(page, locale, "pay");
+    await paySheet.getByRole("button", { name: text.del, exact: true }).click();
     await page
       .getByRole("alertdialog", { name: text.deleteTitle })
       .getByRole("button", { name: text.del, exact: true })
       .click();
-    await expect(page.getByRole("listitem").filter({ hasText: "pay" })).toHaveCount(0);
+    await expect(item(page, "pay")).toHaveCount(0);
     await openScreen(page, locale, "overview");
     // The expected balance is formatted from -800, with the locale's minus sign
     await expectTotals(0, 800);
@@ -483,18 +533,10 @@ for (const locale of ["en", "uk"] as const) {
 test("an old edit link on the home page opens the Transactions screen with its period", async ({
   page,
 }, testInfo) => {
-  const text = TEXTS.en;
   await signUpAndIn(page, "en", testInfo);
   await openScreen(page, "en", "transactions");
-  await field(page, text.amount).fill("7");
-  await field(page, text.note).fill("old-link");
-  await page.getByRole("button", { name: text.add, exact: true }).click();
-  await page
-    .getByRole("listitem")
-    .filter({ hasText: "old-link" })
-    .getByRole("link", { name: /^Edit/ })
-    .click();
-  await expect(page).toHaveURL(/\?edit=/);
+  await addTransaction(page, "en", { amount: "7", note: "old-link" });
+  await openEditSheet(page, "en", "old-link");
   const id = new URL(page.url()).searchParams.get("edit") ?? "";
   const year = String(new Date().getUTCFullYear());
 
@@ -505,8 +547,8 @@ test("an old edit link on the home page opens the Transactions screen with its p
 
   await page.goto(`/en?period=year&edit=${id}`);
   await expect(page).toHaveURL(new RegExp(`/en/transactions\\?period=year&edit=${id}$`));
-  await expect(page.getByRole("heading", { name: text.editHeading })).toBeVisible();
-  await expect(field(page, text.note)).toHaveValue("old-link");
+  await expect(page.getByRole("dialog", { name: TEXTS.en.editHeading })).toBeVisible();
+  await expect(field(page, TEXTS.en.note)).toHaveValue("old-link");
   await expect(page.locator('[aria-live="polite"]').filter({ visible: true })).toHaveText(year);
 });
 
@@ -531,5 +573,72 @@ for (const locale of ["en", "uk"] as const) {
 
     await openScreen(page, locale, "overview");
     await expect(periodLabel).toHaveText(lastMonth);
+  });
+}
+
+type RecordedAnimation = { name: string; duration: number };
+
+// Records the animations of every view transition once it starts
+function recordViewTransitions() {
+  const start = document.startViewTransition.bind(document);
+  const recorded: RecordedAnimation[] = [];
+  Object.assign(window, { viewTransitionAnimations: recorded });
+  document.startViewTransition = (...args: Parameters<typeof start>) => {
+    const transition = start(...args);
+    transition.ready.then(
+      () => {
+        for (const animation of document.getAnimations()) {
+          if (
+            animation.effect instanceof KeyframeEffect &&
+            animation.effect.pseudoElement?.startsWith("::view-transition") === true
+          ) {
+            recorded.push({
+              name: animation instanceof CSSAnimation ? animation.animationName : "",
+              duration: Number(animation.effect.getComputedTiming().duration ?? 0),
+            });
+          }
+        }
+      },
+      // A skipped transition has no animations to record
+      () => undefined,
+    );
+    return transition;
+  };
+}
+
+for (const reducedMotion of ["no-preference", "reduce"] as const) {
+  test(`list items animate in and out with reduced motion ${reducedMotion}`, async ({
+    page,
+  }, testInfo) => {
+    await page.emulateMedia({ reducedMotion });
+    await page.addInitScript(recordViewTransitions);
+    await signUpAndIn(page, "en", testInfo);
+    await openScreen(page, "en", "transactions");
+    const recorded = () =>
+      page.evaluate((): RecordedAnimation[] => Reflect.get(window, "viewTransitionAnimations"));
+    const expectAnimation = async (name: string) => {
+      if (reducedMotion === "reduce") {
+        // The browser may still create zero-length animations: nothing moves
+        await expect.poll(async () => (await recorded()).map((a) => a.name)).not.toContain(name);
+        expect((await recorded()).every(({ duration }) => duration === 0)).toBe(true);
+      } else {
+        await expect.poll(async () => (await recorded()).map((a) => a.name)).toContain(name);
+      }
+    };
+
+    await page.evaluate(() => Reflect.set(window, "viewTransitionAnimations", []));
+    await addTransaction(page, "en", { amount: "4", note: "animated" });
+    await expect(item(page, "animated")).toBeVisible();
+    await expectAnimation("item-in");
+
+    const sheet = await openEditSheet(page, "en", "animated");
+    await page.evaluate(() => Reflect.set(window, "viewTransitionAnimations", []));
+    await sheet.getByRole("button", { name: TEXTS.en.del, exact: true }).click();
+    await page
+      .getByRole("alertdialog", { name: TEXTS.en.deleteTitle })
+      .getByRole("button", { name: TEXTS.en.del, exact: true })
+      .click();
+    await expect(item(page, "animated")).toHaveCount(0);
+    await expectAnimation("item-out");
   });
 }

@@ -39,10 +39,10 @@ How to check:
 2. On Transactions, tap an item, change its amount and save; delete another and confirm.
 3. On a desktop, Add opens a dialog; Escape closes it and focus returns to Add.
 
-- [ ] 3.1 Add the shadcn `drawer` and `dialog` (Base UI) and a responsive transaction sheet; verify a component test of Escape and focus return
-- [ ] 3.2 Open the add form from the nav Add button on every screen, keyed by `today`; verify an E2E add from Overview that updates the totals
-- [ ] 3.3 Make each list item a link to `?edit=`, move edit and delete into the sheet, remove the inline form; verify E2E edit and delete, closing keeps the period, and axe with the sheet open after its animation ends
-- [ ] 3.4 Animate list items in and out with `ViewTransition`; verify in the browser, and none with reduced motion
+- [x] 3.1 Add the shadcn `drawer` and `dialog` (Base UI) and a responsive transaction sheet; verify a component test of Escape and focus return
+- [x] 3.2 Open the add form from the nav Add button on every screen, keyed by `today`; verify an E2E add from Overview that updates the totals
+- [x] 3.3 Make each list item a link to `?edit=`, move edit and delete into the sheet, remove the inline form; verify E2E edit and delete, closing keeps the period, and axe with the sheet open after its animation ends
+- [x] 3.4 Animate list items in and out with `ViewTransition`; verify in the browser, and none with reduced motion
 
 ## 4. Cards, type and empty states
 

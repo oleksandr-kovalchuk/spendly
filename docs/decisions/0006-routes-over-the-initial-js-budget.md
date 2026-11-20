@@ -8,12 +8,14 @@ The redesign parts ship with every route's initial JS over the 200 KB budget of 
 
 Measured on the production build (`pnpm build`), gzip level 9, as the sum of the `/_next/static/chunks/*.js` files a route's prerendered HTML references, without the `noModule` polyfills that modern browsers don't load:
 
-| Route                        | `main` before part 2 | Part 2 |
-| ---------------------------- | -------------------- | ------ |
-| `/en` (Overview)             | 275 KB               | 227 KB |
-| `/en/transactions`           | n/a (was on `/en`)   | 277 KB |
-| `/en/categories`             | 243 KB               | 249 KB |
-| `/en/sign-in`, `/en/sign-up` | 234 KB               | 236 KB |
+| Route                        | `main` before part 2 | Part 2 | Part 3 |
+| ---------------------------- | -------------------- | ------ | ------ |
+| `/en` (Overview)             | 275 KB               | 227 KB | 230 KB |
+| `/en/transactions`           | n/a (was on `/en`)   | 277 KB | 230 KB |
+| `/en/categories`             | 243 KB               | 249 KB | 252 KB |
+| `/en/sign-in`, `/en/sign-up` | 234 KB               | 236 KB | 238 KB |
+
+Part 3 moves the transaction form into a sheet that loads after the first paint, so the form left the Transactions screen's initial JS; the Add button itself costs about 3 KB on each signed-in screen.
 
 ## Why
 

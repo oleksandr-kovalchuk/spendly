@@ -27,10 +27,10 @@ beforeEach(() => {
   updateTransaction.mockReset();
 });
 
-function renderForm() {
+function renderForm(onSaved = vi.fn()) {
   render(
     <NextIntlClientProvider locale="en" messages={en}>
-      <TransactionForm categories={CATEGORIES} today="2026-03-10" />
+      <TransactionForm categories={CATEGORIES} today="2026-03-10" onSaved={onSaved} />
     </NextIntlClientProvider>,
   );
 
@@ -66,9 +66,10 @@ test("an empty amount shows its error and sends nothing", async () => {
   expect(addTransaction).not.toHaveBeenCalled();
 });
 
-test("a valid form sends the values and clears the amount and the note", async () => {
+test("a valid form sends the values and closes", async () => {
   addTransaction.mockResolvedValue({});
-  const user = renderForm();
+  const onSaved = vi.fn();
+  const user = renderForm(onSaved);
   await user.type(screen.getByLabelText(/^Amount/), "125,50");
   await user.type(screen.getByLabelText(/^Note/), "lunch");
   await user.click(screen.getByRole("button", { name: "Add" }));
@@ -80,24 +81,24 @@ test("a valid form sends the values and clears the amount and the note", async (
     date: "2026-03-10",
     note: "lunch",
   });
-  expect(await screen.findByText("Transaction added.")).toBeVisible();
-  expect(screen.getByLabelText(/^Amount/)).toHaveValue("");
-  expect(screen.getByLabelText(/^Note/)).toHaveValue("");
-  expect(screen.getByLabelText("Date")).toHaveValue("2026-03-10");
+  await vi.waitFor(() => {
+    expect(onSaved).toHaveBeenCalledOnce();
+  });
 });
 
 test("a field error from the server is shown next to its field", async () => {
   addTransaction.mockResolvedValue({
     validationErrors: { amount: { _errors: ["amountTooLarge"] } },
   });
-  const user = renderForm();
+  const onSaved = vi.fn();
+  const user = renderForm(onSaved);
   await user.type(screen.getByLabelText(/^Amount/), "1");
   await user.click(screen.getByRole("button", { name: "Add" }));
 
   expect(await screen.findByLabelText(/^Amount/)).toHaveAccessibleDescription(
     en.Transactions.errors.amountTooLarge,
   );
-  expect(screen.queryByText("Transaction added.")).not.toBeInTheDocument();
+  expect(onSaved).not.toHaveBeenCalled();
 });
 
 test.each([
@@ -124,7 +125,7 @@ test("a failed request shows the unknown error", async () => {
 test("a new today from the server replaces the date default", () => {
   const ui = (today: string) => (
     <NextIntlClientProvider locale="en" messages={en}>
-      <TransactionForm categories={CATEGORIES} today={today} />
+      <TransactionForm categories={CATEGORIES} today={today} onSaved={vi.fn()} />
     </NextIntlClientProvider>
   );
   const { rerender } = render(ui("2026-03-10"));
@@ -144,15 +145,10 @@ const STORED: TransactionDto = {
   category: { defaultKey: "salary", name: null },
 };
 
-function renderEditForm(callbacks: { onSaved?: () => void; onCancel?: () => void } = {}) {
+function renderEditForm(onSaved = vi.fn()) {
   render(
     <NextIntlClientProvider locale="en" messages={en}>
-      <TransactionForm
-        categories={CATEGORIES}
-        today="2026-03-10"
-        transaction={STORED}
-        {...callbacks}
-      />
+      <TransactionForm categories={CATEGORIES} transaction={STORED} onSaved={onSaved} />
     </NextIntlClientProvider>,
   );
 
@@ -163,7 +159,6 @@ describe("editing a transaction", () => {
   test("opens with the values of the transaction", () => {
     renderEditForm();
 
-    expect(screen.getByRole("heading", { name: "Edit transaction" })).toBeVisible();
     expect(screen.getByLabelText("Income")).toBeChecked();
     expect(screen.getByLabelText(/^Amount/)).toHaveValue("3000.50");
     expect(screen.getByLabelText("Date")).toHaveValue("2026-03-05");
@@ -175,7 +170,7 @@ describe("editing a transaction", () => {
   test("saves the changes with the id and closes", async () => {
     updateTransaction.mockResolvedValue({});
     const onSaved = vi.fn();
-    const user = renderEditForm({ onSaved });
+    const user = renderEditForm(onSaved);
     await user.clear(screen.getByLabelText(/^Amount/));
     await user.type(screen.getByLabelText(/^Amount/), "10,5");
     await user.clear(screen.getByLabelText("Date"));
@@ -199,19 +194,10 @@ describe("editing a transaction", () => {
   test("a missing transaction shows its error and stays open", async () => {
     updateTransaction.mockResolvedValue({ serverError: "transactionNotFound" });
     const onSaved = vi.fn();
-    const user = renderEditForm({ onSaved });
+    const user = renderEditForm(onSaved);
     await user.click(screen.getByRole("button", { name: "Save" }));
 
     expect(await screen.findByText(en.Transactions.errors.transactionNotFound)).toBeVisible();
     expect(onSaved).not.toHaveBeenCalled();
-  });
-
-  test("cancel closes without saving", async () => {
-    const onCancel = vi.fn();
-    const user = renderEditForm({ onCancel });
-    await user.click(screen.getByRole("button", { name: "Cancel" }));
-
-    expect(onCancel).toHaveBeenCalledOnce();
-    expect(updateTransaction).not.toHaveBeenCalled();
   });
 });

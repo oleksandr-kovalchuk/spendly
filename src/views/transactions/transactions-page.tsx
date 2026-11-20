@@ -5,9 +5,8 @@ import { z } from "zod";
 
 import { toPeriodQuery } from "@/features/periods/period";
 import { PeriodControl } from "@/features/periods/period-control";
-import { EditTransactionForm } from "@/features/transactions/edit-transaction-form";
+import { LazyEditTransactionSheet } from "@/features/transactions/lazy-edit-transaction-sheet";
 import { groupByDay } from "@/features/transactions/group-by-day";
-import { TransactionForm } from "@/features/transactions/transaction-form";
 import { TransactionList } from "@/features/transactions/transaction-list";
 import { TransactionListBoundary } from "@/features/transactions/transaction-list-boundary";
 import { findTransaction, listTransactions } from "@/features/transactions/transactions.dal";
@@ -33,29 +32,33 @@ async function getEditingId(searchParams: ScreenSearchParams) {
   return parsed.data;
 }
 
-async function TransactionFormSection({ searchParams }: { searchParams: ScreenSearchParams }) {
-  const [user, today, tCategories, editingId] = await Promise.all([
+// The edit sheet opens over the list when the URL names a transaction
+async function EditSheetSection({ searchParams }: { searchParams: ScreenSearchParams }) {
+  const editingId = await getEditingId(searchParams);
+  if (editingId === undefined) return null;
+
+  const [user, { today, period }, tCategories] = await Promise.all([
     getCurrentUserOrSignIn(),
-    getToday(),
+    getShownPeriod(searchParams),
     getTranslations("Categories"),
-    getEditingId(searchParams),
   ]);
   const [categories, transaction] = await Promise.all([
     listCategories(user.id),
-    editingId === undefined ? undefined : findTransaction(user.id, editingId),
+    findTransaction(user.id, editingId),
   ]);
-  if (editingId !== undefined && !transaction) notFound();
+  if (!transaction) notFound();
 
-  const options = categories.map((category) => ({
-    id: category.id,
-    type: category.type,
-    label: categoryLabel(category, tCategories),
-  }));
-
-  return transaction ? (
-    <EditTransactionForm categories={options} transaction={transaction} />
-  ) : (
-    <TransactionForm today={today} categories={options} />
+  return (
+    <LazyEditTransactionSheet
+      key={transaction.id}
+      categories={categories.map((category) => ({
+        id: category.id,
+        type: category.type,
+        label: categoryLabel(category, tCategories),
+      }))}
+      transaction={transaction}
+      listQuery={toPeriodQuery(period, today)}
+    />
   );
 }
 
@@ -64,33 +67,15 @@ async function PeriodSection() {
 }
 
 async function PeriodTransactions({ searchParams }: { searchParams: ScreenSearchParams }) {
-  const [user, { today, period }, editingId] = await Promise.all([
+  const [user, { today, period }] = await Promise.all([
     getCurrentUserOrSignIn(),
     getShownPeriod(searchParams),
-    getEditingId(searchParams),
   ]);
   const transactions = await listTransactions(user.id, period);
 
   // Edit links keep the period, so the list stays where the user is
   return (
-    <TransactionList
-      groups={groupByDay(transactions)}
-      editingId={editingId}
-      periodQuery={toPeriodQuery(period, today)}
-    />
-  );
-}
-
-function FormSkeleton() {
-  return (
-    <div className="grid gap-4">
-      <Skeleton className="h-7 w-1/2" />
-      <Skeleton className="h-8 w-full" />
-      <Skeleton className="h-8 w-full" />
-      <Skeleton className="h-8 w-full" />
-      <Skeleton className="h-8 w-full" />
-      <Skeleton className="h-9 w-full" />
-    </div>
+    <TransactionList groups={groupByDay(transactions)} periodQuery={toPeriodQuery(period, today)} />
   );
 }
 
@@ -111,8 +96,9 @@ export async function TransactionsPage({ searchParams }: PageProps<"/[locale]/tr
     <PageTransition>
       <div className="grid gap-8">
         <h1 className="text-3xl font-semibold tracking-tight text-balance">{t("heading")}</h1>
-        <Suspense fallback={<FormSkeleton />}>
-          <TransactionFormSection searchParams={searchParams} />
+        {/* Nothing shows until the sheet's data is there: it opens over a ready list */}
+        <Suspense fallback={null}>
+          <EditSheetSection searchParams={searchParams} />
         </Suspense>
         <div className="grid gap-4">
           <Suspense fallback={<PeriodSkeleton />}>
