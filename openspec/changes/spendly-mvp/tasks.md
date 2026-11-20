@@ -104,9 +104,9 @@ How to check:
 2. The chart shows both categories with amounts and shares.
 3. Switch to dark and Українська: the chart is readable and translated.
 
-- [ ] 7.1 Add the period totals from DB aggregates with a skeleton; verify with DAL integration tests
-- [ ] 7.2 Add the lazy-loaded chart with a text legend and an empty state; verify with a component test of the legend
-- [ ] 7.3 Refresh totals and chart after add, edit and delete; verify with an E2E test with axe in both themes
+- [x] 7.1 Add the period totals from DB aggregates with a skeleton; verify with DAL integration tests
+- [x] 7.2 Add the lazy-loaded chart with a text legend and an empty state; verify with a component test of the legend
+- [x] 7.3 Refresh totals and chart after add, edit and delete; verify with an E2E test with axe in both themes
 
 ## Workflow follow-up
 

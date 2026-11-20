@@ -153,5 +153,19 @@
     "previous": "Попередній {type, select, day {день} week {тиждень} month {місяць} other {рік}}",
     "next": "Наступний {type, select, day {день} week {тиждень} month {місяць} other {рік}}",
     "current": "{type, select, day {Сьогодні} week {Цей тиждень} month {Цей місяць} other {Цей рік}}"
+  },
+  "Stats": {
+    "income": "Дохід",
+    "expenses": "Витрати",
+    "balance": "Баланс",
+    "byCategory": "Витрати за категоріями",
+    "noExpenses": "У цьому періоді немає витрат.",
+    "loadFailed": "Не вдалося завантажити підсумки.",
+    "retry": "Спробувати ще раз",
+    "legend": {
+      "category": "Категорія",
+      "amount": "Сума",
+      "share": "Частка"
+    }
   }
 }

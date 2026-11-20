@@ -32,6 +32,14 @@ const TEXTS = {
     previousWeek: "Previous week",
     nextWeek: "Next week",
     thisWeek: "This week",
+    transport: "Transport",
+    incomeTotal: "Income",
+    expensesTotal: "Expenses",
+    balance: "Balance",
+    byCategory: "Spending by category",
+    noExpenses: "No expenses in this period.",
+    light: "Light",
+    dark: "Dark",
   },
   uk: {
     signUp: "Зареєструватися",
@@ -61,6 +69,14 @@ const TEXTS = {
     previousWeek: "Попередній тиждень",
     nextWeek: "Наступний тиждень",
     thisWeek: "Цей тиждень",
+    transport: "Транспорт",
+    incomeTotal: "Дохід",
+    expensesTotal: "Витрати",
+    balance: "Баланс",
+    byCategory: "Витрати за категоріями",
+    noExpenses: "У цьому періоді немає витрат.",
+    light: "Світла",
+    dark: "Темна",
   },
 } as const;
 
@@ -138,7 +154,8 @@ for (const locale of ["en", "uk"] as const) {
     await page.getByRole("button", { name: text.add }).click();
     await expect(page.getByText(text.added)).toBeVisible();
 
-    const days = page.getByRole("heading", { level: 3 });
+    // Day headings hold their date; the chart's heading above the list doesn't
+    const days = page.getByRole("heading", { level: 3 }).filter({ has: page.locator("time") });
     await expect(days).toHaveCount(2);
     const times = await page
       .locator("h3 time")
@@ -341,3 +358,95 @@ test("an invalid period in the URL shows the current month", async ({ page }, te
   );
   await expect(page.getByRole("button", { name: "This month" })).toBeDisabled();
 });
+
+function money(locale: "en" | "uk", hryvnias: number) {
+  return new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency: "UAH",
+    currencyDisplay: "narrowSymbol",
+  }).format(hryvnias);
+}
+
+for (const locale of ["en", "uk"] as const) {
+  const text = TEXTS[locale];
+
+  test(`totals and the chart follow add, edit and delete in ${locale}`, async ({
+    page,
+  }, testInfo) => {
+    // toHaveText collapses every kind of space, so Node's and Chromium's Intl output compare equal
+    const total = (term: string) =>
+      page
+        .locator("dt", { hasText: new RegExp(`^${term}$`) })
+        .locator("xpath=following-sibling::dd");
+    const expectTotals = async (income: number, expenses: number) => {
+      await expect(total(text.incomeTotal)).toHaveText(money(locale, income));
+      await expect(total(text.expensesTotal)).toHaveText(money(locale, expenses));
+      await expect(total(text.balance)).toHaveText(money(locale, income - expenses));
+    };
+    const byCategory = page
+      .getByRole("heading", { level: 3, name: text.byCategory })
+      .locator("xpath=..");
+    const legend = page.getByRole("table", { name: text.byCategory }).locator("tbody tr");
+    const add = async (category: string, amount: string, note: string) => {
+      await field(page, text.amount).fill(amount);
+      await field(page, text.note).fill(note);
+      await page.getByLabel(text.category, { exact: true }).selectOption({ label: category });
+      await page.getByRole("button", { name: text.add, exact: true }).click();
+      await expect(page.getByRole("listitem").filter({ hasText: note })).toBeVisible();
+    };
+
+    await signUpAndIn(page, locale, testInfo);
+    await expectTotals(0, 0);
+    await expect(byCategory.getByText(text.noExpenses)).toBeVisible();
+
+    await add(text.food, "300", "groceries");
+    await add(text.transport, "200", "bus");
+    await page.getByLabel(text.income, { exact: true }).check({ force: true });
+    await add(text.salary, "1000", "pay");
+
+    await expectTotals(1000, 500);
+    await expect(legend).toHaveCount(2);
+    await expect(legend.nth(0)).toContainText(text.food);
+    await expect(legend.nth(0)).toContainText(money(locale, 300).replace(/\s/g, " "));
+    await expect(legend.nth(0)).toContainText(/60\s?%/);
+    await expect(legend.nth(1)).toContainText(text.transport);
+    await expect(legend.nth(1)).toContainText(/40\s?%/);
+    // The chart loads lazily and draws a bar per category
+    await expect(byCategory.locator(".recharts-bar-rectangle")).toHaveCount(2);
+
+    for (const theme of ["light", "dark"] as const) {
+      await page.getByRole("button", { name: text[theme], exact: true }).click();
+      await expect(page.locator("html")).toHaveClass(theme === "dark" ? /dark/ : /^(?!.*dark)/);
+      await expectNoViolations(page);
+    }
+
+    // Edit: Transport grows past Food and moves to the top
+    await page
+      .getByRole("listitem")
+      .filter({ hasText: "bus" })
+      .getByRole("link", { name: new RegExp(`^${text.edit}`) })
+      .click();
+    await expect(page.getByRole("heading", { name: text.editHeading })).toBeVisible();
+    await expect(field(page, text.amount)).toHaveValue("200.00");
+    await field(page, text.amount).fill("500");
+    await page.getByRole("button", { name: text.save }).click();
+    await expect(page).not.toHaveURL(/\?edit=/);
+    await expectTotals(1000, 800);
+    await expect(legend.nth(0)).toContainText(text.transport);
+    await expect(legend.nth(0)).toContainText(/62[.,]5\s?%/);
+    await expect(legend.nth(1)).toContainText(/37[.,]5\s?%/);
+
+    // Delete: the income goes, and the balance turns negative
+    await page
+      .getByRole("listitem")
+      .filter({ hasText: "pay" })
+      .getByRole("button", { name: new RegExp(`^${text.del}`) })
+      .click();
+    await page
+      .getByRole("alertdialog", { name: text.deleteTitle })
+      .getByRole("button", { name: text.del, exact: true })
+      .click();
+    // The expected balance is formatted from -800, with the locale's minus sign
+    await expectTotals(0, 800);
+  });
+}
