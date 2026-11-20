@@ -163,6 +163,27 @@
   ::view-transition-new(.page-enter) {
     animation: 250ms ease-out both page-rise-in;
   }
+  /* List items (TransactionList): a new one grows in, a removed one shrinks out */
+  ::view-transition-new(.item-enter) {
+    animation: 250ms ease-out both item-in;
+  }
+  ::view-transition-old(.item-exit) {
+    animation: 200ms ease-in both item-out;
+  }
+}
+
+@keyframes item-in {
+  from {
+    opacity: 0;
+    scale: 0.96;
+  }
+}
+
+@keyframes item-out {
+  to {
+    opacity: 0;
+    scale: 0.96;
+  }
 }
 
 @keyframes page-fade-out {

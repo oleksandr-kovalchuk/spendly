@@ -22,12 +22,12 @@ import { updateTransaction } from "./update-transaction.action";
 export type CategoryOption = { id: string; type: CategoryType; label: string };
 type TransactionFormProps = {
   categories: CategoryOption[];
-  today: string;
+  onSaved: () => void;
+} & (
+  | { today: string; transaction?: undefined }
   // Edits this transaction instead of adding one
-  transaction?: TransactionDto;
-  onSaved?: () => void;
-  onCancel?: () => void;
-};
+  | { transaction: TransactionDto; today?: undefined }
+);
 type FormError = "categoryNotFound" | "transactionNotFound" | "unknown";
 type FieldName = "amount" | "categoryId" | "date" | "note";
 
@@ -35,9 +35,7 @@ const FIELD_NAMES = ["amount", "categoryId", "date", "note"] as const satisfies 
 
 // The first visit renders with UTC "today" until the time zone cookie is set, so a new "today" remounts the form to reset the date default
 export function TransactionForm(props: TransactionFormProps) {
-  return (
-    <TransactionFormFields key={`${props.transaction?.id ?? "new"}-${props.today}`} {...props} />
-  );
+  return <TransactionFormFields key={props.transaction?.id ?? `new-${props.today}`} {...props} />;
 }
 
 function formErrorOf(serverError: string): FormError {
@@ -47,16 +45,9 @@ function formErrorOf(serverError: string): FormError {
   return "unknown";
 }
 
-function TransactionFormFields({
-  categories,
-  today,
-  transaction,
-  onSaved,
-  onCancel,
-}: TransactionFormProps) {
+function TransactionFormFields({ categories, today, transaction, onSaved }: TransactionFormProps) {
   const t = useTranslations("Transactions");
   const [formError, setFormError] = useState<FormError>();
-  const [isAdded, setIsAdded] = useState(false);
 
   function firstCategoryOf(type: CategoryType) {
     return categories.find((category) => category.type === type)?.id ?? "";
@@ -78,7 +69,7 @@ function TransactionFormFields({
           type: "expense",
           amount: "",
           categoryId: firstCategoryOf("expense"),
-          date: today,
+          date: today ?? "",
           note: "",
         },
   });
@@ -93,7 +84,6 @@ function TransactionFormFields({
 
   async function handleSubmit(values: TransactionValues) {
     setFormError(undefined);
-    setIsAdded(false);
 
     try {
       const result = transaction
@@ -117,25 +107,11 @@ function TransactionFormFields({
       return;
     }
 
-    if (transaction) {
-      onSaved?.();
-      return;
-    }
-
-    form.reset({ ...values, amount: "", note: "" });
-    setIsAdded(true);
+    onSaved();
   }
 
   return (
-    <form
-      onSubmit={form.handleSubmit(handleSubmit)}
-      noValidate
-      aria-labelledby="transaction-form-heading"
-      className="@container grid gap-4"
-    >
-      <h2 id="transaction-form-heading" className="text-lg font-medium">
-        {t(transaction ? "form.editHeading" : "form.heading")}
-      </h2>
+    <form onSubmit={form.handleSubmit(handleSubmit)} noValidate className="@container grid gap-4">
       <fieldset className="grid gap-2">
         <legend className="mb-2 text-sm font-medium">{t("form.type")}</legend>
         <div className="grid grid-cols-2 gap-2">
@@ -212,19 +188,9 @@ function TransactionFormFields({
         )}
       </TransactionField>
       {formError ? <FieldError>{t(`errors.${formError}`)}</FieldError> : null}
-      {isAdded ? (
-        <output className="block rounded-lg bg-muted px-3 py-2 text-sm">{t("form.added")}</output>
-      ) : null}
-      <div className="grid gap-2 @md:grid-cols-2">
-        <Button type="submit" size="lg" disabled={isSubmitting}>
-          {t(transaction ? "form.save" : "form.submit")}
-        </Button>
-        {transaction ? (
-          <Button type="button" variant="outline" size="lg" onClick={onCancel}>
-            {t("form.cancel")}
-          </Button>
-        ) : null}
-      </div>
+      <Button type="submit" size="lg" disabled={isSubmitting}>
+        {t(transaction ? "form.save" : "form.submit")}
+      </Button>
     </form>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useAction } from "next-safe-action/hooks";
 import { useState } from "react";
 
@@ -20,18 +20,23 @@ import { FieldError } from "@/shared/ui/field";
 
 import { deleteTransaction } from "./delete-transaction.action";
 
+type DeleteTransactionButtonProps = {
+  transactionId: string;
+  label: string;
+  // The list's period, which the action returns to
+  listQuery: Record<string, string>;
+};
+
+// A delete ends on the list without the edit form, so the success is a navigation
 export function DeleteTransactionButton({
   transactionId,
   label,
-}: {
-  transactionId: string;
-  label: string;
-}) {
+  listQuery,
+}: DeleteTransactionButtonProps) {
   const t = useTranslations("Transactions");
+  const locale = useLocale();
   const [isOpen, setIsOpen] = useState(false);
-  const { execute, isPending, hasErrored, result, reset } = useAction(deleteTransaction, {
-    onSuccess: () => setIsOpen(false),
-  });
+  const { execute, isPending, hasErrored, result, reset } = useAction(deleteTransaction);
   const error = result.serverError === "transactionNotFound" ? "transactionNotFound" : "unknown";
 
   function handleOpenChange(open: boolean) {
@@ -43,11 +48,7 @@ export function DeleteTransactionButton({
 
   return (
     <AlertDialog open={isOpen} onOpenChange={handleOpenChange}>
-      <AlertDialogTrigger
-        render={
-          <Button variant="ghost" size="sm" aria-label={t("list.delete", { category: label })} />
-        }
-      >
+      <AlertDialogTrigger render={<Button variant="outline" size="lg" />}>
         {t("delete.action")}
       </AlertDialogTrigger>
       <AlertDialogContent>
@@ -63,7 +64,7 @@ export function DeleteTransactionButton({
           <AlertDialogAction
             variant="destructive"
             disabled={isPending}
-            onClick={() => execute({ id: transactionId })}
+            onClick={() => execute({ id: transactionId, locale, listQuery })}
           >
             {t("delete.action")}
           </AlertDialogAction>

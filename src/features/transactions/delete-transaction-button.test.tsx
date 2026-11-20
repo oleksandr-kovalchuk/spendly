@@ -20,7 +20,7 @@ beforeEach(() => {
 function renderButton() {
   render(
     <NextIntlClientProvider locale="en" messages={en}>
-      <DeleteTransactionButton transactionId={ID} label="Food" />
+      <DeleteTransactionButton transactionId={ID} label="Food" listQuery={{ period: "week" }} />
     </NextIntlClientProvider>,
   );
 
@@ -29,7 +29,7 @@ function renderButton() {
 
 test("asks before deleting and cancel keeps the transaction", async () => {
   const user = renderButton();
-  await user.click(screen.getByRole("button", { name: "Delete Food" }));
+  await user.click(screen.getByRole("button", { name: "Delete" }));
 
   expect(
     await screen.findByRole("alertdialog", { name: "Delete this transaction?" }),
@@ -42,15 +42,17 @@ test("asks before deleting and cancel keeps the transaction", async () => {
   expect(deleteTransaction).not.toHaveBeenCalled();
 });
 
-test("confirming deletes by id and closes the dialog", async () => {
+// On success the action redirects to the list, which unmounts the edit sheet with this button
+test("confirming deletes by id and returns to the list's period", async () => {
   deleteTransaction.mockResolvedValue({});
   const user = renderButton();
-  await user.click(screen.getByRole("button", { name: "Delete Food" }));
+  await user.click(screen.getByRole("button", { name: "Delete" }));
   await user.click(await screen.findByRole("button", { name: "Delete" }));
 
-  expect(deleteTransaction).toHaveBeenCalledWith({ id: ID });
-  await vi.waitFor(() => {
-    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+  expect(deleteTransaction).toHaveBeenCalledWith({
+    id: ID,
+    locale: "en",
+    listQuery: { period: "week" },
   });
 });
 
@@ -60,7 +62,7 @@ test.each([
 ])("the server error %j shows a message and keeps the dialog open", async (result, message) => {
   deleteTransaction.mockResolvedValue(result);
   const user = renderButton();
-  await user.click(screen.getByRole("button", { name: "Delete Food" }));
+  await user.click(screen.getByRole("button", { name: "Delete" }));
   await user.click(await screen.findByRole("button", { name: "Delete" }));
 
   expect(await screen.findByText(message)).toBeVisible();
@@ -70,7 +72,7 @@ test.each([
 test("a failed request shows the unknown error", async () => {
   deleteTransaction.mockRejectedValue(new Error("offline"));
   const user = renderButton();
-  await user.click(screen.getByRole("button", { name: "Delete Food" }));
+  await user.click(screen.getByRole("button", { name: "Delete" }));
   await user.click(await screen.findByRole("button", { name: "Delete" }));
 
   expect(await screen.findByText(en.Transactions.errors.unknown)).toBeVisible();

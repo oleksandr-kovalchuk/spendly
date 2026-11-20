@@ -6,7 +6,7 @@ import { useLocale, useTranslations } from "next-intl";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { parseAsString, useQueryStates } from "nuqs";
-import { Suspense } from "react";
+import { Fragment, Suspense, type ReactNode } from "react";
 
 // `segment` is the path after the locale; screens with a period keep it between each other
 const SCREENS = [
@@ -20,12 +20,19 @@ const periodParsers = { period: parseAsString, date: parseAsString };
 type Layout = "bar" | "sidebar";
 type NavListProps = {
   layout: Layout;
+  // A control in the middle slot of the bar, within thumb reach (the Add button)
+  action?: ReactNode;
   currentSegment?: string;
   periodQuery?: Record<string, string>;
 };
 
+// The action goes after the second screen
+const ACTION_INDEX = 2;
+
 const listVariants = cva("", {
-  variants: { layout: { bar: "grid grid-cols-3", sidebar: "grid gap-1" } },
+  variants: {
+    layout: { bar: "grid auto-cols-fr grid-flow-col items-center", sidebar: "grid gap-1" },
+  },
 });
 
 // The current screen is bold and has an indicator bar, so it isn't marked by color alone
@@ -42,32 +49,37 @@ const linkVariants = cva(
   },
 );
 
-function NavList({ layout, currentSegment, periodQuery }: NavListProps) {
+function NavList({ layout, action, currentSegment, periodQuery }: NavListProps) {
   const t = useTranslations("Header.screens");
   const locale = useLocale();
 
   return (
     <ul className={listVariants({ layout })}>
-      {SCREENS.map(({ name, segment, icon: Icon, hasPeriod }) => (
-        <li key={name}>
-          <Link
-            href={{
-              pathname: segment ? `/${locale}/${segment}` : `/${locale}`,
-              query: hasPeriod ? periodQuery : undefined,
-            }}
-            aria-current={segment === currentSegment ? "page" : undefined}
-            className={linkVariants({ layout })}
-          >
-            <Icon aria-hidden />
-            {t(name)}
-          </Link>
-        </li>
+      {SCREENS.map(({ name, segment, icon: Icon, hasPeriod }, index) => (
+        <Fragment key={name}>
+          {action !== undefined && index === ACTION_INDEX ? (
+            <li className="flex justify-center">{action}</li>
+          ) : null}
+          <li>
+            <Link
+              href={{
+                pathname: segment ? `/${locale}/${segment}` : `/${locale}`,
+                query: hasPeriod ? periodQuery : undefined,
+              }}
+              aria-current={segment === currentSegment ? "page" : undefined}
+              className={linkVariants({ layout })}
+            >
+              <Icon aria-hidden />
+              {t(name)}
+            </Link>
+          </li>
+        </Fragment>
       ))}
     </ul>
   );
 }
 
-function CurrentNavList({ layout }: { layout: Layout }) {
+function CurrentNavList({ layout, action }: { layout: Layout; action?: ReactNode }) {
   const pathname = usePathname();
   // nuqs, not `useSearchParams`: the period control's update shows here at once, while Next's
   // search params change only when the server render for the new period ends
@@ -77,14 +89,21 @@ function CurrentNavList({ layout }: { layout: Layout }) {
     Object.entries(period).flatMap(([key, value]) => (value === null ? [] : [[key, value]])),
   );
 
-  return <NavList layout={layout} currentSegment={currentSegment} periodQuery={periodQuery} />;
+  return (
+    <NavList
+      layout={layout}
+      action={action}
+      currentSegment={currentSegment}
+      periodQuery={periodQuery}
+    />
+  );
 }
 
 // The search params are only known at request time, so the shell shows plain links until then
-export function AppNavLinks({ layout }: { layout: Layout }) {
+export function AppNavLinks({ layout, action }: { layout: Layout; action?: ReactNode }) {
   return (
-    <Suspense fallback={<NavList layout={layout} />}>
-      <CurrentNavList layout={layout} />
+    <Suspense fallback={<NavList layout={layout} action={action} />}>
+      <CurrentNavList layout={layout} action={action} />
     </Suspense>
   );
 }

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { render, screen, within } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
-import { expect, test, vi } from "vitest";
+import { expect, test } from "vitest";
 
 import en from "@/i18n/messages/en.json";
 import uk from "@/i18n/messages/uk.json";
@@ -9,8 +9,6 @@ import uk from "@/i18n/messages/uk.json";
 import { groupByDay } from "./group-by-day";
 import { TransactionList } from "./transaction-list";
 import type { TransactionDto } from "./transactions.dal";
-
-vi.mock("./delete-transaction.action", () => ({ deleteTransaction: vi.fn() }));
 
 const TRANSACTIONS: TransactionDto[] = [
   {
@@ -45,16 +43,11 @@ const TRANSACTIONS: TransactionDto[] = [
 function renderList(
   locale: "en" | "uk",
   transactions: TransactionDto[],
-  editingId?: string,
   periodQuery?: Record<string, string>,
 ) {
   render(
     <NextIntlClientProvider locale={locale} messages={locale === "en" ? en : uk}>
-      <TransactionList
-        groups={groupByDay(transactions)}
-        editingId={editingId}
-        periodQuery={periodQuery}
-      />
+      <TransactionList groups={groupByDay(transactions)} periodQuery={periodQuery} />
     </NextIntlClientProvider>,
   );
 }
@@ -98,34 +91,25 @@ test("shows the empty state without transactions", () => {
   expect(screen.queryByRole("list")).not.toBeInTheDocument();
 });
 
-test("each item links to its edit form and has a delete button", () => {
+test("each whole item links to its edit form", () => {
   renderList("en", TRANSACTIONS);
 
-  expect(screen.getByRole("link", { name: "Edit Food" })).toHaveAttribute(
+  expect(screen.getByRole("link", { name: /^Food\s?lunch/ })).toHaveAttribute(
     "href",
     "/en/transactions?edit=1",
   );
-  expect(screen.getByRole("link", { name: "Edit Pets" })).toHaveAttribute(
+  expect(screen.getByRole("link", { name: /^Pets/ })).toHaveAttribute(
     "href",
     "/en/transactions?edit=3",
   );
-  expect(screen.getAllByRole("button", { name: /^Delete / })).toHaveLength(3);
+  expect(screen.queryByRole("button")).not.toBeInTheDocument();
 });
 
 test("edit links keep the shown period", () => {
-  renderList("en", TRANSACTIONS, undefined, { period: "week", date: "2026-03-02" });
+  renderList("en", TRANSACTIONS, { period: "week", date: "2026-03-02" });
 
-  expect(screen.getByRole("link", { name: "Edit Food" })).toHaveAttribute(
+  expect(screen.getByRole("link", { name: /^Food/ })).toHaveAttribute(
     "href",
     "/en/transactions?period=week&date=2026-03-02&edit=1",
   );
-});
-
-test("the transaction in the form has no actions and is marked", () => {
-  renderList("en", TRANSACTIONS, "1");
-
-  expect(screen.queryByRole("link", { name: "Edit Food" })).not.toBeInTheDocument();
-  expect(screen.queryByRole("button", { name: "Delete Food" })).not.toBeInTheDocument();
-  expect(screen.getByText("Editing").closest("li")).toHaveAttribute("aria-current", "true");
-  expect(screen.getByRole("link", { name: "Edit Pets" })).toBeVisible();
 });
