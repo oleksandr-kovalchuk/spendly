@@ -9,6 +9,7 @@ import { categoryLabel } from "@/shared/categories/category-label";
 import { listCategories } from "@/shared/categories/categories.dal";
 import { CATEGORY_TYPES, type CategoryType } from "@/shared/db/app-schema";
 import { Skeleton } from "@/shared/ui/skeleton";
+import { PageTransition } from "@/views/app-shell/page-transition";
 
 // Both lists render from one query
 const getCategories = cache(async () => {
@@ -59,16 +60,18 @@ export async function CategoriesPage() {
   const t = await getTranslations("Categories");
 
   return (
-    <div className="grid gap-8">
-      <h1 className="text-3xl font-semibold tracking-tight text-balance">{t("heading")}</h1>
-      {CATEGORY_TYPES.map((type) => (
-        <CategorySection key={type} heading={t(`list.${type}Heading`)}>
-          <Suspense fallback={<ListSkeleton />}>
-            <CategoryList type={type} />
-          </Suspense>
-          <CreateCategoryForm type={type} />
-        </CategorySection>
-      ))}
-    </div>
+    <PageTransition>
+      <div className="grid gap-8">
+        <h1 className="text-3xl font-semibold tracking-tight text-balance">{t("heading")}</h1>
+        {CATEGORY_TYPES.map((type) => (
+          <CategorySection key={type} heading={t(`list.${type}Heading`)}>
+            <Suspense fallback={<ListSkeleton />}>
+              <CategoryList type={type} />
+            </Suspense>
+            <CreateCategoryForm type={type} />
+          </CategorySection>
+        ))}
+      </div>
+    </PageTransition>
   );
 }

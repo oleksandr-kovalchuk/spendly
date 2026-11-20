@@ -13,7 +13,11 @@
     "signOut": "Sign out",
     "signOutFailed": "Sign out failed, try again",
     "nav": "Main",
-    "categories": "Categories"
+    "screens": {
+      "overview": "Overview",
+      "transactions": "Transactions",
+      "categories": "Categories"
+    }
   },
   "Auth": {
     "fields": {
@@ -47,7 +51,7 @@
     }
   },
   "Home": {
-    "title": "Home",
+    "title": "Overview",
     "heading": "Overview"
   },
   "NotFound": {
@@ -99,6 +103,8 @@
     }
   },
   "Transactions": {
+    "title": "Transactions",
+    "heading": "Transactions",
     "form": {
       "heading": "Add transaction",
       "type": "Type",
@@ -126,7 +132,6 @@
       "transactionNotFound": "This transaction no longer exists. Reload the page."
     },
     "list": {
-      "heading": "Transactions",
       "empty": "No transactions in this period.",
       "loadFailed": "We could not load your transactions.",
       "retry": "Try again",

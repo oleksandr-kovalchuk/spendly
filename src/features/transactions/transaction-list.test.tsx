@@ -62,7 +62,7 @@ function renderList(
 test("shows the days newest first with signed amounts and category names", () => {
   renderList("en", TRANSACTIONS);
 
-  const days = screen.getAllByRole("heading", { level: 3 });
+  const days = screen.getAllByRole("heading", { level: 2 });
   expect(days.map((day) => day.textContent)).toEqual(["Tuesday, March 10", "Thursday, March 5"]);
 
   const [first, second] = screen.getAllByRole("list");
@@ -77,7 +77,7 @@ test("shows the days newest first with signed amounts and category names", () =>
 test("translates the dates, amounts and default categories to Ukrainian", () => {
   renderList("uk", TRANSACTIONS);
 
-  const days = screen.getAllByRole("heading", { level: 3 });
+  const days = screen.getAllByRole("heading", { level: 2 });
   expect(days.map((day) => day.textContent)).toEqual(["вівторок, 10 березня", "четвер, 5 березня"]);
   expect(screen.getByText(uk.Categories.defaults.food)).toBeVisible();
   expect(screen.getByText(uk.Categories.defaults.salary)).toBeVisible();
@@ -101,8 +101,14 @@ test("shows the empty state without transactions", () => {
 test("each item links to its edit form and has a delete button", () => {
   renderList("en", TRANSACTIONS);
 
-  expect(screen.getByRole("link", { name: "Edit Food" })).toHaveAttribute("href", "/en?edit=1");
-  expect(screen.getByRole("link", { name: "Edit Pets" })).toHaveAttribute("href", "/en?edit=3");
+  expect(screen.getByRole("link", { name: "Edit Food" })).toHaveAttribute(
+    "href",
+    "/en/transactions?edit=1",
+  );
+  expect(screen.getByRole("link", { name: "Edit Pets" })).toHaveAttribute(
+    "href",
+    "/en/transactions?edit=3",
+  );
   expect(screen.getAllByRole("button", { name: /^Delete / })).toHaveLength(3);
 });
 
@@ -111,7 +117,7 @@ test("edit links keep the shown period", () => {
 
   expect(screen.getByRole("link", { name: "Edit Food" })).toHaveAttribute(
     "href",
-    "/en?period=week&date=2026-03-02&edit=1",
+    "/en/transactions?period=week&date=2026-03-02&edit=1",
   );
 });
 

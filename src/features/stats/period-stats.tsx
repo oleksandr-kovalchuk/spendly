@@ -19,9 +19,9 @@ export function PeriodStats({ totals, spending }: PeriodStatsProps) {
     <div className="@container grid gap-4">
       <PeriodTotals {...totals} />
       <div className="grid gap-3">
-        <h3 id={headingId} className="text-sm font-medium">
+        <h2 id={headingId} className="text-sm font-medium">
           {t("byCategory")}
-        </h3>
+        </h2>
         {spending.length === 0 ? (
           <p className="text-muted-foreground">{t("noExpenses")}</p>
         ) : (

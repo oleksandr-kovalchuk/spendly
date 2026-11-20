@@ -18,7 +18,8 @@ export function EditTransactionForm({ categories, transaction }: EditTransaction
   function handleClose() {
     const rest = new URLSearchParams(searchParams);
     rest.delete("edit");
-    router.replace(rest.size > 0 ? `/${locale}?${rest.toString()}` : `/${locale}`);
+    const query = rest.size > 0 ? `?${rest.toString()}` : "";
+    router.replace(`/${locale}/transactions${query}`);
   }
 
   return (

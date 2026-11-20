@@ -28,7 +28,7 @@ export function TransactionList({ groups, editingId, periodQuery }: TransactionL
     <div className="grid gap-6">
       {groups.map((group) => (
         <div key={group.date} className="grid gap-2">
-          <h3 className="text-sm font-medium text-muted-foreground">
+          <h2 className="text-sm font-medium text-muted-foreground">
             {/* A day has no time zone: it is shown on the UTC calendar it was written on */}
             <time dateTime={group.date}>
               {format.dateTime(new Date(`${group.date}T00:00:00Z`), {
@@ -38,7 +38,7 @@ export function TransactionList({ groups, editingId, periodQuery }: TransactionL
                 month: "long",
               })}
             </time>
-          </h3>
+          </h2>
           <ul className="divide-y divide-border rounded-lg border border-border">
             {group.transactions.map((transaction) => {
               const sign = transaction.type === "income" ? 1 : -1;
@@ -74,7 +74,7 @@ export function TransactionList({ groups, editingId, periodQuery }: TransactionL
                     <div className="flex justify-end gap-1">
                       <Link
                         href={{
-                          pathname: `/${locale}`,
+                          pathname: `/${locale}/transactions`,
                           query: { ...periodQuery, edit: transaction.id },
                         }}
                         aria-label={t("list.edit", { category: label })}

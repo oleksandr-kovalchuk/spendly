@@ -133,3 +133,65 @@
     @apply font-sans;
   }
 }
+
+/* Screen changes: the page content (PageTransition) crossfades with an 8 px rise */
+@utility app-nav-anchor {
+  view-transition-name: app-nav;
+}
+
+::view-transition {
+  /* Clicks during a transition reach the page */
+  pointer-events: none;
+}
+
+/* The navigation stays put above the changing content */
+::view-transition-group(app-nav) {
+  animation: none;
+  z-index: 1;
+}
+::view-transition-old(app-nav) {
+  display: none;
+}
+::view-transition-new(app-nav) {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(.page-exit) {
+    animation: 150ms ease-in both page-fade-out;
+  }
+  ::view-transition-new(.page-enter) {
+    animation: 250ms ease-out both page-rise-in;
+  }
+}
+
+@keyframes page-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes page-rise-in {
+  from {
+    opacity: 0;
+    translate: 0 8px;
+  }
+}
+
+/* Unlayered, so it wins over Tailwind's animation and transition utilities without !important;
+   a near-zero duration still fires the end events that dialogs wait for */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none;
+  }
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+    transition-duration: 0.01ms;
+    scroll-behavior: auto;
+  }
+}
