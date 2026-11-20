@@ -5,9 +5,9 @@ import { useId, type ComponentProps } from "react";
 import { Field, FieldError, FieldLabel } from "@/shared/ui/field";
 import { Input } from "@/shared/ui/input";
 
-type AuthFieldProps = ComponentProps<typeof Input> & { label: string; error?: string };
+type TextFieldProps = ComponentProps<typeof Input> & { label: string; error?: string };
 
-export function AuthField({ label, error, ...inputProps }: AuthFieldProps) {
+export function TextField({ label, error, ...inputProps }: TextFieldProps) {
   const id = useId();
   const errorId = `${id}-error`;
 

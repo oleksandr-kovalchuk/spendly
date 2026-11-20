@@ -7,10 +7,10 @@ import { useState } from "react";
 import { useForm, useFormState } from "react-hook-form";
 
 import { authClient } from "@/shared/auth/auth-client";
+import { TextField } from "@/shared/forms/text-field";
 import { Button } from "@/shared/ui/button";
 import { FieldError } from "@/shared/ui/field";
 
-import { AuthField } from "./auth-field";
 import { formErrorOf, isFieldError, type FormError } from "./auth-errors";
 import { signInSchema, type SignInValues } from "./auth-schemas";
 
@@ -51,7 +51,7 @@ export function SignInForm({ defaultEmail = "", hasJustRegistered }: SignInFormP
           {t("signIn.registered")}
         </output>
       ) : null}
-      <AuthField
+      <TextField
         label={t("fields.email")}
         type="email"
         autoComplete="email"
@@ -59,7 +59,7 @@ export function SignInForm({ defaultEmail = "", hasJustRegistered }: SignInFormP
         error={messageOf(errors.email?.message)}
         {...form.register("email")}
       />
-      <AuthField
+      <TextField
         label={t("fields.password")}
         type="password"
         autoComplete="current-password"
