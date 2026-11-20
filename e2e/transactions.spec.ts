@@ -22,6 +22,12 @@ const TEXTS = {
     food: "Food",
     salary: "Salary",
     other: "Українська",
+    edit: "Edit",
+    save: "Save",
+    cancel: "Cancel",
+    del: "Delete",
+    editHeading: "Edit transaction",
+    deleteTitle: "Delete this transaction?",
   },
   uk: {
     signUp: "Зареєструватися",
@@ -41,6 +47,12 @@ const TEXTS = {
     food: "Їжа",
     salary: "Зарплата",
     other: "English",
+    edit: "Редагувати",
+    save: "Зберегти",
+    cancel: "Скасувати",
+    del: "Видалити",
+    editHeading: "Редагувати транзакцію",
+    deleteTitle: "Видалити цю транзакцію?",
   },
 } as const;
 
@@ -158,4 +170,96 @@ test("the main page with transactions fits a small screen", async ({ page }, tes
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
   );
   expect(overflow).toBeLessThanOrEqual(0);
+});
+
+for (const locale of ["en", "uk"] as const) {
+  const text = TEXTS[locale];
+
+  test(`a transaction is edited and deleted in ${locale}`, async ({ page }, testInfo) => {
+    const now = new Date();
+    // Another day of the same month, on the 1st or the 2nd
+    const otherDay = isoDay(
+      new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() === 1 ? 2 : 1)),
+    );
+
+    await signUpAndIn(page, locale, testInfo);
+    for (const [amount, note] of [
+      ["10", "first"],
+      ["20", "second"],
+    ] as const) {
+      await field(page, text.amount).fill(amount);
+      await field(page, text.note).fill(note);
+      await page.getByRole("button", { name: text.add, exact: true }).click();
+      await expect(page.getByRole("listitem").filter({ hasText: note })).toBeVisible();
+    }
+
+    // Edit: the amount and the date change, and the item moves to the new day
+    const first = page.getByRole("listitem").filter({ hasText: "first" });
+    await first.getByRole("link", { name: new RegExp(`^${text.edit}`) }).click();
+    await expect(page).toHaveURL(/\?edit=/);
+    await expect(page.getByRole("heading", { name: text.editHeading })).toBeVisible();
+    await expect(field(page, text.amount)).toHaveValue("10.00");
+    await expect(field(page, text.note)).toHaveValue("first");
+    await expectNoViolations(page);
+
+    await field(page, text.amount).fill("12,34");
+    await page.getByLabel(text.date, { exact: true }).fill(otherDay);
+    await page.getByRole("button", { name: text.save }).click();
+    await expect(page).not.toHaveURL(/\?edit=/);
+    await expect(page.getByRole("heading", { name: text.editHeading })).toHaveCount(0);
+
+    const movedRow = page.getByRole("listitem").filter({ hasText: "first" });
+    await expect(movedRow).toContainText(/12[.,]34/);
+    const dayOfMoved = await movedRow
+      .locator("xpath=ancestor::div[./h3][1]//time")
+      .getAttribute("datetime");
+    expect(dayOfMoved).toBe(otherDay);
+    await expect(page.getByRole("listitem").filter({ hasText: "second" })).toBeVisible();
+
+    // Delete: cancel keeps the item, confirm removes it
+    const second = page.getByRole("listitem").filter({ hasText: "second" });
+    await second.getByRole("button", { name: new RegExp(`^${text.del}`) }).click();
+    const dialog = page.getByRole("alertdialog", { name: text.deleteTitle });
+    await expect(dialog).toBeVisible();
+    // axe would read the colors of the open animation's intermediate frames
+    await page.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished)));
+    await expectNoViolations(page);
+    await dialog.getByRole("button", { name: text.cancel }).click();
+    await expect(dialog).toHaveCount(0);
+    await expect(second).toBeVisible();
+
+    await second.getByRole("button", { name: new RegExp(`^${text.del}`) }).click();
+    await page
+      .getByRole("alertdialog", { name: text.deleteTitle })
+      .getByRole("button", { name: text.del, exact: true })
+      .click();
+    await expect(second).toHaveCount(0);
+
+    // Both changes stay after a reload
+    await page.reload();
+    await expect(page.getByRole("listitem").filter({ hasText: "first" })).toContainText(/12[.,]34/);
+    await expect(page.getByRole("listitem").filter({ hasText: "second" })).toHaveCount(0);
+  });
+}
+
+test("another user's transaction opens the 404 page", async ({ page, browser }, testInfo) => {
+  await signUpAndIn(page, "en", testInfo);
+  await field(page, TEXTS.en.amount).fill("5");
+  await field(page, TEXTS.en.note).fill("private");
+  await page.getByRole("button", { name: TEXTS.en.add, exact: true }).click();
+  const row = page.getByRole("listitem").filter({ hasText: "private" });
+  await row.getByRole("link", { name: /^Edit/ }).click();
+  await expect(page).toHaveURL(/\?edit=/);
+  const editUrl = page.url();
+
+  const other = await browser.newContext({ timezoneId: "UTC" });
+  const otherPage = await other.newPage();
+  await signUpAndIn(otherPage, "en", testInfo);
+  await otherPage.goto(editUrl);
+
+  // With Cache Components the shell streams first with a 200, so the 404 page and its noindex meta are checked instead of the status.
+  await expect(otherPage.getByRole("heading", { level: 1, name: "Page not found" })).toBeVisible();
+  await expect(otherPage.locator('head meta[name="robots"]')).toHaveAttribute("content", /noindex/);
+  await expect(otherPage.getByRole("textbox", { name: TEXTS.en.amount })).toHaveCount(0);
+  await other.close();
 });
