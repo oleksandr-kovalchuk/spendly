@@ -14,6 +14,7 @@
     "test": "vitest run --dir src --exclude \".claude/**\"",
     "unused": "knip",
     "e2e": "playwright test",
+    "lighthouse": "node scripts/lighthouse.mts",
     "standards": "pnpm dlx github:peppernode/dev-standards",
     "spec": "openspec"
   },
@@ -46,6 +47,7 @@
   "devDependencies": {
     "@axe-core/playwright": "^4.14.0",
     "@fission-ai/openspec": "2.0.0",
+    "@lhci/cli": "0.16.1",
     "@playwright/test": "^1.65.1",
     "@tailwindcss/turbopack": "4.3.3",
     "@testcontainers/postgresql": "^12.2.1",
