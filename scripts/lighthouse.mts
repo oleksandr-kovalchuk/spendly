@@ -19,6 +19,7 @@ const PUBLIC_PATHS = ["/en/sign-in", "/en/sign-up"];
 const SIGNED_IN_PATHS = ["/en", "/en/transactions", "/en/categories"];
 const PASSWORD = "correct horse battery";
 const SERVER_START_TIMEOUT_MS = 60_000;
+const DEBUGGING_PORT_TIMEOUT_MS = 10_000;
 const POLL_INTERVAL_MS = 500;
 // Where `lhci collect` saves its reports
 const REPORTS_DIR = ".lighthouseci";
@@ -42,6 +43,23 @@ async function waitForServer() {
     await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
   }
   throw new Error(`The server didn't start on ${BASE_URL}`);
+}
+
+// Chrome writes the port it picked to the profile, sometimes only after Playwright's launch returns
+async function waitForDebuggingPort() {
+  const deadline = Date.now() + DEBUGGING_PORT_TIMEOUT_MS;
+  while (Date.now() < deadline) {
+    const contents = await readFile(join(profileDir, "DevToolsActivePort"), "utf8").catch(
+      (error: unknown) => {
+        if (error instanceof Error && "code" in error && error.code === "ENOENT") return "";
+        throw error;
+      },
+    );
+    const [port] = contents.split("\n").filter(Boolean);
+    if (port !== undefined) return port;
+    await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+  }
+  throw new Error("Chrome didn't report its debugging port");
 }
 
 // Through the browser's own cookie store: a Cookie header from Lighthouse reaches only the page
@@ -106,10 +124,7 @@ try {
     args: ["--remote-debugging-port=0"],
   });
   try {
-    // Chrome writes the port it picked here
-    const [debuggingPort = ""] = (await readFile(join(profileDir, "DevToolsActivePort"), "utf8"))
-      .split("\n")
-      .filter(Boolean);
+    const debuggingPort = await waitForDebuggingPort();
 
     await collect(PUBLIC_PATHS, debuggingPort, false);
     await signInNewUser(context);
