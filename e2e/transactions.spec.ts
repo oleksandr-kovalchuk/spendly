@@ -17,7 +17,7 @@ const TEXTS = {
     note: "Note (optional)",
     add: "Add",
     added: "Transaction added.",
-    empty: "No transactions this month yet. Add your first one above.",
+    empty: "No transactions in this period.",
     amountRequired: "Enter an amount.",
     food: "Food",
     salary: "Salary",
@@ -28,6 +28,10 @@ const TEXTS = {
     del: "Delete",
     editHeading: "Edit transaction",
     deleteTitle: "Delete this transaction?",
+    week: "Week",
+    previousWeek: "Previous week",
+    nextWeek: "Next week",
+    thisWeek: "This week",
   },
   uk: {
     signUp: "Зареєструватися",
@@ -42,7 +46,7 @@ const TEXTS = {
     note: "Примітка (необов'язково)",
     add: "Додати",
     added: "Транзакцію додано.",
-    empty: "Цього місяця ще немає транзакцій. Додайте першу вище.",
+    empty: "У цьому періоді немає транзакцій.",
     amountRequired: "Введіть суму.",
     food: "Їжа",
     salary: "Зарплата",
@@ -53,6 +57,10 @@ const TEXTS = {
     del: "Видалити",
     editHeading: "Редагувати транзакцію",
     deleteTitle: "Видалити цю транзакцію?",
+    week: "Тиждень",
+    previousWeek: "Попередній тиждень",
+    nextWeek: "Наступний тиждень",
+    thisWeek: "Цей тиждень",
   },
 } as const;
 
@@ -262,4 +270,74 @@ test("another user's transaction opens the 404 page", async ({ page, browser }, 
   await expect(otherPage.locator('head meta[name="robots"]')).toHaveAttribute("content", /noindex/);
   await expect(otherPage.getByRole("textbox", { name: TEXTS.en.amount })).toHaveCount(0);
   await other.close();
+});
+
+function addDays(day: string, days: number) {
+  const date = new Date(`${day}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return isoDay(date);
+}
+
+for (const locale of ["en", "uk"] as const) {
+  const text = TEXTS[locale];
+
+  test(`the list follows the week and a shared URL in ${locale}`, async ({ page }, testInfo) => {
+    const now = new Date();
+    // Monday of this week and the Sunday before it, as on 16 and 15 November 2026
+    const monday = addDays(isoDay(now), -((now.getUTCDay() + 6) % 7));
+    const sunday = addDays(monday, -1);
+    const periodLabel = page.locator('[aria-live="polite"]');
+
+    await signUpAndIn(page, locale, testInfo);
+    for (const [day, note] of [
+      [monday, "this-week"],
+      [sunday, "last-week"],
+    ] as const) {
+      await field(page, text.amount).fill("10");
+      await field(page, text.note).fill(note);
+      await page.getByLabel(text.date, { exact: true }).fill(day);
+      await page.getByRole("button", { name: text.add, exact: true }).click();
+      await expect(page.getByText(text.added)).toBeVisible();
+      await expect(field(page, text.amount)).toHaveValue("");
+    }
+
+    await page.getByRole("button", { name: text.week, exact: true }).click();
+    await expect(page).toHaveURL(new RegExp(`/${locale}\\?period=week$`));
+    await expect(page.getByRole("listitem").filter({ hasText: "this-week" })).toBeVisible();
+    await expect(page.getByRole("listitem").filter({ hasText: "last-week" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: text.thisWeek })).toBeDisabled();
+    const thisWeekLabel = await periodLabel.textContent();
+    await expectNoViolations(page);
+
+    await page.getByRole("button", { name: text.previousWeek }).click();
+    await expect(page).toHaveURL(new RegExp(`\\?period=week&date=${addDays(monday, -7)}$`));
+    await expect(periodLabel).not.toHaveText(thisWeekLabel ?? "");
+    await expect(page.getByRole("listitem").filter({ hasText: "last-week" })).toBeVisible();
+    await expect(page.getByRole("listitem").filter({ hasText: "this-week" })).toHaveCount(0);
+    const lastWeekLabel = (await periodLabel.textContent()) ?? "";
+
+    // The same week opens from the URL in a new tab
+    const shared = await page.context().newPage();
+    await shared.goto(page.url());
+    await expect(shared.locator('[aria-live="polite"]')).toHaveText(lastWeekLabel);
+    await expect(shared.getByRole("listitem").filter({ hasText: "last-week" })).toBeVisible();
+    await expect(shared.getByRole("listitem").filter({ hasText: "this-week" })).toHaveCount(0);
+    await shared.close();
+
+    await page.getByRole("button", { name: text.nextWeek }).click();
+    await expect(periodLabel).toHaveText(thisWeekLabel ?? "");
+    await expect(page.getByRole("listitem").filter({ hasText: "this-week" })).toBeVisible();
+    await expect(page.getByRole("listitem").filter({ hasText: "last-week" })).toHaveCount(0);
+  });
+}
+
+test("an invalid period in the URL shows the current month", async ({ page }, testInfo) => {
+  await signUpAndIn(page, "en", testInfo);
+  await page.goto("/en?period=decade&date=2026-02-30");
+
+  await expect(page.getByRole("button", { name: "Month", exact: true })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect(page.getByRole("button", { name: "This month" })).toBeDisabled();
 });

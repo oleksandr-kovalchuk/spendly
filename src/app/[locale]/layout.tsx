@@ -45,6 +45,7 @@ export default async function RootLayout({ children }: LayoutProps<"/[locale]">)
     Error: error,
     Categories: categories,
     Transactions: transactions,
+    Periods: periods,
   } = await getMessages();
 
   return (
@@ -62,6 +63,7 @@ export default async function RootLayout({ children }: LayoutProps<"/[locale]">)
             Error: error,
             Categories: categories,
             Transactions: transactions,
+            Periods: periods,
           }}
         >
           <AppProviders>

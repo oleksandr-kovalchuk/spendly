@@ -11,8 +11,15 @@ import type { DayGroup } from "./group-by-day";
 const CURRENCY = "UAH";
 const KOPECKS_PER_HRYVNIA = 100;
 
+type TransactionListProps = {
+  groups: DayGroup[];
+  editingId?: string;
+  // The page's other search params, kept in the edit links
+  periodQuery?: Record<string, string>;
+};
+
 // The transaction open in the form has no actions: deleting it would leave the form without one
-export function TransactionList({ groups, editingId }: { groups: DayGroup[]; editingId?: string }) {
+export function TransactionList({ groups, editingId, periodQuery }: TransactionListProps) {
   const t = useTranslations("Transactions");
   const locale = useLocale();
   const tCategories = useTranslations("Categories");
@@ -71,7 +78,10 @@ export function TransactionList({ groups, editingId }: { groups: DayGroup[]; edi
                   ) : (
                     <div className="flex justify-end gap-1">
                       <Link
-                        href={{ pathname: `/${locale}`, query: { edit: transaction.id } }}
+                        href={{
+                          pathname: `/${locale}`,
+                          query: { ...periodQuery, edit: transaction.id },
+                        }}
                         aria-label={t("list.edit", { category: label })}
                         className={buttonVariants({ variant: "ghost", size: "sm" })}
                       >

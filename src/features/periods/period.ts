@@ -1,0 +1,117 @@
+import { monthOf } from "@/shared/lib/time-zone";
+
+export const PERIOD_TYPES = ["day", "week", "month", "year"] as const;
+export type PeriodType = (typeof PERIOD_TYPES)[number];
+
+const DEFAULT_PERIOD_TYPE: PeriodType = "month";
+const DAYS_PER_WEEK = 7;
+const MONDAY = 1;
+const MIN_YEAR = 1;
+const MAX_YEAR = 9999;
+const DAY_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+// Both ends are days (`YYYY-MM-DD`) and are included
+export type Period = { type: PeriodType; from: string; to: string };
+
+// The URL's raw values: a repeated key arrives as an array
+type RawValue = string | string[] | null | undefined;
+export type PeriodSearch = { period: PeriodType | null; date: string | null };
+
+// Calendar days are computed on UTC dates, so no time zone or DST shifts them;
+// `setUTCFullYear` keeps years below 100, which `Date.UTC` would move to the 1900s
+function toDate(year: number, monthIndex: number, day: number) {
+  const date = new Date(0);
+  date.setUTCFullYear(year, monthIndex, day);
+  return date;
+}
+
+function toDay(date: Date) {
+  const year = String(date.getUTCFullYear()).padStart(4, "0");
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(date.getUTCDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function parseDay(day: string) {
+  const [, year = "", month = "", date = ""] = DAY_PATTERN.exec(day) ?? [];
+  return toDate(Number(year), Number(month) - 1, Number(date));
+}
+
+// A real calendar day in the supported years, written as `YYYY-MM-DD`
+export function isCalendarDay(value: string) {
+  const match = DAY_PATTERN.exec(value);
+  if (!match) return false;
+  const year = Number(match[1]);
+
+  return year >= MIN_YEAR && year <= MAX_YEAR && toDay(parseDay(value)) === value;
+}
+
+// The period of the given type that holds `day`; weeks run Monday to Sunday
+export function periodOf(type: PeriodType, day: string): Period {
+  const date = parseDay(day);
+  const year = date.getUTCFullYear();
+  const month = date.getUTCMonth();
+
+  switch (type) {
+    case "day":
+      return { type, from: day, to: day };
+    case "week": {
+      const daysSinceMonday = (date.getUTCDay() - MONDAY + DAYS_PER_WEEK) % DAYS_PER_WEEK;
+      const start = toDate(year, month, date.getUTCDate() - daysSinceMonday);
+      const end = toDate(year, month, date.getUTCDate() - daysSinceMonday + DAYS_PER_WEEK - 1);
+      return { type, from: toDay(start), to: toDay(end) };
+    }
+    case "month":
+      return { type, ...monthOf(day) };
+    case "year":
+      return { type, from: toDay(toDate(year, 0, 1)), to: toDay(toDate(year, 11, 31)) };
+    default:
+      throw new Error("Unhandled period type", { cause: type satisfies never });
+  }
+}
+
+// The previous (-1) or next (1) period of the same type; undefined past the supported years
+export function stepPeriod(period: Period, direction: -1 | 1): Period | undefined {
+  const day = direction === -1 ? parseDay(period.from) : parseDay(period.to);
+  const next = toDate(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate() + direction);
+  const nextDay = toDay(next);
+
+  return isCalendarDay(nextDay) ? periodOf(period.type, nextDay) : undefined;
+}
+
+function single(value: RawValue) {
+  return typeof value === "string" ? value : undefined;
+}
+
+// A missing type is a month and a missing date is today; anything invalid is the current month
+export function parsePeriod(search: { period?: RawValue; date?: RawValue }, today: string): Period {
+  const fallback = periodOf(DEFAULT_PERIOD_TYPE, today);
+  const rawType = search.period ?? DEFAULT_PERIOD_TYPE;
+  const rawDate = search.date ?? today;
+  const type = PERIOD_TYPES.find((candidate) => candidate === single(rawType));
+  const date = single(rawDate);
+  if (!type || date === undefined || !isCalendarDay(date)) return fallback;
+
+  return periodOf(type, date);
+}
+
+export function isCurrentPeriod(period: Period, today: string) {
+  return period.from <= today && today <= period.to;
+}
+
+// The URL keeps neither default: the month type and a date in the current period
+export function toPeriodSearch(period: Period, today: string): PeriodSearch {
+  return {
+    period: period.type === DEFAULT_PERIOD_TYPE ? null : period.type,
+    date: isCurrentPeriod(period, today) ? null : period.from,
+  };
+}
+
+// The same as link query params: only the values the URL keeps
+export function toPeriodQuery(period: Period, today: string) {
+  const search = toPeriodSearch(period, today);
+  const query: Record<string, string> = {};
+  if (search.period) query.period = search.period;
+  if (search.date) query.date = search.date;
+  return query;
+}
