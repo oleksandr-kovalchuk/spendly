@@ -6,6 +6,9 @@ import { CATEGORY_TYPES, MAX_NOTE_LENGTH } from "@/shared/db/app-constants";
 
 import { parseAmount } from "./amount";
 
+// A date's length (YYYY-MM-DD), the longest valid `period` or `date` value
+const LIST_QUERY_VALUE_MAX_LENGTH = 10;
+
 // Messages are codes: the form translates them
 export const transactionSchema = z.object({
   type: z.enum(CATEGORY_TYPES),
@@ -28,7 +31,7 @@ export const updateTransactionSchema = z.extend(addTransactionSchema, { id: z.uu
 // period (the screen's `period` and `date`, which it validates, falling back to the current month)
 const listQuerySchema = z.partialRecord(
   z.enum(["period", "date"]),
-  z.string().check(z.maxLength(10)),
+  z.string().check(z.maxLength(LIST_QUERY_VALUE_MAX_LENGTH)),
 );
 
 export const deleteTransactionSchema = z.object({
