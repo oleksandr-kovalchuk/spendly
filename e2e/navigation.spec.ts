@@ -75,7 +75,8 @@ for (const { locale, overview, transactions, categories, dark } of [
       // Fixed to the bottom edge of the screen
       expect((box?.y ?? 0) + (box?.height ?? 0)).toBe(page.viewportSize()?.height);
     } else {
-      expect(box?.x).toBe(0);
+      // The sidebar sits at the start edge
+      expect((await page.getByRole("banner").boundingBox())?.x).toBe(0);
     }
 
     const current = nav.locator('a[aria-current="page"]');
@@ -84,10 +85,13 @@ for (const { locale, overview, transactions, categories, dark } of [
     await expect(page).toHaveURL(new RegExp(`/${locale}/transactions$`));
     await expect(current).toHaveText(transactions);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(transactions);
+    // The title streams in after a client-side navigation
+    await expect(page).toHaveTitle(`${transactions} | Spendly`);
     await expectNoViolations(page);
 
     await nav.getByRole("link", { name: categories }).click();
     await expect(current).toHaveText(categories);
+    await expect(page).toHaveTitle(`${categories} | Spendly`);
     await page.getByRole("button", { name: dark, exact: true }).click();
     await expect(page.locator("html")).toHaveClass(/dark/);
     await expectNoViolations(page);
@@ -107,7 +111,9 @@ test("Tab reaches every control, and the bottom navigation covers none", async (
     await expect(page.getByRole("listitem").filter({ hasText: note })).toBeVisible();
   }
   await page.reload();
-  await expect(page.getByRole("listitem")).toHaveCount(3);
+  // The page streams in after the shell: wait for the list and the form, not the navigation's items
+  await expect(page.getByRole("listitem").filter({ hasText: "third" })).toBeVisible();
+  await expect(field(page, "Amount (UAH)")).toBeVisible();
 
   const navTop = isPhone(page)
     ? ((await page.getByRole("navigation").boundingBox())?.y ?? 0)
@@ -197,7 +203,9 @@ for (const reducedMotion of ["no-preference", "reduce"] as const) {
     );
 
     if (reducedMotion === "reduce") {
-      expect(animations).toEqual([]);
+      // The browser may still create zero-length animations: nothing moves
+      expect(animations.map(({ name }) => name)).not.toContain("page-rise-in");
+      expect(animations.every(({ duration }) => duration === 0)).toBe(true);
     } else {
       expect(animations.map(({ name }) => name)).toEqual(
         expect.arrayContaining(["page-fade-out", "page-rise-in"]),

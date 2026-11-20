@@ -24,6 +24,7 @@ const TEXTS = {
     amount: "Amount (UAH)",
     category: "Category",
     addTransaction: "Add",
+    transactions: "Transactions",
   },
   uk: {
     signUp: "Зареєструватися",
@@ -45,6 +46,7 @@ const TEXTS = {
     amount: "Сума (грн)",
     category: "Категорія",
     addTransaction: "Додати",
+    transactions: "Транзакції",
   },
 } as const;
 
@@ -89,6 +91,8 @@ for (const locale of ["en", "uk"] as const) {
     await signUpAndIn(page, locale, testInfo);
 
     // An expense in Food before the rename
+    await page.getByRole("link", { name: text.transactions, exact: true }).click();
+    await expect(page).toHaveURL(new RegExp(`/${locale}/transactions$`));
     await field(page, text.amount).fill("42");
     await page.getByLabel(text.category, { exact: true }).selectOption({ label: text.food });
     await page.getByRole("button", { name: text.addTransaction, exact: true }).click();
@@ -136,8 +140,8 @@ for (const locale of ["en", "uk"] as const) {
     await expect(expenses.getByRole("listitem").filter({ hasText: text.food })).toHaveCount(0);
 
     // The form offers the new names, and the old expense shows the new name
-    await page.getByRole("link", { name: "Spendly" }).click();
-    await expect(page).toHaveURL(new RegExp(`/${locale}$`));
+    await page.getByRole("link", { name: text.transactions, exact: true }).click();
+    await expect(page).toHaveURL(new RegExp(`/${locale}/transactions$`));
     const picker = page.getByLabel(text.category, { exact: true });
     await expect(picker.getByRole("option", { name: "Coffee" })).toHaveCount(1);
     await expect(picker.getByRole("option", { name: "Groceries" })).toHaveCount(1);

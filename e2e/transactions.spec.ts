@@ -322,7 +322,7 @@ for (const locale of ["en", "uk"] as const) {
     // Monday of this week and the Sunday before it, as on 16 and 15 November 2026
     const monday = addDays(isoDay(now), -((now.getUTCDay() + 6) % 7));
     const sunday = addDays(monday, -1);
-    const periodLabel = page.locator('[aria-live="polite"]');
+    const periodLabel = page.locator('[aria-live="polite"]').filter({ visible: true });
 
     await signUpAndIn(page, locale, testInfo);
     await openScreen(page, locale, "transactions");
@@ -356,7 +356,9 @@ for (const locale of ["en", "uk"] as const) {
     // The same week opens from the URL in a new tab
     const shared = await page.context().newPage();
     await shared.goto(page.url());
-    await expect(shared.locator('[aria-live="polite"]')).toHaveText(lastWeekLabel);
+    await expect(shared.locator('[aria-live="polite"]').filter({ visible: true })).toHaveText(
+      lastWeekLabel,
+    );
     await expect(shared.getByRole("listitem").filter({ hasText: "last-week" })).toBeVisible();
     await expect(shared.getByRole("listitem").filter({ hasText: "this-week" })).toHaveCount(0);
     await shared.close();
@@ -505,7 +507,7 @@ test("an old edit link on the home page opens the Transactions screen with its p
   await expect(page).toHaveURL(new RegExp(`/en/transactions\\?period=year&edit=${id}$`));
   await expect(page.getByRole("heading", { name: text.editHeading })).toBeVisible();
   await expect(field(page, text.note)).toHaveValue("old-link");
-  await expect(page.locator('[aria-live="polite"]')).toHaveText(year);
+  await expect(page.locator('[aria-live="polite"]').filter({ visible: true })).toHaveText(year);
 });
 
 for (const locale of ["en", "uk"] as const) {
@@ -514,7 +516,7 @@ for (const locale of ["en", "uk"] as const) {
   test(`the period stays when moving between Overview and Transactions in ${locale}`, async ({
     page,
   }, testInfo) => {
-    const periodLabel = page.locator('[aria-live="polite"]');
+    const periodLabel = page.locator('[aria-live="polite"]').filter({ visible: true });
     await signUpAndIn(page, locale, testInfo);
     const thisMonth = (await periodLabel.textContent()) ?? "";
 
