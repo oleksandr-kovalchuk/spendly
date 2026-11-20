@@ -4,7 +4,8 @@ import { cva } from "class-variance-authority";
 import { LayoutDashboardIcon, ReceiptTextIcon, TagsIcon } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
+import { parseAsString, useQueryStates } from "nuqs";
 import { Suspense } from "react";
 
 // `segment` is the path after the locale; screens with a period keep it between each other
@@ -13,7 +14,8 @@ const SCREENS = [
   { name: "transactions", segment: "transactions", icon: ReceiptTextIcon, hasPeriod: true },
   { name: "categories", segment: "categories", icon: TagsIcon, hasPeriod: false },
 ] as const;
-const PERIOD_KEYS = ["period", "date"] as const;
+// Raw strings, copied as they are: the screen validates them and falls back to the current month
+const periodParsers = { period: parseAsString, date: parseAsString };
 
 type Layout = "bar" | "sidebar";
 type NavListProps = {
@@ -67,14 +69,12 @@ function NavList({ layout, currentSegment, periodQuery }: NavListProps) {
 
 function CurrentNavList({ layout }: { layout: Layout }) {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
+  // nuqs, not `useSearchParams`: the period control's update shows here at once, while Next's
+  // search params change only when the server render for the new period ends
+  const [period] = useQueryStates(periodParsers);
   const [, , currentSegment = ""] = pathname.split("/");
-  // Copied as they are: the screen validates them and falls back to the current month
   const periodQuery = Object.fromEntries(
-    PERIOD_KEYS.flatMap((key) => {
-      const value = searchParams.get(key);
-      return value === null ? [] : [[key, value]];
-    }),
+    Object.entries(period).flatMap(([key, value]) => (value === null ? [] : [[key, value]])),
   );
 
   return <NavList layout={layout} currentSegment={currentSegment} periodQuery={periodQuery} />;
