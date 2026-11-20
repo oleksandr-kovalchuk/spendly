@@ -350,6 +350,11 @@ for (const locale of ["en", "uk"] as const) {
     await expect(page).toHaveURL(new RegExp(`/${locale}/transactions$`));
     await expect(item(page, "second")).toHaveCount(0);
 
+    // Back doesn't reopen the deleted transaction's form
+    await page.goBack();
+    await expect(page).not.toHaveURL(/edit=/);
+    await expect(sheet).toHaveCount(0);
+
     // Both changes stay after a reload
     await page.reload();
     await expect(item(page, "first")).toContainText(/12[.,]34/);
