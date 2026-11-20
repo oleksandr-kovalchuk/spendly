@@ -85,6 +85,8 @@ for (const { locale, overview, transactions, categories, dark } of [
     await expect(page).toHaveURL(new RegExp(`/${locale}/transactions$`));
     await expect(current).toHaveText(transactions);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(transactions);
+    // Focus moves from the link to the new screen
+    await expect(page.getByRole("main")).toBeFocused();
     // The title streams in after a client-side navigation
     await expect(page).toHaveTitle(`${transactions} | Spendly`);
     await expectNoViolations(page);
@@ -152,6 +154,10 @@ test("Tab reaches every control, and the bottom navigation covers none", async (
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/\/en$/);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Overview");
+  // The next Tab starts in the new screen, not after the link
+  await expect(page.getByRole("main")).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(page.getByRole("button", { name: "Day", exact: true })).toBeFocused();
 });
 
 type RecordedAnimation = { name: string; duration: number | string };

@@ -7,6 +7,7 @@ import { ThemeToggle } from "@/features/theme-toggle/theme-toggle";
 
 import { HomeLink } from "./home-link";
 import { LanguageControl } from "./language-control";
+import { ScreenMain } from "./screen-main";
 
 // Signed-in screens: below lg a top bar and a fixed bottom navigation, from lg a sidebar.
 // Only one of each pair is displayed, so screen readers find one banner and one navigation.
@@ -40,13 +41,9 @@ export async function AppShell({ children }: { children: ReactNode }) {
           </div>
         </header>
         {/* The bottom padding keeps the end of the content above the bottom navigation */}
-        <main
-          id="main-content"
-          tabIndex={-1}
-          className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-4 pt-8 pb-24 outline-none lg:px-8 lg:pb-8"
-        >
+        <ScreenMain className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-4 pt-8 pb-24 outline-none lg:px-8 lg:pb-8">
           {children}
-        </main>
+        </ScreenMain>
       </div>
       <nav
         aria-label={t("nav")}
