@@ -142,7 +142,7 @@ function TransactionFormFields({
           {CATEGORY_TYPES.map((value) => (
             <label
               key={value}
-              className="flex h-8 cursor-pointer items-center justify-center rounded-lg border border-input text-sm has-checked:border-primary has-checked:bg-primary/10 has-checked:font-medium has-focus-visible:ring-3 has-focus-visible:ring-ring/50"
+              className="flex h-8 cursor-pointer items-center justify-center rounded-lg border border-input text-sm has-checked:border-primary has-checked:bg-primary/10 has-checked:font-medium has-focus-visible:ring-3 has-focus-visible:ring-ring"
             >
               <input
                 type="radio"

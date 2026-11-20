@@ -69,7 +69,7 @@ export default async function RootLayout({ children }: LayoutProps<"/[locale]">)
           <AppProviders>
             <a
               href="#main-content"
-              className="sr-only focus:not-sr-only focus:fixed focus:start-2 focus:top-2 focus:z-50 focus:rounded-lg focus:bg-background focus:px-3 focus:py-2 focus:text-sm focus:ring-3 focus:ring-ring/50"
+              className="sr-only focus:not-sr-only focus:fixed focus:start-2 focus:top-2 focus:z-50 focus:rounded-lg focus:bg-background focus:px-3 focus:py-2 focus:text-sm focus:ring-3 focus:ring-ring"
             >
               {t("skipLink")}
             </a>

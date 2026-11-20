@@ -12,8 +12,8 @@ How to check:
 2. Switch to dark: the teal is lighter and text stays readable.
 3. Press Tab through the page: every control shows a clear teal focus ring.
 
-- [ ] 1.1 Set the teal tokens for light and dark from design.md; verify the axe E2E in both themes passes
-- [ ] 1.2 Use the solid `ring` instead of `ring/50` in `globals.css` and `shared/ui`; verify in the browser in both themes
+- [x] 1.1 Set the teal tokens for light and dark from design.md; verify the axe E2E in both themes passes
+- [x] 1.2 Use the solid `ring` instead of `ring/50` in `globals.css` and `shared/ui`; verify in the browser in both themes
 
 ## 2. Screens and navigation
 

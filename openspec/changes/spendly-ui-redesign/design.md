@@ -12,7 +12,7 @@ One home page (`src/views/home/home-page.tsx`) holds everything; the theme is sh
 - Sheet: Base UI `Drawer` below `lg` (swipe to close is built in), `Dialog` from `lg`, both as shadcn components in `shared/ui`. The Add button holds open state; `edit` lives in the URL. The add form's `key` includes `today` (pitfall).
 - Motion, CSS first: `ViewTransition` around the page content (crossfade + 8 px slide), around list items (`enter`/`exit`) and around each total keyed by its value; sheet/dialog via the components' CSS. One `prefers-reduced-motion` block turns off `::view-transition-*` and animation durations. Motion (the library) isn't needed: no custom gestures.
 - Type scale: page `h1` `text-2xl`/`lg:text-3xl`, section `text-lg`, body `text-base`, meta `text-sm`; amounts `tabular-nums`. Spacing: `gap-4`/`gap-6`; sections in `Card`. Icons: lucide, decorative ones `aria-hidden`.
-- Focus ring: solid `ring` (not `ring/50`) in `globals.css` and `shared/ui`, so it reaches 3:1.
+- Focus ring: solid `ring` (not `ring/50`) in `globals.css` and `shared/ui`, so it reaches 3:1. The same solid `ring` on the destructive button (not `ring-destructive/20`) and on a focused invalid field (whose `ring-destructive/20` would otherwise hide focus); the primary button adds a 2 px `ring-offset-background`, since a teal ring on a teal button only looks like a bigger button. Primary hover uses a `primary-hover` token (15% `foreground` mixed into `primary`) instead of `primary/80`, which drops white text to 3.6:1.
 - Dependencies: none new. Added shadcn components: `card`, `drawer`, `dialog`.
 
 ## Brand accent
