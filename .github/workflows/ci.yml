@@ -50,8 +50,8 @@ jobs:
           key: ${{ runner.os }}-nextjs-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('src/**') }}
           restore-keys: ${{ runner.os }}-nextjs-${{ hashFiles('pnpm-lock.yaml') }}-
       - run: pnpm ci
+      - run: pnpm typecheck # runs next typegen, which type-aware lint needs
       - run: pnpm lint
-      - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm unused
       - run: pnpm spec validate --all
