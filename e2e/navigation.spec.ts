@@ -11,6 +11,16 @@ test.beforeEach(async ({ context }) => {
 });
 
 async function expectNoViolations(page: Page) {
+  // axe would read the colors of a running transition (a theme switch)
+  // (a skeleton's endless pulse never ends, and a removed element's animation is cancelled)
+  await page.evaluate(() =>
+    Promise.allSettled(
+      document
+        .getAnimations()
+        .filter((a) => a.effect?.getComputedTiming().endTime !== Infinity)
+        .map((a) => a.finished),
+    ),
+  );
   const { violations } = await new AxeBuilder({ page }).analyze();
   expect(violations).toEqual([]);
 }
@@ -120,6 +130,7 @@ for (const { locale, screens, empty, food, theme } of [
     page,
   }, testInfo) => {
     await signUpAndIn(page, locale, testInfo);
+    // Next keeps a visited screen mounted but hidden, so a text query is filtered to the shown one
     const [overview, transactions, categories] = screens;
     const nav = page.getByRole("navigation");
 
@@ -129,13 +140,13 @@ for (const { locale, screens, empty, food, theme } of [
 
       await nav.getByRole("link", { name: overview }).click();
       await expect(page.getByRole("heading", { level: 1 })).toHaveText(overview);
-      await expect(page.getByText(empty[0])).toBeVisible();
+      await expect(page.getByText(empty[0]).filter({ visible: true })).toBeVisible();
       await expect(page).toHaveTitle(`${overview} | Spendly`);
       await expectNoViolations(page);
 
       await nav.getByRole("link", { name: transactions }).click();
       await expect(page.getByRole("heading", { level: 1 })).toHaveText(transactions);
-      await expect(page.getByText(empty[1])).toBeVisible();
+      await expect(page.getByText(empty[1]).filter({ visible: true })).toBeVisible();
       await expect(page).toHaveTitle(`${transactions} | Spendly`);
       await expectNoViolations(page);
 

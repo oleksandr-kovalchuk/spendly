@@ -29,6 +29,16 @@ const TEXTS = {
 } as const;
 
 async function expectNoViolations(page: Page) {
+  // axe would read the colors of a running transition (the submit button fading back in)
+  // (a skeleton's endless pulse never ends, and a removed element's animation is cancelled)
+  await page.evaluate(() =>
+    Promise.allSettled(
+      document
+        .getAnimations()
+        .filter((a) => a.effect?.getComputedTiming().endTime !== Infinity)
+        .map((a) => a.finished),
+    ),
+  );
   const { violations } = await new AxeBuilder({ page }).analyze();
   expect(violations).toEqual([]);
 }
