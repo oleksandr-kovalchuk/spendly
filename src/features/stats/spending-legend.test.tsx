@@ -17,18 +17,38 @@ const ITEMS: SpendingItem[] = [
 function renderLegend(locale: "en" | "uk", items: SpendingItem[]) {
   render(
     <NextIntlClientProvider locale={locale} messages={locale === "en" ? en : uk}>
-      <SpendingLegend items={items} />
+      <h3 id="legend-heading">Spending</h3>
+      <SpendingLegend items={items} labelledBy="legend-heading" />
     </NextIntlClientProvider>,
   );
-  return screen.getAllByRole("listitem");
+  const [, ...rows] = within(screen.getByRole("table", { name: "Spending" })).getAllByRole("row");
+  return rows;
 }
 
 test("shows each category's name, amount and share in the given order", () => {
-  const [food, transport, ...rest] = renderLegend("en", ITEMS);
+  const rows = renderLegend("en", ITEMS);
 
-  expect(rest).toEqual([]);
-  expect(food).toHaveTextContent(/^Food₴300\.0060%$/);
-  expect(transport).toHaveTextContent(/^Transport₴200\.0040%$/);
+  expect(
+    rows.map((row) => [
+      within(row).getByRole("rowheader").textContent,
+      ...within(row)
+        .getAllByRole("cell")
+        .map((cell) => cell.textContent),
+    ]),
+  ).toEqual([
+    ["Food", "₴300.00", "60%"],
+    ["Transport", "₴200.00", "40%"],
+  ]);
+});
+
+test("names the columns for screen readers", () => {
+  renderLegend("en", ITEMS);
+
+  expect(screen.getAllByRole("columnheader").map((header) => header.textContent)).toEqual([
+    en.Stats.legend.category,
+    en.Stats.legend.amount,
+    en.Stats.legend.share,
+  ]);
 });
 
 test("formats amounts and shares in Ukrainian", () => {

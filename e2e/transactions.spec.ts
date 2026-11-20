@@ -154,7 +154,8 @@ for (const locale of ["en", "uk"] as const) {
     await page.getByRole("button", { name: text.add }).click();
     await expect(page.getByText(text.added)).toBeVisible();
 
-    const days = page.getByRole("heading", { level: 3 });
+    // Day headings hold their date; the chart's heading above the list doesn't
+    const days = page.getByRole("heading", { level: 3 }).filter({ has: page.locator("time") });
     await expect(days).toHaveCount(2);
     const times = await page
       .locator("h3 time")
@@ -385,7 +386,7 @@ for (const locale of ["en", "uk"] as const) {
     const byCategory = page
       .getByRole("heading", { level: 3, name: text.byCategory })
       .locator("xpath=..");
-    const legend = byCategory.getByRole("listitem");
+    const legend = page.getByRole("table", { name: text.byCategory }).locator("tbody tr");
     const add = async (category: string, amount: string, note: string) => {
       await field(page, text.amount).fill(amount);
       await field(page, text.note).fill(note);
@@ -425,6 +426,8 @@ for (const locale of ["en", "uk"] as const) {
       .filter({ hasText: "bus" })
       .getByRole("link", { name: new RegExp(`^${text.edit}`) })
       .click();
+    await expect(page.getByRole("heading", { name: text.editHeading })).toBeVisible();
+    await expect(field(page, text.amount)).toHaveValue("200.00");
     await field(page, text.amount).fill("500");
     await page.getByRole("button", { name: text.save }).click();
     await expect(page).not.toHaveURL(/\?edit=/);

@@ -161,6 +161,11 @@
     "byCategory": "Spending by category",
     "noExpenses": "No expenses in this period.",
     "loadFailed": "We could not load the summary.",
-    "retry": "Try again"
+    "retry": "Try again",
+    "legend": {
+      "category": "Category",
+      "amount": "Amount",
+      "share": "Share"
+    }
   }
 }
