@@ -90,9 +90,9 @@ How to check:
 2. Step back and forward: the label and the list change.
 3. Open the URL in a new tab: the same period shows.
 
-- [ ] 6.1 Add period parsing and range helpers (Monday weeks, invalid input → current month); verify with unit tests
-- [ ] 6.2 Add the period control with nuqs and the localized label; verify with a component test of stepping
-- [ ] 6.3 Filter the list by the period's range; verify with an E2E test of a week and a shared URL
+- [x] 6.1 Add period parsing and range helpers (Monday weeks, invalid input → current month); verify with unit tests
+- [x] 6.2 Add the period control with nuqs and the localized label; verify with a component test of stepping
+- [x] 6.3 Filter the list by the period's range; verify with an E2E test of a week and a shared URL
 
 ## 7. Stats
 

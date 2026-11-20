@@ -5,6 +5,9 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 import { z } from "zod";
 
+import { parsePeriod, toPeriodQuery } from "@/features/periods/period";
+import { PeriodControl } from "@/features/periods/period-control";
+import { loadPeriodSearch } from "@/features/periods/period-search";
 import { EditTransactionForm } from "@/features/transactions/edit-transaction-form";
 import { groupByDay } from "@/features/transactions/group-by-day";
 import { TransactionForm } from "@/features/transactions/transaction-form";
@@ -14,7 +17,7 @@ import { findTransaction, listTransactions } from "@/features/transactions/trans
 import { categoryLabel } from "@/shared/categories/category-label";
 import { listCategories } from "@/shared/categories/categories.dal";
 import { getCurrentUser } from "@/shared/auth/session";
-import { monthOf, resolveTimeZone, TIME_ZONE_COOKIE, todayIn } from "@/shared/lib/time-zone";
+import { resolveTimeZone, TIME_ZONE_COOKIE, todayIn } from "@/shared/lib/time-zone";
 import { Skeleton } from "@/shared/ui/skeleton";
 
 async function getCurrentUserOrSignIn() {
@@ -43,6 +46,10 @@ async function getEditingId(searchParams: SearchParams) {
   return parsed.data;
 }
 
+async function getPeriodSearch(searchParams: SearchParams) {
+  return loadPeriodSearch(await searchParams);
+}
+
 async function TransactionFormSection({ searchParams }: { searchParams: SearchParams }) {
   const [user, today, tCategories, editingId] = await Promise.all([
     getCurrentUserOrSignIn(),
@@ -69,15 +76,28 @@ async function TransactionFormSection({ searchParams }: { searchParams: SearchPa
   );
 }
 
-async function MonthTransactions({ searchParams }: { searchParams: SearchParams }) {
-  const [user, today, editingId] = await Promise.all([
+async function PeriodSection() {
+  return <PeriodControl today={await getToday()} />;
+}
+
+async function PeriodTransactions({ searchParams }: { searchParams: SearchParams }) {
+  const [user, today, editingId, search] = await Promise.all([
     getCurrentUserOrSignIn(),
     getToday(),
     getEditingId(searchParams),
+    getPeriodSearch(searchParams),
   ]);
-  const transactions = await listTransactions(user.id, monthOf(today));
+  const period = parsePeriod(search, today);
+  const transactions = await listTransactions(user.id, period);
 
-  return <TransactionList groups={groupByDay(transactions)} editingId={editingId} />;
+  // Edit links keep the period, so the list stays where the user is
+  return (
+    <TransactionList
+      groups={groupByDay(transactions)}
+      editingId={editingId}
+      periodQuery={toPeriodQuery(period, today)}
+    />
+  );
 }
 
 function FormSkeleton() {
@@ -89,6 +109,16 @@ function FormSkeleton() {
       <Skeleton className="h-8 w-full" />
       <Skeleton className="h-8 w-full" />
       <Skeleton className="h-9 w-full" />
+    </div>
+  );
+}
+
+function PeriodSkeleton() {
+  return (
+    <div className="grid gap-3">
+      <Skeleton className="h-9 w-full" />
+      <Skeleton className="h-9 w-full" />
+      <Skeleton className="h-8 w-28 justify-self-center" />
     </div>
   );
 }
@@ -115,9 +145,12 @@ export async function HomePage({ searchParams }: PageProps<"/[locale]">) {
       </Suspense>
       <section className="grid gap-4">
         <h2 className="text-lg font-medium">{tTransactions("list.heading")}</h2>
+        <Suspense fallback={<PeriodSkeleton />}>
+          <PeriodSection />
+        </Suspense>
         <TransactionListBoundary>
           <Suspense fallback={<ListSkeleton />}>
-            <MonthTransactions searchParams={searchParams} />
+            <PeriodTransactions searchParams={searchParams} />
           </Suspense>
         </TransactionListBoundary>
       </section>

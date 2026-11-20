@@ -48,7 +48,7 @@
   },
   "Home": {
     "title": "Home",
-    "heading": "This month"
+    "heading": "Overview"
   },
   "NotFound": {
     "title": "Page not found",
@@ -127,7 +127,7 @@
     },
     "list": {
       "heading": "Transactions",
-      "empty": "No transactions this month yet. Add your first one above.",
+      "empty": "No transactions in this period.",
       "loadFailed": "We could not load your transactions.",
       "retry": "Try again",
       "edit": "Edit {category}",
@@ -141,5 +141,17 @@
       "action": "Delete",
       "cancel": "Cancel"
     }
+  },
+  "Periods": {
+    "type": "Period",
+    "types": {
+      "day": "Day",
+      "week": "Week",
+      "month": "Month",
+      "year": "Year"
+    },
+    "previous": "Previous {type, select, day {day} week {week} month {month} other {year}}",
+    "next": "Next {type, select, day {day} week {week} month {month} other {year}}",
+    "current": "{type, select, day {Today} week {This week} month {This month} other {This year}}"
   }
 }

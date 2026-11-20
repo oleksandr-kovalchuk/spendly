@@ -42,10 +42,19 @@ const TRANSACTIONS: TransactionDto[] = [
   },
 ];
 
-function renderList(locale: "en" | "uk", transactions: TransactionDto[], editingId?: string) {
+function renderList(
+  locale: "en" | "uk",
+  transactions: TransactionDto[],
+  editingId?: string,
+  periodQuery?: Record<string, string>,
+) {
   render(
     <NextIntlClientProvider locale={locale} messages={locale === "en" ? en : uk}>
-      <TransactionList groups={groupByDay(transactions)} editingId={editingId} />
+      <TransactionList
+        groups={groupByDay(transactions)}
+        editingId={editingId}
+        periodQuery={periodQuery}
+      />
     </NextIntlClientProvider>,
   );
 }
@@ -95,6 +104,15 @@ test("each item links to its edit form and has a delete button", () => {
   expect(screen.getByRole("link", { name: "Edit Food" })).toHaveAttribute("href", "/en?edit=1");
   expect(screen.getByRole("link", { name: "Edit Pets" })).toHaveAttribute("href", "/en?edit=3");
   expect(screen.getAllByRole("button", { name: /^Delete / })).toHaveLength(3);
+});
+
+test("edit links keep the shown period", () => {
+  renderList("en", TRANSACTIONS, undefined, { period: "week", date: "2026-03-02" });
+
+  expect(screen.getByRole("link", { name: "Edit Food" })).toHaveAttribute(
+    "href",
+    "/en?period=week&date=2026-03-02&edit=1",
+  );
 });
 
 test("the transaction in the form has no actions and is marked", () => {

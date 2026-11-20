@@ -38,4 +38,6 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - `meta[name="robots"]` is in the DOM twice (head and streamed body): select `head meta[name="robots"]`
 - axe in an open dialog reads mid-animation colors: await `document.getAnimations()` finishing first; don't exclude the dialog
 - AA contrast fails for `text-muted-foreground` on `bg-muted` (4.34:1) and tinted `bg-destructive/10 text-destructive` (3.82:1): use solid tokens (a ring instead of `bg-muted`, `bg-destructive text-destructive-foreground`), check light and dark
+- CI runs `pnpm lint` before `next typegen`, so type-aware lint sees `PageProps` types unresolved and can fail where it passes locally: run `rm -rf .next/types && pnpm lint` before pushing changes that pass route props on
+- A button that becomes `disabled` when pressed (a "current period" button, an arrow at a bound) drops keyboard focus to `<body>`: give it `focusableWhenDisabled` (renders `aria-disabled`), assert `aria-disabled` in tests
 - "Today" uses UTC until `TimeZoneSync` sets the time zone cookie after the first load and refreshes: anything defaulting to today needs `today` in its `key` to reset
