@@ -2,7 +2,8 @@ import "server-only";
 
 import { and, desc, eq, gte, lte, sql, type SQL } from "drizzle-orm";
 
-import { categories, transactions, type DefaultCategoryKey } from "@/shared/db/app-schema";
+import type { DefaultCategoryKey } from "@/shared/db/app-constants";
+import { categories, transactions } from "@/shared/db/app-schema";
 import { db } from "@/shared/db/client";
 
 export type PeriodTotals = { incomeKopecks: number; expenseKopecks: number };

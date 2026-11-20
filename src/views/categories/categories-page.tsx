@@ -7,7 +7,7 @@ import { CreateCategoryForm } from "@/features/categories/create-category-form";
 import { getCurrentUser } from "@/shared/auth/session";
 import { categoryLabel } from "@/shared/categories/category-label";
 import { listCategories } from "@/shared/categories/categories.dal";
-import { CATEGORY_TYPES, type CategoryType } from "@/shared/db/app-schema";
+import { CATEGORY_TYPES, type CategoryType } from "@/shared/db/app-constants";
 import { Skeleton } from "@/shared/ui/skeleton";
 import { PageTransition } from "@/views/app-shell/page-transition";
 

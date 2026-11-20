@@ -1,7 +1,7 @@
 import type { Locale } from "@/i18n/routing";
 import en from "@/i18n/messages/en.json";
 import uk from "@/i18n/messages/uk.json";
-import { DEFAULT_CATEGORY_KEYS, type DefaultCategoryKey } from "@/shared/db/app-schema";
+import { DEFAULT_CATEGORY_KEYS, type DefaultCategoryKey } from "@/shared/db/app-constants";
 
 const MESSAGES = { en, uk } satisfies Record<Locale, typeof en>;
 

@@ -2,12 +2,8 @@ import "server-only";
 
 import { and, desc, eq, gte, lte, type SQL } from "drizzle-orm";
 
-import {
-  categories,
-  transactions,
-  type CategoryType,
-  type DefaultCategoryKey,
-} from "@/shared/db/app-schema";
+import type { CategoryType, DefaultCategoryKey } from "@/shared/db/app-constants";
+import { categories, transactions } from "@/shared/db/app-schema";
 import { db } from "@/shared/db/client";
 
 export type TransactionDto = {

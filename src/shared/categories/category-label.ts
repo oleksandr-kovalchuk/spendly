@@ -1,4 +1,4 @@
-import type { DefaultCategoryKey } from "@/shared/db/app-schema";
+import type { DefaultCategoryKey } from "@/shared/db/app-constants";
 
 type Translate = (key: `defaults.${DefaultCategoryKey}`) => string;
 

@@ -1,5 +1,6 @@
 import { db } from "@/shared/db/client";
-import { categories, type CategoryType, type DefaultCategoryKey } from "@/shared/db/app-schema";
+import type { CategoryType, DefaultCategoryKey } from "@/shared/db/app-constants";
+import { categories } from "@/shared/db/app-schema";
 
 // Keep in sync with drizzle/0002_backfill_default_categories.sql
 export const DEFAULT_CATEGORIES = [

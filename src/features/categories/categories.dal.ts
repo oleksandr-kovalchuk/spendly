@@ -2,7 +2,8 @@ import "server-only";
 
 import { and, eq, inArray, isNull, ne } from "drizzle-orm";
 
-import { categories, CATEGORY_NAME_UNIQUE_INDEX, type CategoryType } from "@/shared/db/app-schema";
+import type { CategoryType } from "@/shared/db/app-constants";
+import { categories, CATEGORY_NAME_UNIQUE_INDEX } from "@/shared/db/app-schema";
 import { db } from "@/shared/db/client";
 
 import { defaultKeysNamed } from "./default-names";

@@ -2,7 +2,8 @@ import "server-only";
 
 import { asc, eq } from "drizzle-orm";
 
-import { categories, type CategoryType, type DefaultCategoryKey } from "@/shared/db/app-schema";
+import type { CategoryType, DefaultCategoryKey } from "@/shared/db/app-constants";
+import { categories } from "@/shared/db/app-schema";
 import { db } from "@/shared/db/client";
 
 import { createDefaultCategories, DEFAULT_CATEGORIES } from "./default-categories";

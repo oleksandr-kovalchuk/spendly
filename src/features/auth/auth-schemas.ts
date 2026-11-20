@@ -1,4 +1,5 @@
-import { z } from "zod";
+// The mini build: the forms load it in the browser, where the full one adds ~30 KB
+import * as z from "zod/mini";
 
 import { MAX_PASSWORD_LENGTH, MIN_PASSWORD_LENGTH } from "@/shared/auth/password-rules";
 
@@ -9,13 +10,15 @@ export const signUpSchema = z.object({
   email,
   password: z
     .string()
-    .min(MIN_PASSWORD_LENGTH, "passwordTooShort")
-    .max(MAX_PASSWORD_LENGTH, "passwordTooLong"),
+    .check(
+      z.minLength(MIN_PASSWORD_LENGTH, "passwordTooShort"),
+      z.maxLength(MAX_PASSWORD_LENGTH, "passwordTooLong"),
+    ),
 });
 
 export const signInSchema = z.object({
   email,
-  password: z.string().min(1, "passwordRequired"),
+  password: z.string().check(z.minLength(1, "passwordRequired")),
 });
 
 export type SignUpValues = z.infer<typeof signUpSchema>;

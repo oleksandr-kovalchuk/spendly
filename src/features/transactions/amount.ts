@@ -1,4 +1,4 @@
-import { MAX_AMOUNT_KOPECKS } from "@/shared/db/app-schema";
+import { MAX_AMOUNT_KOPECKS } from "@/shared/db/app-constants";
 
 type AmountError = "amountRequired" | "amountInvalid" | "amountTooLarge";
 export type ParsedAmount = { kopecks: number } | { error: AmountError };
