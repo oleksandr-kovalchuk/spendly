@@ -43,11 +43,13 @@ describe("paths", () => {
   });
 });
 
-describe("the private main page", () => {
+describe("private pages", () => {
   test.each([
     ["/en", "/en/sign-in"],
     ["/uk", "/uk/sign-in"],
     ["/uk/", "/uk/sign-in"],
+    ["/en/categories", "/en/sign-in"],
+    ["/uk/categories/", "/uk/sign-in"],
   ])("%s without a session cookie goes to %s", (path, expected) => {
     expect(redirectTarget(path)).toBe(expected);
   });
@@ -56,6 +58,7 @@ describe("the private main page", () => {
     "opens with the cookie %s",
     (cookie) => {
       expect(redirectTarget("/uk", undefined, cookie)).toBeNull();
+      expect(redirectTarget("/uk/categories", undefined, cookie)).toBeNull();
     },
   );
 

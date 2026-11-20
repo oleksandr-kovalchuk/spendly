@@ -43,6 +43,7 @@ export default async function RootLayout({ children }: LayoutProps<"/[locale]">)
     Header: header,
     Auth: auth,
     Error: error,
+    Categories: categories,
     Transactions: transactions,
   } = await getMessages();
 
@@ -55,7 +56,13 @@ export default async function RootLayout({ children }: LayoutProps<"/[locale]">)
     >
       <body className="flex min-h-full flex-col">
         <NextIntlClientProvider
-          messages={{ Header: header, Auth: auth, Error: error, Transactions: transactions }}
+          messages={{
+            Header: header,
+            Auth: auth,
+            Error: error,
+            Categories: categories,
+            Transactions: transactions,
+          }}
         >
           <AppProviders>
             <a

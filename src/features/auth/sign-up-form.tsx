@@ -8,10 +8,10 @@ import { useForm, useFormState } from "react-hook-form";
 import { useState } from "react";
 
 import { authClient } from "@/shared/auth/auth-client";
+import { TextField } from "@/shared/forms/text-field";
 import { Button } from "@/shared/ui/button";
 import { FieldError } from "@/shared/ui/field";
 
-import { AuthField } from "./auth-field";
 import { fieldErrorOf, formErrorOf, isFieldError, type FormError } from "./auth-errors";
 import { signUpSchema, type SignUpValues } from "./auth-schemas";
 
@@ -52,7 +52,7 @@ export function SignUpForm() {
 
   return (
     <form onSubmit={form.handleSubmit(handleSubmit)} noValidate className="grid gap-4">
-      <AuthField
+      <TextField
         label={t("fields.email")}
         type="email"
         autoComplete="email"
@@ -60,7 +60,7 @@ export function SignUpForm() {
         error={messageOf(errors.email?.message)}
         {...form.register("email")}
       />
-      <AuthField
+      <TextField
         label={t("fields.password")}
         type="password"
         autoComplete="new-password"

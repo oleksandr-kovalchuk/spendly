@@ -33,6 +33,7 @@ export const DEFAULT_CATEGORY_KEYS = [
 ] as const;
 export type DefaultCategoryKey = (typeof DEFAULT_CATEGORY_KEYS)[number];
 
+export const MAX_CATEGORY_NAME_LENGTH = 40;
 export const MAX_NOTE_LENGTH = 200;
 // 999,999,999.99 hryvnias in kopecks, which needs a bigint
 export const MAX_AMOUNT_KOPECKS = 99_999_999_999;
@@ -47,6 +48,8 @@ const updatedAt = () =>
     .defaultNow()
     .$onUpdate(() => new Date())
     .notNull();
+
+export const CATEGORY_NAME_UNIQUE_INDEX = "categories_user_type_name_unique";
 
 // A default category has a `defaultKey` and no name until the user renames it
 export const categories = pgTable(
@@ -69,6 +72,10 @@ export const categories = pgTable(
     uniqueIndex("categories_user_default_key_unique")
       .on(table.userId, table.type, table.defaultKey)
       .where(sql`${table.defaultKey} is not null`),
+    // The builtin collation lowercases Cyrillic too, whatever the database's locale
+    uniqueIndex(CATEGORY_NAME_UNIQUE_INDEX)
+      .on(table.userId, table.type, sql`lower(${table.name} collate "pg_c_utf8")`)
+      .where(sql`${table.name} is not null`),
     check("categories_type_check", sql`${table.type} in ('expense', 'income')`),
     check(
       "categories_default_key_check",
@@ -76,7 +83,7 @@ export const categories = pgTable(
     ),
     check(
       "categories_name_check",
-      sql`${table.defaultKey} is not null or (${table.name} is not null and char_length(${table.name}) <= 40 and char_length(${table.name}) >= 1)`,
+      sql`(${table.defaultKey} is not null or ${table.name} is not null) and (${table.name} is null or char_length(${table.name}) between 1 and ${sql.raw(String(MAX_CATEGORY_NAME_LENGTH))})`,
     ),
   ],
 );

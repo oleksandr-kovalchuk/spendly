@@ -11,7 +11,9 @@
       "system": "System"
     },
     "signOut": "Sign out",
-    "signOutFailed": "Sign out failed, try again"
+    "signOutFailed": "Sign out failed, try again",
+    "nav": "Main",
+    "categories": "Categories"
   },
   "Auth": {
     "fields": {
@@ -59,6 +61,8 @@
     "retry": "Try again"
   },
   "Categories": {
+    "title": "Categories",
+    "heading": "Categories",
     "defaults": {
       "food": "Food",
       "transport": "Transport",
@@ -70,6 +74,28 @@
       "other": "Other",
       "salary": "Salary",
       "gifts": "Gifts"
+    },
+    "list": {
+      "expenseHeading": "Expenses",
+      "incomeHeading": "Income",
+      "rename": "Rename {category}",
+      "renameAction": "Rename"
+    },
+    "form": {
+      "expenseLabel": "New expense category",
+      "incomeLabel": "New income category",
+      "add": "Add",
+      "added": "Category added.",
+      "renameLabel": "New name for {category}",
+      "save": "Save",
+      "cancel": "Cancel"
+    },
+    "errors": {
+      "nameRequired": "Enter a name.",
+      "nameTooLong": "The name must have at most 40 characters.",
+      "nameTaken": "You already have a category with this name.",
+      "categoryNotFound": "This category is not available. Reload the page and try again.",
+      "unknown": "Something went wrong. Try again."
     }
   },
   "Transactions": {

@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { describe, expect, test } from "vitest";
 
 import { createUser } from "@/shared/auth/test-user";
@@ -61,6 +61,19 @@ describe("default categories", () => {
       db.insert(categories).values({ userId: id, type: "expense", defaultKey: "food" }),
     ).rejects.toThrow();
     await expect(db.insert(categories).values({ userId: id, type: "expense" })).rejects.toThrow();
+  });
+
+  test("the database refuses a renamed default's name outside 1 to 40 characters", async () => {
+    const { id } = await createUser();
+    const rename = (name: string) =>
+      db
+        .update(categories)
+        .set({ name })
+        .where(and(eq(categories.userId, id), eq(categories.defaultKey, "food")));
+
+    await expect(rename("")).rejects.toThrow();
+    await expect(rename("x".repeat(41))).rejects.toThrow();
+    await expect(rename("x".repeat(40))).resolves.toBeDefined();
   });
 });
 

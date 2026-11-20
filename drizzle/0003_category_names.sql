@@ -1,0 +1,3 @@
+ALTER TABLE "categories" DROP CONSTRAINT "categories_name_check";--> statement-breakpoint
+CREATE UNIQUE INDEX "categories_user_type_name_unique" ON "categories" USING btree ("user_id","type",lower("name" collate "pg_c_utf8")) WHERE "categories"."name" is not null;--> statement-breakpoint
+ALTER TABLE "categories" ADD CONSTRAINT "categories_name_check" CHECK (("categories"."default_key" is not null or "categories"."name" is not null) and ("categories"."name" is null or char_length("categories"."name") between 1 and 40));

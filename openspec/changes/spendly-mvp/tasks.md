@@ -76,9 +76,9 @@ How to check:
 2. Rename "Food" to "Groceries".
 3. Add an expense: the picker shows Coffee and Groceries; old Food items show Groceries.
 
-- [ ] 5.1 Add the categories page and its header link; verify defaults show translated in both languages
-- [ ] 5.2 Add create and rename actions with a case-insensitive unique constraint per user and type; verify with integration tests of duplicates and ownership
-- [ ] 5.3 Show a duplicate as a field error; verify with an E2E create and rename test
+- [x] 5.1 Add the categories page and its header link; verify defaults show translated in both languages
+- [x] 5.2 Add create and rename actions with a case-insensitive unique constraint per user and type; verify with integration tests of duplicates and ownership
+- [x] 5.3 Show a duplicate as a field error; verify with an E2E create and rename test
 
 ## 6. Periods
 
