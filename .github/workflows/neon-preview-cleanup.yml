@@ -1,0 +1,48 @@
+name: Neon preview cleanup
+
+# The Vercel-Managed Neon integration creates `preview/<git-branch>` for every
+# preview deployment and never deletes it, so closed PRs use up the plan's
+# branch limit.
+on:
+  pull_request:
+    types: [closed]
+
+permissions: {}
+
+jobs:
+  delete-preview-branch:
+    # Fork PRs get no secrets, and Vercel doesn't deploy them with the integration
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Find the preview branch
+        id: find
+        shell: bash # adds pipefail, so a failed API call fails the step
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          NEON_PROJECT_ID: ${{ vars.NEON_PROJECT_ID }}
+          BRANCH: preview/${{ github.head_ref }}
+        run: |
+          # The delete action interpolates the name into a shell command
+          if [[ ! "$BRANCH" =~ ^[A-Za-z0-9._/-]+$ ]]; then
+            echo "::error::Unexpected characters in branch name: $BRANCH"
+            exit 1
+          fi
+          # A preview that never deployed has no branch: nothing to delete, not a failure
+          count=$(curl -sSf --max-time 30 \
+            -H "Authorization: Bearer $NEON_API_KEY" \
+            --get --data-urlencode "search=$BRANCH" \
+            "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/branches" \
+            | jq --arg name "$BRANCH" '[.branches[] | select(.name == $name)] | length')
+          if [ "$count" -eq 0 ]; then
+            echo "No Neon branch $BRANCH, nothing to delete"
+          fi
+          echo "exists=$([ "$count" -gt 0 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          echo "branch=$BRANCH" >> "$GITHUB_OUTPUT"
+      - if: steps.find.outputs.exists == 'true'
+        uses: neondatabase/delete-branch-action@4468d825d5a88ef4012f1705a82f02ec3072f776 # v3.2.1
+        with:
+          project_id: ${{ vars.NEON_PROJECT_ID }}
+          branch: ${{ steps.find.outputs.branch }}
+          api_key: ${{ secrets.NEON_API_KEY }}
