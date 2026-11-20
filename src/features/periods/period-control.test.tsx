@@ -35,7 +35,10 @@ test("shows the current month by default", () => {
 
   expect(label()).toHaveTextContent("November 2026");
   expect(screen.getByRole("button", { name: "Month" })).toHaveAttribute("aria-pressed", "true");
-  expect(screen.getByRole("button", { name: "This month" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "This month" })).toHaveAttribute(
+    "aria-disabled",
+    "true",
+  );
 });
 
 test("steps back and forward and returns to the current month", async () => {
@@ -54,6 +57,21 @@ test("steps back and forward and returns to the current month", async () => {
   expect(lastQuery()).toBe("");
 });
 
+test("keeps the focus on the current period button after pressing it", async () => {
+  const { user } = renderControl({ search: "?date=2026-10-01" });
+  const current = screen.getByRole("button", { name: "This month" });
+
+  current.focus();
+  await user.keyboard("{Enter}");
+
+  expect(label()).toHaveTextContent("November 2026");
+  expect(current).toHaveAttribute("aria-disabled", "true");
+  expect(current).toHaveFocus();
+
+  await user.keyboard("{Enter}");
+  expect(label()).toHaveTextContent("November 2026");
+});
+
 test("picks the current week and steps it by a week", async () => {
   const { user, lastQuery } = renderControl({ search: "?date=2026-03-01" });
 
@@ -70,7 +88,7 @@ test("shows the period from the URL", () => {
   renderControl({ search: "?period=day&date=2026-11-16" });
 
   expect(label()).toHaveTextContent("Monday, November 16, 2026");
-  expect(screen.getByRole("button", { name: "Today" })).toBeEnabled();
+  expect(screen.getByRole("button", { name: "Today" })).toHaveAttribute("aria-disabled", "false");
 });
 
 test("falls back to the current month for an invalid URL", () => {
@@ -86,5 +104,5 @@ test("labels the period in Ukrainian", async () => {
   await user.click(screen.getByRole("button", { name: "Рік" }));
   await user.click(screen.getByRole("button", { name: "Попередній рік" }));
   expect(label()).toHaveTextContent(/^2025/);
-  expect(screen.getByRole("button", { name: "Цей рік" })).toBeEnabled();
+  expect(screen.getByRole("button", { name: "Цей рік" })).toHaveAttribute("aria-disabled", "false");
 });

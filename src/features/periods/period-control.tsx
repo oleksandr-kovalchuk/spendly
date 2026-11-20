@@ -99,6 +99,7 @@ export function PeriodControl({ today }: { today: string }) {
           size="icon-lg"
           aria-label={t("previous", { type: period.type })}
           disabled={!previous}
+          focusableWhenDisabled
           onClick={() => previous && handleShow(previous)}
         >
           <ChevronLeft aria-hidden className="rtl:rotate-180" />
@@ -111,15 +112,18 @@ export function PeriodControl({ today }: { today: string }) {
           size="icon-lg"
           aria-label={t("next", { type: period.type })}
           disabled={!next}
+          focusableWhenDisabled
           onClick={() => next && handleShow(next)}
         >
           <ChevronRight aria-hidden className="rtl:rotate-180" />
         </Button>
       </div>
+      {/* Buttons that disable themselves when pressed stay focusable: a native `disabled` drops focus to the body */}
       <Button
         variant="ghost"
         className="justify-self-center"
         disabled={isCurrentPeriod(period, today)}
+        focusableWhenDisabled
         onClick={() => handlePickType(period.type)}
       >
         {t("current", { type: period.type })}
