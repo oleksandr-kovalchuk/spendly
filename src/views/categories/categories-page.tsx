@@ -1,6 +1,6 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import { redirect } from "next/navigation";
-import { cache, Suspense } from "react";
+import { cache, Suspense, useId, type ReactNode } from "react";
 
 import { CategoryItem } from "@/features/categories/category-item";
 import { CreateCategoryForm } from "@/features/categories/create-category-form";
@@ -42,6 +42,19 @@ function ListSkeleton() {
   );
 }
 
+function CategorySection({ heading, children }: { heading: string; children: ReactNode }) {
+  const headingId = useId();
+
+  return (
+    <section aria-labelledby={headingId} className="grid gap-4">
+      <h2 id={headingId} className="text-lg font-medium">
+        {heading}
+      </h2>
+      {children}
+    </section>
+  );
+}
+
 export async function CategoriesPage() {
   const t = await getTranslations("Categories");
 
@@ -49,15 +62,12 @@ export async function CategoriesPage() {
     <div className="grid gap-8">
       <h1 className="text-3xl font-semibold tracking-tight text-balance">{t("heading")}</h1>
       {CATEGORY_TYPES.map((type) => (
-        <section key={type} aria-labelledby={`${type}-categories`} className="grid gap-4">
-          <h2 id={`${type}-categories`} className="text-lg font-medium">
-            {t(`list.${type}Heading`)}
-          </h2>
+        <CategorySection key={type} heading={t(`list.${type}Heading`)}>
           <Suspense fallback={<ListSkeleton />}>
             <CategoryList type={type} />
           </Suspense>
           <CreateCategoryForm type={type} />
-        </section>
+        </CategorySection>
       ))}
     </div>
   );
