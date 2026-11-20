@@ -10,7 +10,8 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: pageTitle(t("title")) };
 }
 
-// Outside the route groups, so it brings the signed-out top bar itself
+// Only this root not-found sets its title, so it stays outside the route groups and brings the
+// signed-out top bar itself; Next loads its Client Components on every page, which both layouts load anyway
 export default function NotFound() {
   return (
     <PublicShell>

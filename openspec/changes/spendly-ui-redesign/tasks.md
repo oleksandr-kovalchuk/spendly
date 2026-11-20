@@ -25,9 +25,9 @@ How to check:
 2. Step to October on Overview, open Transactions: it shows October.
 3. On a desktop, the sidebar replaces the bottom nav and marks the current screen.
 
-- [ ] 2.1 Add the `/[locale]/transactions` route with period, form and list, leave period and stats on Overview, redirect `/?edit=` with its params; verify the existing E2E tests on the new route and an E2E redirect test
-- [ ] 2.2 Add the top bar, bottom nav and sidebar with lucide icons, `aria-current` and the period in the links, plus bottom padding and `scroll-padding`; verify a component test of the period links and an E2E Tab test at 360 and 1440 px
-- [ ] 2.3 Add the page `ViewTransition` and the reduced-motion CSS; verify in the browser and an E2E screen change with reduced motion emulated
+- [x] 2.1 Add the `/[locale]/transactions` route with period, form and list, leave period and stats on Overview, redirect `/?edit=` with its params; verify the existing E2E tests on the new route and an E2E redirect test
+- [x] 2.2 Add the top bar, bottom nav and sidebar with lucide icons, `aria-current` and the period in the links, plus bottom padding and `scroll-padding`; verify a component test of the period links and an E2E Tab test at 360 and 1440 px
+- [x] 2.3 Add the page `ViewTransition` and the reduced-motion CSS; verify in the browser and an E2E screen change with reduced motion emulated
 
 ## 3. Add and edit in a sheet
 
