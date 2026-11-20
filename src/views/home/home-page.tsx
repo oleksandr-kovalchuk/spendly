@@ -46,6 +46,10 @@ async function getEditingId(searchParams: SearchParams) {
   return parsed.data;
 }
 
+async function getPeriodSearch(searchParams: SearchParams) {
+  return loadPeriodSearch(await searchParams);
+}
+
 async function TransactionFormSection({ searchParams }: { searchParams: SearchParams }) {
   const [user, today, tCategories, editingId] = await Promise.all([
     getCurrentUserOrSignIn(),
@@ -81,7 +85,7 @@ async function PeriodTransactions({ searchParams }: { searchParams: SearchParams
     getCurrentUserOrSignIn(),
     getToday(),
     getEditingId(searchParams),
-    loadPeriodSearch(searchParams),
+    getPeriodSearch(searchParams),
   ]);
   const period = parsePeriod(search, today);
   const transactions = await listTransactions(user.id, period);
