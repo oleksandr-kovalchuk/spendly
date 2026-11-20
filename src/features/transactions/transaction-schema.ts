@@ -19,4 +19,7 @@ export const transactionSchema = z.object({
 // The type isn't sent: it comes from the category, so the two can't disagree
 export const addTransactionSchema = transactionSchema.omit({ type: true });
 
+export const updateTransactionSchema = addTransactionSchema.extend({ id: z.uuid() });
+export const deleteTransactionSchema = z.object({ id: z.uuid() });
+
 export type TransactionValues = z.infer<typeof transactionSchema>;

@@ -6,7 +6,13 @@ import { listCategories } from "@/shared/categories/categories.dal";
 import { transactions } from "@/shared/db/app-schema";
 import { db } from "@/shared/db/client";
 
-import { insertTransaction, listTransactions } from "./transactions.dal";
+import {
+  deleteTransaction,
+  findTransaction,
+  insertTransaction,
+  listTransactions,
+  updateTransaction,
+} from "./transactions.dal";
 
 const MONTH = { from: "2026-03-01", to: "2026-03-31" };
 
@@ -17,6 +23,18 @@ async function setup() {
   const income = categories.find((c) => c.type === "income" && c.defaultKey === "salary");
   if (!expense || !income) throw new Error("Default categories are missing");
   return { id, expense, income };
+}
+
+async function addOne(userId: string, categoryId: string) {
+  await insertTransaction(userId, {
+    categoryId,
+    amountKopecks: 12_550,
+    occurredOn: "2026-03-10",
+    note: "lunch",
+  });
+  const [stored] = await listTransactions(userId, MONTH);
+  if (!stored) throw new Error("The transaction was not stored");
+  return stored;
 }
 
 describe("transactions", () => {
@@ -37,6 +55,7 @@ describe("transactions", () => {
         amountKopecks: 12_550,
         occurredOn: "2026-03-10",
         note: "lunch",
+        categoryId: expense.id,
         category: { defaultKey: "food", name: null },
       },
     ]);
@@ -144,5 +163,96 @@ describe("transactions", () => {
         note: "x".repeat(201),
       }),
     ).rejects.toThrow();
+  });
+
+  test("finds a transaction of the user", async () => {
+    const { id, expense } = await setup();
+    const stored = await addOne(id, expense.id);
+
+    expect(await findTransaction(id, stored.id)).toEqual(stored);
+  });
+
+  test("another user's transaction is not found", async () => {
+    const owner = await setup();
+    const other = await setup();
+    const stored = await addOne(owner.id, owner.expense.id);
+
+    expect(await findTransaction(other.id, stored.id)).toBeUndefined();
+  });
+
+  test("updates every field, and the type follows the category", async () => {
+    const { id, expense, income } = await setup();
+    const stored = await addOne(id, expense.id);
+
+    const result = await updateTransaction(id, stored.id, {
+      categoryId: income.id,
+      amountKopecks: 300_000,
+      occurredOn: "2026-03-20",
+      note: null,
+    });
+
+    expect(result).toEqual({ isUpdated: true });
+    expect(await listTransactions(id, MONTH)).toEqual([
+      {
+        id: stored.id,
+        type: "income",
+        amountKopecks: 300_000,
+        occurredOn: "2026-03-20",
+        note: null,
+        categoryId: income.id,
+        category: { defaultKey: "salary", name: null },
+      },
+    ]);
+  });
+
+  test("another user's transaction is not updated", async () => {
+    const owner = await setup();
+    const other = await setup();
+    const stored = await addOne(owner.id, owner.expense.id);
+
+    const result = await updateTransaction(other.id, stored.id, {
+      categoryId: other.expense.id,
+      amountKopecks: 1,
+      occurredOn: "2026-03-11",
+      note: "mine now",
+    });
+
+    expect(result).toEqual({ isUpdated: false, error: "transactionNotFound" });
+    expect(await listTransactions(owner.id, MONTH)).toEqual([stored]);
+    expect(await listTransactions(other.id, MONTH)).toEqual([]);
+  });
+
+  test("another user's category is refused and nothing changes", async () => {
+    const owner = await setup();
+    const other = await setup();
+    const stored = await addOne(other.id, other.expense.id);
+
+    const result = await updateTransaction(other.id, stored.id, {
+      categoryId: owner.expense.id,
+      amountKopecks: 1,
+      occurredOn: "2026-03-11",
+      note: null,
+    });
+
+    expect(result).toEqual({ isUpdated: false, error: "categoryNotFound" });
+    expect(await listTransactions(other.id, MONTH)).toEqual([stored]);
+  });
+
+  test("deletes a transaction of the user", async () => {
+    const { id, expense } = await setup();
+    const stored = await addOne(id, expense.id);
+
+    expect(await deleteTransaction(id, stored.id)).toEqual({ isDeleted: true });
+    expect(await listTransactions(id, MONTH)).toEqual([]);
+    expect(await deleteTransaction(id, stored.id)).toEqual({ isDeleted: false });
+  });
+
+  test("another user's transaction is not deleted", async () => {
+    const owner = await setup();
+    const other = await setup();
+    const stored = await addOne(owner.id, owner.expense.id);
+
+    expect(await deleteTransaction(other.id, stored.id)).toEqual({ isDeleted: false });
+    expect(await listTransactions(owner.id, MONTH)).toEqual([stored]);
   });
 });
