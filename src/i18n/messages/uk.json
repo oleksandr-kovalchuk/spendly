@@ -11,7 +11,9 @@
       "system": "Системна"
     },
     "signOut": "Вийти",
-    "signOutFailed": "Не вдалося вийти, спробуйте ще раз"
+    "signOutFailed": "Не вдалося вийти, спробуйте ще раз",
+    "nav": "Основна навігація",
+    "categories": "Категорії"
   },
   "Auth": {
     "fields": {
@@ -59,6 +61,8 @@
     "retry": "Спробувати ще раз"
   },
   "Categories": {
+    "title": "Категорії",
+    "heading": "Категорії",
     "defaults": {
       "food": "Їжа",
       "transport": "Транспорт",
@@ -70,6 +74,28 @@
       "other": "Інше",
       "salary": "Зарплата",
       "gifts": "Подарунки"
+    },
+    "list": {
+      "expenseHeading": "Витрати",
+      "incomeHeading": "Доходи",
+      "rename": "Перейменувати {category}",
+      "renameAction": "Перейменувати"
+    },
+    "form": {
+      "expenseLabel": "Нова категорія витрат",
+      "incomeLabel": "Нова категорія доходів",
+      "add": "Додати",
+      "added": "Категорію додано.",
+      "renameLabel": "Нова назва для {category}",
+      "save": "Зберегти",
+      "cancel": "Скасувати"
+    },
+    "errors": {
+      "nameRequired": "Введіть назву.",
+      "nameTooLong": "Назва має містити не більше 40 символів.",
+      "nameTaken": "У вас вже є категорія з такою назвою.",
+      "categoryNotFound": "Ця категорія недоступна. Оновіть сторінку й спробуйте ще раз.",
+      "unknown": "Щось пішло не так. Спробуйте ще раз."
     }
   },
   "Transactions": {
