@@ -54,9 +54,9 @@ How to check:
 2. Pick an empty month: the list and the chart show empty states with an Add button.
 3. Add an expense from Overview: the totals change with a short animation.
 
-- [ ] 4.1 Add the shadcn `card` and apply the type scale, spacing and cards to every screen and the auth pages; verify axe at 360 and 1440 px in both themes and languages
-- [ ] 4.2 Add income/expense icons to list items (signs stay) and empty states whose button opens the add form; verify a component test of the empty-state button
-- [ ] 4.3 Animate each total with a `ViewTransition` keyed by its value, without a live region; verify an E2E totals update with and without reduced motion
+- [x] 4.1 Add the shadcn `card` and apply the type scale, spacing and cards to every screen and the auth pages; verify axe at 360 and 1440 px in both themes and languages
+- [x] 4.2 Add income/expense icons to list items (signs stay) and empty states whose button opens the add form; verify a component test of the empty-state button
+- [x] 4.3 Animate each total with a `ViewTransition` keyed by its value, without a live region; verify an E2E totals update with and without reduced motion
 
 ## Workflow follow-up
 

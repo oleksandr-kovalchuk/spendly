@@ -47,7 +47,11 @@ function renderList(
 ) {
   render(
     <NextIntlClientProvider locale={locale} messages={locale === "en" ? en : uk}>
-      <TransactionList groups={groupByDay(transactions)} periodQuery={periodQuery} />
+      <TransactionList
+        groups={groupByDay(transactions)}
+        periodQuery={periodQuery}
+        emptyAction={<button type="button">Add transaction</button>}
+      />
     </NextIntlClientProvider>,
   );
 }
@@ -84,10 +88,11 @@ test("a day heading carries its date", () => {
   expect(screen.getByText("Tuesday, March 10")).toHaveAttribute("datetime", "2026-03-10");
 });
 
-test("shows the empty state without transactions", () => {
+test("shows the empty state with its action without transactions", () => {
   renderList("en", []);
 
   expect(screen.getByText(en.Transactions.list.empty)).toBeVisible();
+  expect(screen.getByRole("button", { name: "Add transaction" })).toBeVisible();
   expect(screen.queryByRole("list")).not.toBeInTheDocument();
 });
 
@@ -103,6 +108,7 @@ test("each whole item links to its edit form", () => {
     "/en/transactions?edit=3",
   );
   expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  expect(screen.queryByText(en.Transactions.list.empty)).not.toBeInTheDocument();
 });
 
 test("edit links keep the shown period", () => {

@@ -6,6 +6,8 @@ import { z } from "zod";
 import { SignInForm } from "@/features/auth/sign-in-form";
 import { getCurrentUser } from "@/shared/auth/session";
 import { Skeleton } from "@/shared/ui/skeleton";
+import { Card, CardContent, CardHeader } from "@/shared/ui/card";
+import { PageHeading } from "@/shared/ui/page-heading";
 
 const searchParamsSchema = z.object({
   email: z.email().optional().catch(undefined),
@@ -38,11 +40,15 @@ export async function SignInPage({ searchParams }: { searchParams: Promise<unkno
   const t = await getTranslations("Auth.signIn");
 
   return (
-    <div className="mx-auto grid w-full max-w-sm gap-6">
-      <h1 className="text-3xl font-semibold tracking-tight text-balance">{t("heading")}</h1>
-      <Suspense fallback={<FormSkeleton />}>
-        <SignInContent searchParams={searchParams} />
-      </Suspense>
-    </div>
+    <Card className="mx-auto w-full max-w-sm text-base">
+      <CardHeader>
+        <PageHeading>{t("heading")}</PageHeading>
+      </CardHeader>
+      <CardContent>
+        <Suspense fallback={<FormSkeleton />}>
+          <SignInContent searchParams={searchParams} />
+        </Suspense>
+      </CardContent>
+    </Card>
   );
 }

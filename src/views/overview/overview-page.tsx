@@ -7,6 +7,8 @@ import { getPeriodTotals, listSpendingByCategory } from "@/features/stats/stats.
 import { StatsBoundary } from "@/features/stats/stats-boundary";
 import { categoryLabel } from "@/shared/categories/category-label";
 import { Skeleton } from "@/shared/ui/skeleton";
+import { PageHeading } from "@/shared/ui/page-heading";
+import { AddTransactionControl } from "@/views/app-shell/add-transaction-control";
 import { PageTransition } from "@/views/app-shell/page-transition";
 import { PeriodSkeleton } from "@/views/app-shell/period-skeleton";
 import {
@@ -39,20 +41,21 @@ async function PeriodStatsSection({ searchParams }: { searchParams: ScreenSearch
         label: categoryLabel(item.category, tCategories),
         amountKopecks: item.amountKopecks,
       }))}
+      emptyAction={<AddTransactionControl placement="empty" />}
     />
   );
 }
 
+// The size of the totals cards and the spending card
 function StatsSkeleton() {
   return (
     <div className="@container grid gap-4">
-      <div className="grid gap-2 @md:grid-cols-3">
-        <Skeleton className="h-10 @md:h-17" />
-        <Skeleton className="h-10 @md:h-17" />
-        <Skeleton className="h-10 @md:h-17" />
+      <div className="grid grid-cols-2 gap-4 @xl:grid-cols-3">
+        <Skeleton className="h-21 rounded-xl @xl:h-23" />
+        <Skeleton className="h-21 rounded-xl @xl:h-23" />
+        <Skeleton className="col-span-2 h-21 rounded-xl @xl:col-span-1 @xl:h-23" />
       </div>
-      <Skeleton className="h-5 w-1/3" />
-      <Skeleton className="h-16 w-full" />
+      <Skeleton className="h-56 rounded-xl" />
     </div>
   );
 }
@@ -62,18 +65,16 @@ export async function OverviewPage({ searchParams }: PageProps<"/[locale]">) {
 
   return (
     <PageTransition>
-      <div className="grid gap-8">
-        <h1 className="text-3xl font-semibold tracking-tight text-balance">{t("heading")}</h1>
-        <div className="grid gap-4">
-          <Suspense fallback={<PeriodSkeleton />}>
-            <PeriodSection />
+      <div className="grid gap-6">
+        <PageHeading>{t("heading")}</PageHeading>
+        <Suspense fallback={<PeriodSkeleton />}>
+          <PeriodSection />
+        </Suspense>
+        <StatsBoundary>
+          <Suspense fallback={<StatsSkeleton />}>
+            <PeriodStatsSection searchParams={searchParams} />
           </Suspense>
-          <StatsBoundary>
-            <Suspense fallback={<StatsSkeleton />}>
-              <PeriodStatsSection searchParams={searchParams} />
-            </Suspense>
-          </StatsBoundary>
-        </div>
+        </StatsBoundary>
       </div>
     </PageTransition>
   );

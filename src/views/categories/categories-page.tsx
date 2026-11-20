@@ -8,7 +8,9 @@ import { getCurrentUser } from "@/shared/auth/session";
 import { categoryLabel } from "@/shared/categories/category-label";
 import { listCategories } from "@/shared/categories/categories.dal";
 import { CATEGORY_TYPES, type CategoryType } from "@/shared/db/app-constants";
+import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Skeleton } from "@/shared/ui/skeleton";
+import { PageHeading } from "@/shared/ui/page-heading";
 import { PageTransition } from "@/views/app-shell/page-transition";
 
 // Both lists render from one query
@@ -23,7 +25,7 @@ async function CategoryList({ type }: { type: CategoryType }) {
   const [categories, t] = await Promise.all([getCategories(), getTranslations("Categories")]);
 
   return (
-    <ul className="divide-y divide-border rounded-lg border border-border">
+    <ul className="divide-y divide-border">
       {categories
         .filter((category) => category.type === type)
         .map((category) => (
@@ -43,15 +45,20 @@ function ListSkeleton() {
   );
 }
 
+// Each type's list and form in its own card; side by side when there's room
 function CategorySection({ heading, children }: { heading: string; children: ReactNode }) {
   const headingId = useId();
 
   return (
-    <section aria-labelledby={headingId} className="grid gap-4">
-      <h2 id={headingId} className="text-lg font-medium">
-        {heading}
-      </h2>
-      {children}
+    <section aria-labelledby={headingId}>
+      <Card className="text-base">
+        <CardHeader>
+          <CardTitle className="text-lg">
+            <h2 id={headingId}>{heading}</h2>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-4">{children}</CardContent>
+      </Card>
     </section>
   );
 }
@@ -61,16 +68,20 @@ export async function CategoriesPage() {
 
   return (
     <PageTransition>
-      <div className="grid gap-8">
-        <h1 className="text-3xl font-semibold tracking-tight text-balance">{t("heading")}</h1>
-        {CATEGORY_TYPES.map((type) => (
-          <CategorySection key={type} heading={t(`list.${type}Heading`)}>
-            <Suspense fallback={<ListSkeleton />}>
-              <CategoryList type={type} />
-            </Suspense>
-            <CreateCategoryForm type={type} />
-          </CategorySection>
-        ))}
+      <div className="grid gap-6">
+        <PageHeading>{t("heading")}</PageHeading>
+        <div className="@container">
+          <div className="grid items-start gap-4 @2xl:grid-cols-2">
+            {CATEGORY_TYPES.map((type) => (
+              <CategorySection key={type} heading={t(`list.${type}Heading`)}>
+                <Suspense fallback={<ListSkeleton />}>
+                  <CategoryList type={type} />
+                </Suspense>
+                <CreateCategoryForm type={type} />
+              </CategorySection>
+            ))}
+          </div>
+        </div>
       </div>
     </PageTransition>
   );

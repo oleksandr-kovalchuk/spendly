@@ -1,7 +1,6 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import type { RefObject } from "react";
 
 import { TransactionForm, type CategoryOption } from "./transaction-form";
 import { TransactionSheet } from "./transaction-sheet";
@@ -9,7 +8,7 @@ import { TransactionSheet } from "./transaction-sheet";
 type AddTransactionSheetProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  finalFocus: RefObject<HTMLElement | null>;
+  finalFocus: () => HTMLElement | null;
   today: string;
   categories: CategoryOption[];
 };

@@ -21,14 +21,14 @@ export function CategoryItem({ id, label }: { id: string; label: string }) {
 
   if (isRenaming) {
     return (
-      <li className="px-3 py-3">
+      <li className="py-3">
         <RenameCategoryForm id={id} label={label} onClose={handleClose} />
       </li>
     );
   }
 
   return (
-    <li className="flex items-center justify-between gap-4 px-3 py-2">
+    <li className="flex items-center justify-between gap-4 py-2">
       <span className="min-w-0 font-medium break-words">{label}</span>
       <Button
         ref={renameButtonRef}

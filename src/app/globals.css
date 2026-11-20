@@ -170,6 +170,27 @@
   ::view-transition-old(.item-exit) {
     animation: 200ms ease-in both item-out;
   }
+  /* Totals (PeriodTotals): the old value rises out, the new one rises in */
+  ::view-transition-old(.total-exit) {
+    animation: 150ms ease-in both total-out;
+  }
+  ::view-transition-new(.total-enter) {
+    animation: 250ms ease-out both total-in;
+  }
+}
+
+@keyframes total-out {
+  to {
+    opacity: 0;
+    translate: 0 -0.5em;
+  }
+}
+
+@keyframes total-in {
+  from {
+    opacity: 0;
+    translate: 0 0.5em;
+  }
 }
 
 @keyframes item-in {
