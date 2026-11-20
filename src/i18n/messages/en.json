@@ -153,5 +153,14 @@
     "previous": "Previous {type, select, day {day} week {week} month {month} other {year}}",
     "next": "Next {type, select, day {day} week {week} month {month} other {year}}",
     "current": "{type, select, day {Today} week {This week} month {This month} other {This year}}"
+  },
+  "Stats": {
+    "income": "Income",
+    "expenses": "Expenses",
+    "balance": "Balance",
+    "byCategory": "Spending by category",
+    "noExpenses": "No expenses in this period.",
+    "loadFailed": "We could not load the summary.",
+    "retry": "Try again"
   }
 }

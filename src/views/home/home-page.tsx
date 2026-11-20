@@ -8,6 +8,9 @@ import { z } from "zod";
 import { parsePeriod, toPeriodQuery } from "@/features/periods/period";
 import { PeriodControl } from "@/features/periods/period-control";
 import { loadPeriodSearch } from "@/features/periods/period-search";
+import { PeriodStats } from "@/features/stats/period-stats";
+import { getPeriodTotals, listSpendingByCategory } from "@/features/stats/stats.dal";
+import { StatsBoundary } from "@/features/stats/stats-boundary";
 import { EditTransactionForm } from "@/features/transactions/edit-transaction-form";
 import { groupByDay } from "@/features/transactions/group-by-day";
 import { TransactionForm } from "@/features/transactions/transaction-form";
@@ -80,14 +83,40 @@ async function PeriodSection() {
   return <PeriodControl today={await getToday()} />;
 }
 
-async function PeriodTransactions({ searchParams }: { searchParams: SearchParams }) {
-  const [user, today, editingId, search] = await Promise.all([
+async function getShownPeriod(searchParams: SearchParams) {
+  const [today, search] = await Promise.all([getToday(), getPeriodSearch(searchParams)]);
+  return { today, period: parsePeriod(search, today) };
+}
+
+async function PeriodStatsSection({ searchParams }: { searchParams: SearchParams }) {
+  const [user, { period }, tCategories] = await Promise.all([
     getCurrentUserOrSignIn(),
-    getToday(),
-    getEditingId(searchParams),
-    getPeriodSearch(searchParams),
+    getShownPeriod(searchParams),
+    getTranslations("Categories"),
   ]);
-  const period = parsePeriod(search, today);
+  const [totals, spending] = await Promise.all([
+    getPeriodTotals(user.id, period),
+    listSpendingByCategory(user.id, period),
+  ]);
+
+  return (
+    <PeriodStats
+      totals={totals}
+      spending={spending.map((item) => ({
+        id: item.categoryId,
+        label: categoryLabel(item.category, tCategories),
+        amountKopecks: item.amountKopecks,
+      }))}
+    />
+  );
+}
+
+async function PeriodTransactions({ searchParams }: { searchParams: SearchParams }) {
+  const [user, { today, period }, editingId] = await Promise.all([
+    getCurrentUserOrSignIn(),
+    getShownPeriod(searchParams),
+    getEditingId(searchParams),
+  ]);
   const transactions = await listTransactions(user.id, period);
 
   // Edit links keep the period, so the list stays where the user is
@@ -123,6 +152,20 @@ function PeriodSkeleton() {
   );
 }
 
+function StatsSkeleton() {
+  return (
+    <div className="@container grid gap-4">
+      <div className="grid gap-2 @md:grid-cols-3">
+        <Skeleton className="h-10 @md:h-17" />
+        <Skeleton className="h-10 @md:h-17" />
+        <Skeleton className="h-10 @md:h-17" />
+      </div>
+      <Skeleton className="h-5 w-1/3" />
+      <Skeleton className="h-16 w-full" />
+    </div>
+  );
+}
+
 function ListSkeleton() {
   return (
     <div className="grid gap-2">
@@ -148,6 +191,11 @@ export async function HomePage({ searchParams }: PageProps<"/[locale]">) {
         <Suspense fallback={<PeriodSkeleton />}>
           <PeriodSection />
         </Suspense>
+        <StatsBoundary>
+          <Suspense fallback={<StatsSkeleton />}>
+            <PeriodStatsSection searchParams={searchParams} />
+          </Suspense>
+        </StatsBoundary>
         <TransactionListBoundary>
           <Suspense fallback={<ListSkeleton />}>
             <PeriodTransactions searchParams={searchParams} />

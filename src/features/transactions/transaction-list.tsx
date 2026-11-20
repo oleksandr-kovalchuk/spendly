@@ -2,14 +2,11 @@ import { useFormatter, useLocale, useTranslations } from "next-intl";
 import Link from "next/link";
 
 import { categoryLabel } from "@/shared/categories/category-label";
-
+import { hryvniasOf, MONEY_FORMAT } from "@/shared/lib/money";
 import { buttonVariants } from "@/shared/ui/button";
 
 import { DeleteTransactionButton } from "./delete-transaction-button";
 import type { DayGroup } from "./group-by-day";
-
-const CURRENCY = "UAH";
-const KOPECKS_PER_HRYVNIA = 100;
 
 type TransactionListProps = {
   groups: DayGroup[];
@@ -65,10 +62,8 @@ export function TransactionList({ groups, editingId, periodQuery }: TransactionL
                       ) : null}
                     </div>
                     <p className="shrink-0 font-medium tabular-nums">
-                      {format.number((sign * transaction.amountKopecks) / KOPECKS_PER_HRYVNIA, {
-                        style: "currency",
-                        currency: CURRENCY,
-                        currencyDisplay: "narrowSymbol",
+                      {format.number(hryvniasOf(sign * transaction.amountKopecks), {
+                        ...MONEY_FORMAT,
                         signDisplay: "always",
                       })}
                     </p>
