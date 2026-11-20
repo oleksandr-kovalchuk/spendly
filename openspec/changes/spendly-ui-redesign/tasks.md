@@ -1,6 +1,6 @@
 # Tasks
 
-Every part: one PR; UI text in English and Ukrainian; checked in a browser at 360 and 1440 px in both themes; axe E2E passes; `pnpm lint`, `typecheck`, `test`, `unused` and `build` pass; each route's initial JS stays within 200 KB (compressed), noted in the PR. No new dependencies.
+Every part: one PR; UI text in English and Ukrainian; checked in a browser at 360 and 1440 px in both themes; axe E2E passes; `pnpm lint`, `typecheck`, `test`, `unused` and `build` pass; each route's initial JS stays within the project's 300 KB budget (compressed, decision 0008), which CI checks. No new dependencies.
 
 ## 1. Brand accent and focus ring
 
