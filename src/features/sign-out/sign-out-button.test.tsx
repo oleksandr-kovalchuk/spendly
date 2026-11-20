@@ -45,3 +45,15 @@ test("a failed sign out stays on the page and says so", async () => {
   expect(await screen.findByRole("button", { name: "Sign out failed, try again" })).toBeEnabled();
   expect(assign).not.toHaveBeenCalled();
 });
+
+test("the icon-only button is named and shows the failure as text", async () => {
+  signOut.mockResolvedValue({ error: { status: 500 } });
+  render(
+    <NextIntlClientProvider locale="en" messages={en}>
+      <SignOutButton isIconOnly />
+    </NextIntlClientProvider>,
+  );
+  await userEvent.setup().click(screen.getByRole("button", { name: "Sign out" }));
+
+  expect(await screen.findByRole("button")).toHaveTextContent("Sign out failed, try again");
+});

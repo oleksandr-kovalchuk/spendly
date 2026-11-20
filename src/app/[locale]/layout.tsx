@@ -9,7 +9,6 @@ import "../globals.css";
 import { routing } from "@/i18n/routing";
 import { APP_NAME } from "@/shared/lib/page-title";
 import { AppProviders } from "@/shared/providers/app-providers";
-import { Header } from "@/views/app-shell/header";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -49,10 +48,11 @@ export default async function RootLayout({ children }: LayoutProps<"/[locale]">)
   } = await getMessages();
 
   return (
-    // The theme script of next-themes sets the class before hydration
+    // The theme script of next-themes sets the class before hydration;
+    // the scroll padding keeps a focused control above the phone's bottom navigation
     <html
       lang={current}
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased max-lg:scroll-pb-20`}
       suppressHydrationWarning
     >
       <body className="flex min-h-full flex-col">
@@ -73,14 +73,8 @@ export default async function RootLayout({ children }: LayoutProps<"/[locale]">)
             >
               {t("skipLink")}
             </a>
-            <Header />
-            <main
-              id="main-content"
-              tabIndex={-1}
-              className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 py-8 outline-none"
-            >
-              {children}
-            </main>
+            {/* The route groups' layouts hold the top bar or navigation and the main landmark */}
+            {children}
           </AppProviders>
         </NextIntlClientProvider>
       </body>

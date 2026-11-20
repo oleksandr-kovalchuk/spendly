@@ -1,5 +1,6 @@
 "use client";
 
+import { LogOutIcon } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 
@@ -8,7 +9,8 @@ import { Button } from "@/shared/ui/button";
 
 type Status = "idle" | "pending" | "failed";
 
-export function SignOutButton() {
+// Icon only fits the phone top bar; a failure still shows its text
+export function SignOutButton({ isIconOnly = false }: { isIconOnly?: boolean }) {
   const t = useTranslations("Header");
   const locale = useLocale();
   const [status, setStatus] = useState<Status>("idle");
@@ -25,15 +27,20 @@ export function SignOutButton() {
     window.location.assign(`/${locale}/sign-in`);
   }
 
+  const label = status === "failed" ? t("signOutFailed") : t("signOut");
+  const isLabelHidden = isIconOnly && status !== "failed";
+
   return (
     <Button
       type="button"
       variant="ghost"
-      size="lg"
+      size={isLabelHidden ? "icon-lg" : "lg"}
+      aria-label={isLabelHidden ? label : undefined}
       disabled={status === "pending"}
       onClick={handleSignOut}
     >
-      {status === "failed" ? t("signOutFailed") : t("signOut")}
+      <LogOutIcon aria-hidden className="rtl:rotate-180" />
+      {isLabelHidden ? null : label}
     </Button>
   );
 }

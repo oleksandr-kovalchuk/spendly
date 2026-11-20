@@ -48,6 +48,8 @@ describe("private pages", () => {
     ["/en", "/en/sign-in"],
     ["/uk", "/uk/sign-in"],
     ["/uk/", "/uk/sign-in"],
+    ["/en/transactions", "/en/sign-in"],
+    ["/uk/transactions?period=week", "/uk/sign-in"],
     ["/en/categories", "/en/sign-in"],
     ["/uk/categories/", "/uk/sign-in"],
   ])("%s without a session cookie goes to %s", (path, expected) => {
