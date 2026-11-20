@@ -93,6 +93,8 @@ test.beforeEach(async ({ context }) => {
 });
 
 async function expectNoViolations(page: Page) {
+  // After a period change the new title streams in after the list
+  await expect(page).toHaveTitle(/\S/);
   const { violations } = await new AxeBuilder({ page }).analyze();
   expect(violations).toEqual([]);
 }
@@ -157,7 +159,11 @@ async function openAddSheet(page: Page, locale: "en" | "uk") {
 async function addTransaction(page: Page, locale: "en" | "uk", values: NewTransaction) {
   const text = TEXTS[locale];
   const sheet = await openAddSheet(page, locale);
-  if (values.isIncome) await sheet.getByLabel(text.income, { exact: true }).check({ force: true });
+  // The radio itself is visually hidden: its label is what a user taps
+  if (values.isIncome) {
+    await sheet.locator("label").filter({ hasText: text.income }).click();
+    await expect(sheet.getByLabel(text.income, { exact: true })).toBeChecked();
+  }
   await field(page, text.amount).fill(values.amount);
   if (values.note !== undefined) await field(page, text.note).fill(values.note);
   if (values.category !== undefined) {
@@ -584,6 +590,7 @@ function recordViewTransitions() {
   const recorded: RecordedAnimation[] = [];
   Object.assign(window, { viewTransitionAnimations: recorded });
   document.startViewTransition = (...args: Parameters<typeof start>) => {
+    recorded.push({ name: "start", duration: 0 });
     const transition = start(...args);
     transition.ready.then(
       () => {
@@ -599,8 +606,8 @@ function recordViewTransitions() {
           }
         }
       },
-      // A skipped transition has no animations to record
-      () => undefined,
+      // A skipped transition has no animations; its reason shows in a failure message
+      (error: unknown) => recorded.push({ name: `skipped: ${String(error)}`, duration: 0 }),
     );
     return transition;
   };
@@ -616,6 +623,12 @@ for (const reducedMotion of ["no-preference", "reduce"] as const) {
     await openScreen(page, "en", "transactions");
     const recorded = () =>
       page.evaluate((): RecordedAnimation[] => Reflect.get(window, "viewTransitionAnimations"));
+    // The recorder keeps writing to its array, so it's emptied in place
+    const clearRecorded = () =>
+      page.evaluate(() => {
+        const animations: RecordedAnimation[] = Reflect.get(window, "viewTransitionAnimations");
+        animations.length = 0;
+      });
     const expectAnimation = async (name: string) => {
       if (reducedMotion === "reduce") {
         // The browser may still create zero-length animations: nothing moves
@@ -626,13 +639,13 @@ for (const reducedMotion of ["no-preference", "reduce"] as const) {
       }
     };
 
-    await page.evaluate(() => Reflect.set(window, "viewTransitionAnimations", []));
+    await clearRecorded();
     await addTransaction(page, "en", { amount: "4", note: "animated" });
     await expect(item(page, "animated")).toBeVisible();
     await expectAnimation("item-in");
 
     const sheet = await openEditSheet(page, "en", "animated");
-    await page.evaluate(() => Reflect.set(window, "viewTransitionAnimations", []));
+    await clearRecorded();
     await sheet.getByRole("button", { name: TEXTS.en.del, exact: true }).click();
     await page
       .getByRole("alertdialog", { name: TEXTS.en.deleteTitle })
