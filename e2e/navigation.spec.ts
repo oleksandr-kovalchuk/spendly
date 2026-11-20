@@ -156,8 +156,11 @@ test("Tab reaches every control, and the bottom navigation covers none", async (
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Overview");
   // The next Tab starts in the new screen, not after the link
   await expect(page.getByRole("main")).toBeFocused();
+  // The period control streams in after the heading
+  const day = page.getByRole("button", { name: "Day", exact: true });
+  await expect(day).toBeVisible();
   await page.keyboard.press("Tab");
-  await expect(page.getByRole("button", { name: "Day", exact: true })).toBeFocused();
+  await expect(day).toBeFocused();
 });
 
 type RecordedAnimation = { name: string; duration: number | string };
