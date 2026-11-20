@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { useForm, useFormState } from "react-hook-form";
 
-import type { CategoryType } from "@/shared/db/app-schema";
+import type { CategoryType } from "@/shared/db/app-constants";
 import { TextField } from "@/shared/forms/text-field";
 import { Button } from "@/shared/ui/button";
 import { FieldError } from "@/shared/ui/field";

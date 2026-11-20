@@ -4,7 +4,7 @@ Status: accepted
 
 ## Decision
 
-The sign-in and sign-up forms validate with the shared schema in the browser and submit through `authClient` (Better Auth's browser client), not through a Server Action that validates the schema again on the server. This deviates from nextjs/rules.md, Forms ("Submit goes to a Server Action that validates with the same schema on the server").
+The sign-in and sign-up forms validate with the shared schema in the browser and submit through `authClient`, not through a Server Action that validates the schema again on the server. `authClient` calls Better Auth's own HTTP routes with `fetch`; Better Auth's browser client would add ~14 KB to every signed-in screen, since the sign-out button uses it too. This deviates from nextjs/rules.md, Forms ("Submit goes to a Server Action that validates with the same schema on the server").
 
 ## Why
 

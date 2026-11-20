@@ -3,5 +3,6 @@
   "ignoreIssues": {
     "src/shared/api/generated/**": ["exports", "types", "files"],
     "src/shared/ui/**": ["exports", "types"]
-  }
+  },
+  "ignoreDependencies": ["@lhci/cli"]
 }

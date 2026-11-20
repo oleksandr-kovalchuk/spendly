@@ -13,30 +13,14 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 
+import {
+  CATEGORY_TYPES,
+  DEFAULT_CATEGORY_KEYS,
+  MAX_AMOUNT_KOPECKS,
+  MAX_CATEGORY_NAME_LENGTH,
+  MAX_NOTE_LENGTH,
+} from "./app-constants";
 import { user } from "./auth-schema";
-
-export const CATEGORY_TYPES = ["expense", "income"] as const;
-export type CategoryType = (typeof CATEGORY_TYPES)[number];
-
-// "other" is the default category of both types
-export const DEFAULT_CATEGORY_KEYS = [
-  "food",
-  "transport",
-  "housing",
-  "utilities",
-  "health",
-  "shopping",
-  "entertainment",
-  "other",
-  "salary",
-  "gifts",
-] as const;
-export type DefaultCategoryKey = (typeof DEFAULT_CATEGORY_KEYS)[number];
-
-export const MAX_CATEGORY_NAME_LENGTH = 40;
-export const MAX_NOTE_LENGTH = 200;
-// 999,999,999.99 hryvnias in kopecks, which needs a bigint
-export const MAX_AMOUNT_KOPECKS = 99_999_999_999;
 
 const id = () =>
   uuid()

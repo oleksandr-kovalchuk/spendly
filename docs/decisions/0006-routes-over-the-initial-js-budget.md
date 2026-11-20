@@ -1,6 +1,6 @@
 # 0006: Routes over the initial JS budget during the redesign
 
-Status: accepted
+Status: superseded by [0008](0008-initial-js-budget-of-300-kb.md)
 
 ## Decision
 

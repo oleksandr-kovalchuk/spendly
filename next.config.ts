@@ -65,6 +65,12 @@ const nextConfig: NextConfig = {
   },
 };
 
-const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
+const withNextIntl = createNextIntlPlugin({
+  requestConfig: "./src/i18n/request.ts",
+  experimental: {
+    // Compiled at build time, so the browser gets no message parser
+    messages: { path: "./src/i18n/messages", format: "json", locales: "infer", precompile: true },
+  },
+});
 
 export default withNextIntl(nextConfig);

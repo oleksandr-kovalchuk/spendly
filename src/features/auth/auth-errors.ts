@@ -1,3 +1,5 @@
+import type { AuthFailure } from "@/shared/auth/auth-client";
+
 const FIELD_ERRORS = [
   "emailInvalid",
   "passwordTooShort",
@@ -20,8 +22,6 @@ const FIELD_ERROR_BY_AUTH_CODE: Record<string, { field: "email" | "password"; er
     PASSWORD_TOO_SHORT: { field: "password", error: "passwordTooShort" },
     PASSWORD_TOO_LONG: { field: "password", error: "passwordTooLong" },
   };
-
-type AuthFailure = { status: number; code?: string };
 
 export function fieldErrorOf({ code }: AuthFailure) {
   return code ? FIELD_ERROR_BY_AUTH_CODE[code] : undefined;
