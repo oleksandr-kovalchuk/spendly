@@ -31,3 +31,11 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 - Node from `.nvmrc`, pnpm from `packageManager`; no npm or yarn
 - Never edit the copied standards: `.claude/rules/standards/`, `docs/standards/`, `config/standards/`, `.claude/hooks/standards/`
+
+### Known pitfalls
+
+- `notFound()` in a dynamic route (Cache Components) runs after the 200 shell streams: the 404 page renders but the status stays 200; E2E checks the 404 content and `noindex`, not the status. Only the prerendered `[locale]/[...rest]` route returns a real 404 (decision 0005)
+- `meta[name="robots"]` is in the DOM twice (head and streamed body): select `head meta[name="robots"]`
+- axe in an open dialog reads mid-animation colors: await `document.getAnimations()` finishing first; don't exclude the dialog
+- AA contrast fails for `text-muted-foreground` on `bg-muted` (4.34:1) and tinted `bg-destructive/10 text-destructive` (3.82:1): use solid tokens (a ring instead of `bg-muted`, `bg-destructive text-destructive-foreground`), check light and dark
+- "Today" uses UTC until `TimeZoneSync` sets the time zone cookie after the first load and refreshes: anything defaulting to today needs `today` in its `key` to reset
