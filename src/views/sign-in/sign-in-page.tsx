@@ -40,7 +40,7 @@ export async function SignInPage({ searchParams }: { searchParams: Promise<unkno
   const t = await getTranslations("Auth.signIn");
 
   return (
-    <Card className="mx-auto w-full max-w-sm text-base">
+    <Card className="mx-auto w-full max-w-sm">
       <CardHeader>
         <PageHeading>{t("heading")}</PageHeading>
       </CardHeader>

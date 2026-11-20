@@ -51,9 +51,9 @@ function CategorySection({ heading, children }: { heading: string; children: Rea
 
   return (
     <section aria-labelledby={headingId}>
-      <Card className="text-base">
+      <Card>
         <CardHeader>
-          <CardTitle className="text-lg">
+          <CardTitle>
             <h2 id={headingId}>{heading}</h2>
           </CardTitle>
         </CardHeader>

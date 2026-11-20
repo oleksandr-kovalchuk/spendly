@@ -25,20 +25,20 @@ export function PeriodStats({ totals, spending, emptyAction }: PeriodStatsProps)
     <div className="@container grid gap-4">
       <PeriodTotals {...totals} />
       <section aria-labelledby={headingId}>
-        <Card className="text-base">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg">
+            <CardTitle>
               <h2 id={headingId}>{t("byCategory")}</h2>
             </CardTitle>
           </CardHeader>
           <CardContent>
             {spending.length === 0 ? (
-              <Empty className="p-4">
+              <Empty>
                 <EmptyHeader>
                   <EmptyMedia variant="icon">
                     <ChartBarIcon aria-hidden />
                   </EmptyMedia>
-                  <EmptyTitle className="text-base">{t("noExpenses")}</EmptyTitle>
+                  <EmptyTitle>{t("noExpenses")}</EmptyTitle>
                 </EmptyHeader>
                 <EmptyContent>{emptyAction}</EmptyContent>
               </Empty>

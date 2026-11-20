@@ -29,7 +29,7 @@ export async function SignUpPage() {
   const t = await getTranslations("Auth.signUp");
 
   return (
-    <Card className="mx-auto w-full max-w-sm text-base">
+    <Card className="mx-auto w-full max-w-sm">
       <CardHeader>
         <PageHeading>{t("heading")}</PageHeading>
       </CardHeader>

@@ -36,12 +36,12 @@ export function TransactionList({ groups, periodQuery, emptyAction }: Transactio
       {groups.length === 0 ? (
         <Card>
           <CardContent>
-            <Empty className="p-4">
+            <Empty>
               <EmptyHeader>
                 <EmptyMedia variant="icon">
                   <ReceiptTextIcon aria-hidden />
                 </EmptyMedia>
-                <EmptyTitle className="text-base">{t("list.empty")}</EmptyTitle>
+                <EmptyTitle>{t("list.empty")}</EmptyTitle>
               </EmptyHeader>
               <EmptyContent>{emptyAction}</EmptyContent>
             </Empty>
@@ -84,7 +84,7 @@ export function TransactionList({ groups, periodQuery, emptyAction }: Transactio
                           // The sheet opens over the list, which stays where it was
                           scroll={false}
                           // No hover background: muted text on the muted color fails AA contrast
-                          className="group flex items-center gap-3 px-4 py-3 text-base outline-none focus-visible:ring-3 focus-visible:ring-ring focus-visible:ring-inset"
+                          className="group flex items-center gap-3 px-4 py-3 outline-none focus-visible:ring-3 focus-visible:ring-ring focus-visible:ring-inset"
                         >
                           <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted">
                             <TypeIcon aria-hidden className="size-4" />
