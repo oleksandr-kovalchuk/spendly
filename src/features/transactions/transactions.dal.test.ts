@@ -19,12 +19,10 @@ vi.mock("next/headers", () => ({ headers: () => Promise.resolve(requestHeaders.c
 
 const MONTH = { from: "2026-03-01", to: "2026-03-31" };
 
-// The reads return the signed-in user's data
 function signIn(cookie: string) {
   requestHeaders.current = new Headers({ cookie });
 }
 
-// Signs the new user in
 async function setup() {
   const { id, cookie } = await createUser();
   signIn(cookie);

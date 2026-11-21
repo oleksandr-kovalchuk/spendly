@@ -107,7 +107,6 @@ export function toPeriodSearch(period: Period, today: string): PeriodSearch {
   };
 }
 
-// The same as link query params: only the values the URL keeps
 export function toPeriodQuery(period: Period, today: string) {
   const search = toPeriodSearch(period, today);
   const query: Record<string, string> = {};

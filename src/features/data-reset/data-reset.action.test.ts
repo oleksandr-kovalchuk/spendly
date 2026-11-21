@@ -21,7 +21,6 @@ function keysOf(list: { type: string; defaultKey: string | null; name: string | 
   return list.map(({ type, defaultKey, name }) => `${type}:${defaultKey ?? name}`);
 }
 
-// A user with a transaction, a renamed default, a deleted default and a category of their own
 async function userWithData() {
   const { id, cookie } = await createUser();
   const [food] = await db

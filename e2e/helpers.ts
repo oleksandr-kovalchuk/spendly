@@ -173,19 +173,27 @@ export async function setRandomClientIp(context: BrowserContext) {
   await context.setExtraHTTPHeaders({ "x-real-ip": `10.${a}.${b}.${c}` });
 }
 
-export async function expectNoViolations(page: Page) {
-  // After a client-side navigation or a period change the title streams in after the content
-  await expect(page).toHaveTitle(/\S/);
-  // axe would read the colors of running animations; infinite ones (a skeleton's pulse) never
-  // finish, and a removed element's is cancelled, hence allSettled
+// Infinite animations (a skeleton's pulse) never finish, nor do scroll-driven ones while their
+// element is out of view, and a removed element's is cancelled, hence allSettled
+export async function waitForAnimations(page: Page) {
   await page.evaluate(() =>
     Promise.allSettled(
       document
         .getAnimations()
-        .filter((a) => a.effect?.getComputedTiming().endTime !== Infinity)
+        .filter(
+          (a) =>
+            a.timeline === document.timeline && a.effect?.getComputedTiming().endTime !== Infinity,
+        )
         .map((a) => a.finished),
     ),
   );
+}
+
+export async function expectNoViolations(page: Page) {
+  // After a client-side navigation or a period change the title streams in after the content
+  await expect(page).toHaveTitle(/\S/);
+  // axe would read the colors of running animations
+  await waitForAnimations(page);
   const { violations } = await new AxeBuilder({ page }).analyze();
   expect(violations).toEqual([]);
 }
@@ -204,7 +212,6 @@ export function dateButton(scope: Page | Locator, locale: Locale) {
   return scope.getByRole("button", { name: new RegExp(`^${TEXTS[locale].date}: `) });
 }
 
-// How the date picker's button shows a day: "March 10, 2026"
 export function shownDay(locale: Locale, day: string) {
   return new Intl.DateTimeFormat(locale, {
     timeZone: "UTC",
@@ -316,4 +323,57 @@ export async function signUpAndIn(page: Page, locale: Locale, testInfo: TestInfo
   await expect(page).toHaveURL(new RegExp(`/${locale}$`));
 
   return email;
+}
+
+type RecordedAnimation = { name: string; duration: number };
+
+export function recordViewTransitions() {
+  const start = document.startViewTransition.bind(document);
+  const recorded: RecordedAnimation[] = [];
+  Object.assign(window, { viewTransitionAnimations: recorded });
+  document.startViewTransition = (...args: Parameters<typeof start>) => {
+    recorded.push({ name: "start", duration: 0 });
+    const transition = start(...args);
+    transition.ready.then(
+      () => {
+        for (const animation of document.getAnimations()) {
+          if (
+            animation.effect instanceof KeyframeEffect &&
+            animation.effect.pseudoElement?.startsWith("::view-transition") === true
+          ) {
+            recorded.push({
+              name: animation instanceof CSSAnimation ? animation.animationName : "",
+              duration: Number(animation.effect.getComputedTiming().duration ?? 0),
+            });
+          }
+        }
+      },
+      // A skipped transition has no animations; its reason shows in a failure message
+      (error: unknown) => recorded.push({ name: `skipped: ${String(error)}`, duration: 0 }),
+    );
+    return transition;
+  };
+}
+
+export function viewTransitions(page: Page, reducedMotion: "no-preference" | "reduce") {
+  const recorded = () =>
+    page.evaluate((): RecordedAnimation[] => Reflect.get(window, "viewTransitionAnimations"));
+
+  return {
+    // The recorder keeps writing to its array, so it's emptied in place
+    clear: () =>
+      page.evaluate(() => {
+        const animations: RecordedAnimation[] = Reflect.get(window, "viewTransitionAnimations");
+        animations.length = 0;
+      }),
+    expectAnimation: async (name: string) => {
+      if (reducedMotion === "reduce") {
+        // The browser may still create zero-length animations: nothing moves
+        await expect.poll(async () => (await recorded()).map((a) => a.name)).not.toContain(name);
+        expect((await recorded()).every(({ duration }) => duration === 0)).toBe(true);
+      } else {
+        await expect.poll(async () => (await recorded()).map((a) => a.name)).toContain(name);
+      }
+    },
+  };
 }

@@ -50,7 +50,7 @@ A user SHALL delete their transaction from its edit form after confirming.
 
 ### Requirement: Daily list
 
-The Transactions screen SHALL list the user's transactions grouped by day, newest day first, each group headed by its date in the current language.
+The Transactions screen SHALL list the user's transactions grouped by day, newest day first, each group headed by its date in the current language; days below the screen SHALL rise into place as they scroll in.
 
 #### Scenario: Grouping
 
@@ -67,6 +67,11 @@ The Transactions screen SHALL list the user's transactions grouped by day, newes
 
 - **WHEN** there are no transactions to show
 - **THEN** an empty state invites the user to add one, with a button that opens the add form
+
+#### Scenario: Scrolling
+
+- **WHEN** the user scrolls a long list
+- **THEN** each day rises into place as it comes into view, and its text never fades
 
 ### Requirement: Money amounts
 

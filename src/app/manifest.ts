@@ -3,12 +3,12 @@ import type { MetadataRoute } from "next";
 import { APP_NAME } from "@/shared/lib/page-title";
 import { BACKGROUND_LIGHT } from "@/shared/lib/theme-colors";
 
-// Lets phones install the app to the home screen; "/" leads to the user's language and sign-in
 export default function manifest(): MetadataRoute.Manifest {
   return {
     id: "/",
     name: APP_NAME,
     short_name: APP_NAME,
+    // "/" leads to the user's language and sign-in
     start_url: "/",
     scope: "/",
     display: "standalone",

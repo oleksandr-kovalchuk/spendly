@@ -1,4 +1,4 @@
-// The brand mark: the Overview's spending bars on a primary tile; app/icon.svg draws the same
+// app/icon.svg draws the same mark
 export function LogoMark({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 32 32" aria-hidden="true" data-icon="inline-start" className={className}>

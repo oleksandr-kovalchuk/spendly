@@ -6,9 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Empty, EmptyContent, EmptyHeader, EmptyMedia, EmptyTitle } from "@/shared/ui/empty";
 
 import { PeriodTotals } from "./period-totals";
-import { SpendingBar } from "./spending-bar";
+import { SpendingBreakdown } from "./spending-breakdown";
 import type { SpendingItem } from "./spending-item";
-import { SpendingLegend } from "./spending-legend";
 
 type PeriodStatsProps = {
   totals: ComponentProps<typeof PeriodTotals>;
@@ -23,10 +22,10 @@ export function PeriodStats({ totals, spending, emptyAction }: PeriodStatsProps)
   return (
     <div className="@container">
       <div className="grid stagger gap-4 @3xl:grid-cols-12">
-        <div className="@3xl:col-span-7">
+        <div className="@3xl:col-span-6">
           <PeriodTotals {...totals} />
         </div>
-        <section aria-labelledby={headingId} className="@3xl:col-span-5">
+        <section aria-labelledby={headingId} className="@3xl:col-span-6">
           <Card className="h-full">
             <CardHeader>
               <CardTitle>
@@ -45,10 +44,7 @@ export function PeriodStats({ totals, spending, emptyAction }: PeriodStatsProps)
                   <EmptyContent>{emptyAction}</EmptyContent>
                 </Empty>
               ) : (
-                <>
-                  <SpendingBar items={spending} />
-                  <SpendingLegend items={spending} labelledBy={headingId} />
-                </>
+                <SpendingBreakdown items={spending} labelledBy={headingId} />
               )}
             </CardContent>
           </Card>

@@ -10,10 +10,13 @@ import {
   pickAppTheme,
   pickCategory,
   pickDate,
+  recordViewTransitions,
   setRandomClientIp,
   shownDay,
   signUpAndIn,
   TEXTS,
+  viewTransitions,
+  waitForAnimations,
   type Locale,
 } from "./helpers";
 import { TODAY } from "./today";
@@ -309,7 +312,6 @@ for (const locale of ["en", "uk"] as const) {
   const text = TEXTS[locale];
 
   test(`the list follows the week and a shared URL in ${locale}`, async ({ page }, testInfo) => {
-    // This week's Monday and the Sunday before it
     const weekday = (new Date(`${TODAY}T00:00:00Z`).getUTCDay() + 6) % 7;
     const monday = addDays(TODAY, -weekday);
     const sunday = addDays(monday, -1);
@@ -403,8 +405,7 @@ for (const locale of ["en", "uk"] as const) {
     await expect(legend.nth(0)).toContainText(/60\s?%/);
     await expect(legend.nth(1)).toContainText(text.transport);
     await expect(legend.nth(1)).toContainText(/40\s?%/);
-    // A segment per category
-    await expect(byCategory.locator('[aria-hidden="true"] > div')).toHaveCount(2);
+    await expect(byCategory.locator("svg g circle")).toHaveCount(2);
 
     for (const theme of ["light", "dark"] as const) {
       await pickAppTheme(page, locale, theme);
@@ -482,62 +483,53 @@ for (const locale of ["en", "uk"] as const) {
   });
 }
 
-type RecordedAnimation = { name: string; duration: number };
-
-// Records the animations of every view transition once it starts
-function recordViewTransitions() {
-  const start = document.startViewTransition.bind(document);
-  const recorded: RecordedAnimation[] = [];
-  Object.assign(window, { viewTransitionAnimations: recorded });
-  document.startViewTransition = (...args: Parameters<typeof start>) => {
-    recorded.push({ name: "start", duration: 0 });
-    const transition = start(...args);
-    transition.ready.then(
-      () => {
-        for (const animation of document.getAnimations()) {
-          if (
-            animation.effect instanceof KeyframeEffect &&
-            animation.effect.pseudoElement?.startsWith("::view-transition") === true
-          ) {
-            recorded.push({
-              name: animation instanceof CSSAnimation ? animation.animationName : "",
-              duration: Number(animation.effect.getComputedTiming().duration ?? 0),
-            });
-          }
-        }
-      },
-      // A skipped transition has no animations; its reason shows in a failure message
-      (error: unknown) => recorded.push({ name: `skipped: ${String(error)}`, duration: 0 }),
-    );
-    return transition;
-  };
-}
-
-// Checks that an animation ran, or with reduced motion that nothing moved
-function viewTransitions(page: Page, reducedMotion: "no-preference" | "reduce") {
-  const recorded = () =>
-    page.evaluate((): RecordedAnimation[] => Reflect.get(window, "viewTransitionAnimations"));
-
-  return {
-    // The recorder keeps writing to its array, so it's emptied in place
-    clear: () =>
-      page.evaluate(() => {
-        const animations: RecordedAnimation[] = Reflect.get(window, "viewTransitionAnimations");
-        animations.length = 0;
-      }),
-    expectAnimation: async (name: string) => {
-      if (reducedMotion === "reduce") {
-        // The browser may still create zero-length animations: nothing moves
-        await expect.poll(async () => (await recorded()).map((a) => a.name)).not.toContain(name);
-        expect((await recorded()).every(({ duration }) => duration === 0)).toBe(true);
-      } else {
-        await expect.poll(async () => (await recorded()).map((a) => a.name)).toContain(name);
-      }
-    },
-  };
-}
-
 for (const reducedMotion of ["no-preference", "reduce"] as const) {
+  test(`the arrows slide the period's content with reduced motion ${reducedMotion}`, async ({
+    page,
+  }, testInfo) => {
+    await page.emulateMedia({ reducedMotion });
+    await page.addInitScript(recordViewTransitions);
+    await signUpAndIn(page, "en", testInfo);
+    await addTransaction(page, "en", { amount: "12", note: "today's" });
+    const transitions = viewTransitions(page, reducedMotion);
+
+    await transitions.clear();
+    await page.getByRole("button", { name: TEXTS.en.previousDay, exact: true }).click();
+    await expect(total(page, TEXTS.en.expensesTotal)).toHaveText(money("en", 0));
+    await transitions.expectAnimation("slide-from-start");
+
+    await transitions.clear();
+    await page.getByRole("button", { name: "Next day", exact: true }).click();
+    await expect(total(page, TEXTS.en.expensesTotal)).toHaveText(money("en", 12));
+    await transitions.expectAnimation("slide-from-end");
+  });
+
+  test(`days rise into place as the list scrolls with reduced motion ${reducedMotion}`, async ({
+    page,
+  }, testInfo) => {
+    await page.emulateMedia({ reducedMotion });
+    await signUpAndIn(page, "en", testInfo);
+    await addTransaction(page, "en", { amount: "5", note: "today's" });
+    await addTransaction(page, "en", { amount: "6", note: "earlier", date: OTHER_DAY });
+    await openScreen(page, "en", "transactions");
+    await showMonth(page, "en");
+    const days = page.getByRole("heading", { level: 2 }).filter({ has: page.locator("time") });
+    await expect(days).toHaveCount(2);
+
+    // The day's block runs an animation that follows the scroll, not the clock
+    const followsScroll = await days
+      .last()
+      .evaluate((heading) =>
+        (heading.parentElement?.getAnimations() ?? []).some(
+          (animation) =>
+            animation instanceof CSSAnimation &&
+            animation.animationName === "scroll-rise" &&
+            animation.timeline !== document.timeline,
+        ),
+      );
+    expect(followsScroll).toBe(reducedMotion === "no-preference");
+  });
+
   test(`list items animate in and out with reduced motion ${reducedMotion}`, async ({
     page,
   }, testInfo) => {
@@ -555,10 +547,12 @@ for (const reducedMotion of ["no-preference", "reduce"] as const) {
     const sheet = await openEditSheet(page, "en", "animated");
     await transitions.clear();
     await sheet.getByRole("button", { name: TEXTS.en.del, exact: true }).click();
-    await page
-      .getByRole("alertdialog", { name: TEXTS.en.deleteTitle })
-      .getByRole("button", { name: TEXTS.en.del, exact: true })
-      .click();
+    const confirm = page.getByRole("alertdialog", { name: TEXTS.en.deleteTitle });
+    await expect(confirm).toBeVisible();
+    // Base UI ends a dialog's opening animation with flushSync, which makes React skip a view
+    // transition it lands in; a user doesn't confirm before the dialog has finished opening
+    await waitForAnimations(page);
+    await confirm.getByRole("button", { name: TEXTS.en.del, exact: true }).click();
     await expect(item(page, "animated")).toHaveCount(0);
     await transitions.expectAnimation("item-out");
   });

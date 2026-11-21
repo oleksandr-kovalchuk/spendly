@@ -108,7 +108,6 @@ function cookiesOf(response: Response) {
     .join("; ");
 }
 
-// What the browser does: open Google's page, come back to the callback with a code
 async function signInWithGoogle(profile: { sub: string; email: string }) {
   fakeGoogleTokenEndpoint(profile);
   const started = await startGoogleSignIn();
@@ -504,12 +503,15 @@ describe("password reset", () => {
       expect(await unknown.json()).toEqual(await known.json());
     });
 
-    test("sends nothing to a Google-only account", async () => {
+    // The emailed link proves the email is theirs, so it can add a first password
+    test("records an email for a Google-only account", async () => {
       const email = uniqueEmail();
       await signInWithGoogle({ sub: randomUUID(), email });
 
       expect((await requestReset(email)).status).toBe(200);
-      expect(await outboxOf(await userIdOf(email))).toEqual([]);
+      expect(await outboxOf(await userIdOf(email))).toEqual([
+        { kind: "password_reset", locale: "uk", status: "pending" },
+      ]);
     });
 
     test("sends an account no more than 3 emails an hour", async () => {
@@ -570,6 +572,20 @@ describe("password reset", () => {
       expect((await signIn(email)).status).toBe(401);
       expect((await signIn(email, NEW_PASSWORD)).status).toBe(200);
       expect(await auth.api.getSession({ headers: new Headers({ cookie }) })).toBeNull();
+    });
+
+    test("gives a Google-only account a password that signs in to the same account", async () => {
+      const profile = { sub: randomUUID(), email: uniqueEmail() };
+      await signInWithGoogle(profile);
+      await requestReset(profile.email);
+
+      const response = await resetPassword(await resetTokenOf(profile.email));
+
+      expect(response.status).toBe(200);
+      expect((await signIn(profile.email, NEW_PASSWORD)).status).toBe(200);
+      const google = await signInWithGoogle(profile);
+      expect(cookiesOf(google)).toContain("better-auth.session_token=");
+      expect(await usersWithEmail(profile.email)).toHaveLength(1);
     });
 
     test("refuses a token that was already used", async () => {

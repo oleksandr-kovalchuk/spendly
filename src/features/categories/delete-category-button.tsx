@@ -27,7 +27,6 @@ type DeleteCategoryButtonProps = {
   label: string;
   transactionCount: number;
   isOther: boolean;
-  // The name of the type's Other, where the transactions move
   otherLabel: string;
 };
 

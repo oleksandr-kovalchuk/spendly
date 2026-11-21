@@ -7,6 +7,7 @@ import { DAY_TIME_ZONE, utcDateOf } from "@/shared/lib/utc-date";
 import { CategoryIcon } from "@/shared/categories/category-icon";
 import { categoryLabel } from "@/shared/categories/category-label";
 import { hryvniasOf, MONEY_FORMAT } from "@/shared/lib/money";
+import { NO_PERIOD_ANIMATION } from "@/shared/lib/period-transition";
 import { Card, CardContent } from "@/shared/ui/card";
 import { Empty, EmptyContent, EmptyHeader, EmptyMedia, EmptyTitle } from "@/shared/ui/empty";
 
@@ -15,7 +16,6 @@ import type { DayGroup } from "./group-by-day";
 
 type TransactionListProps = {
   groups: DayGroup[];
-  // The page's other search params, kept in the edit links
   periodQuery?: Record<string, string>;
   emptyAction: ReactNode;
 };
@@ -46,8 +46,13 @@ export function TransactionList({ groups, periodQuery, emptyAction }: Transactio
         </Card>
       ) : null}
       {groups.map((group) => (
-        <ViewTransition key={group.date} enter="item-enter" exit="item-exit" default="none">
-          <div className="grid gap-2">
+        <ViewTransition
+          key={group.date}
+          enter={{ ...NO_PERIOD_ANIMATION, default: "item-enter" }}
+          exit={{ ...NO_PERIOD_ANIMATION, default: "item-exit" }}
+          default="none"
+        >
+          <div className="grid scroll-rise gap-2">
             <h2 className="text-sm font-medium text-muted-foreground">
               {/* A day has no time zone: it is shown on the UTC calendar it was written on */}
               <time dateTime={group.date}>
@@ -67,8 +72,8 @@ export function TransactionList({ groups, periodQuery, emptyAction }: Transactio
                   return (
                     <ViewTransition
                       key={transaction.id}
-                      enter="item-enter"
-                      exit="item-exit"
+                      enter={{ ...NO_PERIOD_ANIMATION, default: "item-enter" }}
+                      exit={{ ...NO_PERIOD_ANIMATION, default: "item-exit" }}
                       default="none"
                     >
                       <li>

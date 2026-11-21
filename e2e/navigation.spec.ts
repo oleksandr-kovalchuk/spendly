@@ -36,7 +36,6 @@ for (const { locale, overview, transactions, categories } of [
     await expect(nav).toHaveCount(1);
     const box = await nav.boundingBox();
     if (isPhone(page)) {
-      // Floating 12 px above the bottom edge of the screen
       expect((box?.y ?? 0) + (box?.height ?? 0)).toBe((page.viewportSize()?.height ?? 0) - 12);
     } else {
       expect((await page.getByRole("banner").boundingBox())?.x).toBe(0);
@@ -185,7 +184,6 @@ test("Tab reaches every control, and the bottom navigation covers none", async (
 
 type RecordedAnimation = { name: string; duration: number | string };
 
-// Records the animations of the next view transition once it starts
 function recordViewTransitions() {
   const start = document.startViewTransition.bind(document);
   document.startViewTransition = (...args: Parameters<typeof start>) => {

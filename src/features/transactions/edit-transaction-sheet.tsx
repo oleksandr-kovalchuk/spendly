@@ -16,7 +16,6 @@ import type { TransactionDto } from "./transactions.dal";
 type EditTransactionSheetProps = {
   categories: CategoryOption[];
   transaction: TransactionDto;
-  // The list's period, which closing returns to
   listQuery: Record<string, string>;
 };
 

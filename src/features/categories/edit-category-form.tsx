@@ -24,7 +24,6 @@ type EditCategoryFormProps = {
   label: string;
   defaultKey: DefaultCategoryKey | null;
   icon: CategoryIconKey | null;
-  // Called with whether anything was saved
   onDone: (isSaved: boolean) => void;
 };
 type FormError = "categoryNotFound" | "unknown";

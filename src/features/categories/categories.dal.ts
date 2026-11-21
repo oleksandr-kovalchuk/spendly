@@ -149,7 +149,6 @@ export async function deleteCategory(userId: string, categoryId: string): Promis
   });
 }
 
-// Categories without transactions aren't listed
 export async function countTransactionsByCategory(): Promise<Map<string, number>> {
   const { id: userId } = await requireUser();
   const rows = await db

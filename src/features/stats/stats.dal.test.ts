@@ -12,7 +12,6 @@ vi.mock("next/headers", () => ({ headers: () => Promise.resolve(requestHeaders.c
 
 const MONTH = { from: "2026-03-01", to: "2026-03-31" };
 
-// The data access layer reads the signed-in user's data, so setup signs the new user in
 async function setup() {
   const { id, cookie } = await createUser();
   const signIn = () => {

@@ -34,7 +34,6 @@ async function signedIn() {
   };
 }
 
-// One of the signed-in user's categories
 async function categoryOf(categoryId: string) {
   return (await listCategories()).find((category) => category.id === categoryId);
 }

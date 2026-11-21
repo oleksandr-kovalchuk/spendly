@@ -15,7 +15,6 @@ import type { TransactionDto } from "./transactions.dal";
 
 type LatestTransactionsProps = {
   transactions: TransactionDto[];
-  // The shown period, kept in the link to all transactions
   periodQuery: Record<string, string>;
 };
 

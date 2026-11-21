@@ -33,7 +33,6 @@ export function resetEmailsFor(email: string) {
   );
 }
 
-// Gives the account an expense of 123.45 today (the app's TODAY) in Food, renamed to Groceries, and a Coffee category
 export async function seedDataFor(email: string) {
   await query(
     `WITH u AS (SELECT id FROM "user" WHERE email = $1),
