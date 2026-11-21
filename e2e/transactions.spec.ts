@@ -1,128 +1,21 @@
-import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
-const PASSWORD = "correct horse battery";
-
-const TEXTS = {
-  en: {
-    signUp: "Sign up",
-    signIn: "Sign in",
-    email: "Email",
-    password: "Password",
-    expense: "Expense",
-    income: "Income",
-    amount: "Amount (UAH)",
-    category: "Category",
-    date: "Date",
-    note: "Note (optional)",
-    add: "Add",
-    addTransaction: "Add transaction",
-    empty: "No transactions in this period.",
-    amountRequired: "Enter an amount.",
-    food: "Food",
-    salary: "Salary",
-    other: "Українська",
-    save: "Save",
-    cancel: "Cancel",
-    del: "Delete",
-    editHeading: "Edit transaction",
-    deleteTitle: "Delete this transaction?",
-    week: "Week",
-    previousWeek: "Previous week",
-    nextWeek: "Next week",
-    thisWeek: "This week",
-    transport: "Transport",
-    incomeTotal: "Income",
-    expensesTotal: "Expenses",
-    balance: "Balance",
-    byCategory: "Spending by category",
-    noExpenses: "No expenses in this period.",
-    light: "Light",
-    dark: "Dark",
-    overview: "Overview",
-    transactions: "Transactions",
-    previousMonth: "Previous month",
-  },
-  uk: {
-    signUp: "Зареєструватися",
-    signIn: "Увійти",
-    email: "Електронна пошта",
-    password: "Пароль",
-    expense: "Витрата",
-    income: "Дохід",
-    amount: "Сума (грн)",
-    category: "Категорія",
-    date: "Дата",
-    note: "Примітка (необов'язково)",
-    add: "Додати",
-    addTransaction: "Додати транзакцію",
-    empty: "У цьому періоді немає транзакцій.",
-    amountRequired: "Введіть суму.",
-    food: "Їжа",
-    salary: "Зарплата",
-    other: "English",
-    save: "Зберегти",
-    cancel: "Скасувати",
-    del: "Видалити",
-    editHeading: "Редагувати транзакцію",
-    deleteTitle: "Видалити цю транзакцію?",
-    week: "Тиждень",
-    previousWeek: "Попередній тиждень",
-    nextWeek: "Наступний тиждень",
-    thisWeek: "Цей тиждень",
-    transport: "Транспорт",
-    incomeTotal: "Дохід",
-    expensesTotal: "Витрати",
-    balance: "Баланс",
-    byCategory: "Витрати за категоріями",
-    noExpenses: "У цьому періоді немає витрат.",
-    light: "Світла",
-    dark: "Темна",
-    overview: "Огляд",
-    transactions: "Транзакції",
-    previousMonth: "Попередній місяць",
-  },
-} as const;
+import {
+  expectNoViolations,
+  field,
+  setRandomClientIp,
+  signUpAndIn,
+  TEXTS,
+  type Locale,
+} from "./helpers";
 
 // The browser time zone decides "today", so the test fixes it and computes dates in it
 test.use({ timezoneId: "UTC" });
 
-test.beforeEach(async ({ context }) => {
-  const [a = 0, b = 0, c = 0] = crypto.getRandomValues(new Uint8Array(3));
-  await context.setExtraHTTPHeaders({ "x-real-ip": `10.${a}.${b}.${c}` });
-});
-
-async function expectNoViolations(page: Page) {
-  // After a period change the new title streams in after the list
-  await expect(page).toHaveTitle(/\S/);
-  const { violations } = await new AxeBuilder({ page }).analyze();
-  expect(violations).toEqual([]);
-}
-
-function field(page: Page, name: string) {
-  return page.getByRole("textbox", { name, exact: true });
-}
-
-async function signUpAndIn(
-  page: Page,
-  locale: "en" | "uk",
-  testInfo: { project: { name: string }; workerIndex: number },
-) {
-  const text = TEXTS[locale];
-  await page.goto(`/${locale}/sign-up`);
-  await field(page, text.email).fill(
-    `${testInfo.project.name}-${testInfo.workerIndex}-${crypto.randomUUID()}@example.com`,
-  );
-  await field(page, text.password).fill(PASSWORD);
-  await page.getByRole("button", { name: text.signUp }).click();
-  await expect(page).toHaveURL(new RegExp(`/${locale}/sign-in\\?`));
-  await field(page, text.password).fill(PASSWORD);
-  await page.getByRole("button", { name: text.signIn }).click();
-  await expect(page).toHaveURL(new RegExp(`/${locale}$`));
-}
+test.beforeEach(({ context }) => setRandomClientIp(context));
 
 // The bottom navigation on a phone, the sidebar on a desktop: only one of them is displayed
-async function openScreen(page: Page, locale: "en" | "uk", screen: "overview" | "transactions") {
+async function openScreen(page: Page, locale: Locale, screen: "overview" | "transactions") {
   await page.getByRole("link", { name: TEXTS[locale][screen], exact: true }).click();
   await expect(page).toHaveURL(
     new RegExp(`/${locale}${screen === "transactions" ? "/transactions" : ""}(\\?|$)`),
@@ -132,11 +25,6 @@ async function openScreen(page: Page, locale: "en" | "uk", screen: "overview" | 
 
 function isoDay(date: Date) {
   return date.toISOString().slice(0, 10);
-}
-
-// axe would read the colors of an open animation's intermediate frames
-async function animationsDone(page: Page) {
-  await page.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished)));
 }
 
 type NewTransaction = {
@@ -149,11 +37,11 @@ type NewTransaction = {
 
 // The Add button of the bottom navigation on a phone, of the sidebar on a desktop; an empty list
 // or chart has one too
-function navAddButton(page: Page, locale: "en" | "uk") {
+function navAddButton(page: Page, locale: Locale) {
   return page.locator("header, nav").getByRole("button", { name: TEXTS[locale].addTransaction });
 }
 
-async function openAddSheet(page: Page, locale: "en" | "uk") {
+async function openAddSheet(page: Page, locale: Locale) {
   const text = TEXTS[locale];
   await navAddButton(page, locale).click();
   const sheet = page.getByRole("dialog", { name: text.addTransaction });
@@ -161,7 +49,7 @@ async function openAddSheet(page: Page, locale: "en" | "uk") {
   return sheet;
 }
 
-async function addTransaction(page: Page, locale: "en" | "uk", values: NewTransaction) {
+async function addTransaction(page: Page, locale: Locale, values: NewTransaction) {
   const text = TEXTS[locale];
   const sheet = await openAddSheet(page, locale);
   // The radio itself is visually hidden: its label is what a user taps
@@ -185,7 +73,7 @@ function item(page: Page, note: string) {
   return page.getByRole("listitem").filter({ hasText: note });
 }
 
-async function openEditSheet(page: Page, locale: "en" | "uk", note: string) {
+async function openEditSheet(page: Page, locale: Locale, note: string) {
   await item(page, note).getByRole("link").click();
   await expect(page).toHaveURL(/[?&]edit=/);
   const sheet = page.getByRole("dialog", { name: TEXTS[locale].editHeading });
@@ -199,7 +87,7 @@ function addDays(day: string, days: number) {
   return isoDay(date);
 }
 
-function money(locale: "en" | "uk", hryvnias: number) {
+function money(locale: Locale, hryvnias: number) {
   return new Intl.NumberFormat(locale, {
     style: "currency",
     currency: "UAH",
@@ -241,7 +129,6 @@ for (const locale of ["en", "uk"] as const) {
     await expect(sheet.getByLabel(text.expense, { exact: true })).toBeChecked();
     await sheet.getByRole("button", { name: text.add, exact: true }).click();
     await expect(sheet.getByText(text.amountRequired)).toBeVisible();
-    await animationsDone(page);
     await expectNoViolations(page);
     await page.keyboard.press("Escape");
     await expect(sheet).toHaveCount(0);
@@ -329,7 +216,6 @@ for (const locale of ["en", "uk"] as const) {
     let sheet = await openEditSheet(page, locale, "first");
     await expect(field(page, text.amount)).toHaveValue("10.00");
     await expect(field(page, text.note)).toHaveValue("first");
-    await animationsDone(page);
     await expectNoViolations(page);
 
     await field(page, text.amount).fill("12,34");
@@ -351,7 +237,6 @@ for (const locale of ["en", "uk"] as const) {
     await sheet.getByRole("button", { name: text.del, exact: true }).click();
     const dialog = page.getByRole("alertdialog", { name: text.deleteTitle });
     await expect(dialog).toBeVisible();
-    await animationsDone(page);
     await expectNoViolations(page);
     await dialog.getByRole("button", { name: text.cancel }).click();
     await expect(dialog).toHaveCount(0);

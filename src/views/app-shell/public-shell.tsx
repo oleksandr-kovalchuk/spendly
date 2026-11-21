@@ -14,6 +14,8 @@ export function PublicShell({ children }: { children: ReactNode }) {
         <div className="mx-auto flex w-full max-w-3xl flex-wrap items-center justify-between gap-2 px-4 py-2">
           <HomeLink />
           <div className="ms-auto flex items-center gap-1">
+            {/* Keep this runtime part: with a fully static shell, browsers get the 404 page without
+                its title (Next drops the not-found metadata); the 404 E2E test checks the title */}
             <Suspense fallback={null}>
               <SessionSignOut />
             </Suspense>

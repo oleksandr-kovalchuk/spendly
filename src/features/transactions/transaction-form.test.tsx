@@ -86,6 +86,25 @@ test("a valid form sends the values and closes", async () => {
   });
 });
 
+test("submit stays disabled until the request ends", async () => {
+  const { promise, resolve } = Promise.withResolvers<object>();
+  addTransaction.mockReturnValue(promise);
+  const onSaved = vi.fn();
+  const user = renderForm(onSaved);
+  await user.type(screen.getByLabelText(/^Amount/), "1");
+  await user.click(screen.getByRole("button", { name: "Add" }));
+
+  await vi.waitFor(() => {
+    expect(screen.getByRole("button", { name: "Add" })).toBeDisabled();
+  });
+  expect(onSaved).not.toHaveBeenCalled();
+
+  resolve({});
+  await vi.waitFor(() => {
+    expect(onSaved).toHaveBeenCalledOnce();
+  });
+});
+
 test("a field error from the server is shown next to its field", async () => {
   addTransaction.mockResolvedValue({
     validationErrors: { amount: { _errors: ["amountTooLarge"] } },

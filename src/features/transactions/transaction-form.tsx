@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { Controller, useForm, useFormState, useWatch } from "react-hook-form";
 
 import { CATEGORY_TYPES, type CategoryType } from "@/shared/db/app-constants";
@@ -48,6 +48,7 @@ function formErrorOf(serverError: string): FormError {
 function TransactionFormFields({ categories, today, transaction, onSaved }: TransactionFormProps) {
   const t = useTranslations("Transactions");
   const [formError, setFormError] = useState<FormError>();
+  const [isSaving, startSaving] = useTransition();
 
   function firstCategoryOf(type: CategoryType) {
     return categories.find((category) => category.type === type)?.id ?? "";
@@ -73,7 +74,7 @@ function TransactionFormFields({ categories, today, transaction, onSaved }: Tran
           note: "",
         },
   });
-  const { errors, isSubmitting } = useFormState({ control: form.control });
+  const { errors } = useFormState({ control: form.control });
   const type = useWatch({ control: form.control, name: "type" });
   const typeField = form.register("type");
 
@@ -82,32 +83,37 @@ function TransactionFormFields({ categories, today, transaction, onSaved }: Tran
     return t(isFieldError(message) ? `errors.${message}` : "errors.unknown");
   }
 
-  async function handleSubmit(values: TransactionValues) {
+  // The sheet closes in the commit that shows the saved transaction: closed on its own, its close
+  // animation ends with a synchronous update (Base UI) that can land just as the refreshed screen's
+  // view transition starts, and React then skips the animation of the changed totals and items
+  function handleSubmit(values: TransactionValues) {
     setFormError(undefined);
 
-    try {
-      const result = transaction
-        ? await updateTransaction({ ...values, id: transaction.id })
-        : await addTransaction(values);
+    startSaving(async () => {
+      try {
+        const result = transaction
+          ? await updateTransaction({ ...values, id: transaction.id })
+          : await addTransaction(values);
 
-      const fieldErrors = result.validationErrors;
-      if (fieldErrors) {
-        for (const name of FIELD_NAMES) {
-          const message = fieldErrors[name]?._errors?.[0];
-          if (message) form.setError(name, { message });
+        const fieldErrors = result.validationErrors;
+        if (fieldErrors) {
+          for (const name of FIELD_NAMES) {
+            const message = fieldErrors[name]?._errors?.[0];
+            if (message) form.setError(name, { message });
+          }
+          return;
         }
+        if (result.serverError) {
+          setFormError(formErrorOf(result.serverError));
+          return;
+        }
+      } catch {
+        setFormError("unknown");
         return;
       }
-      if (result.serverError) {
-        setFormError(formErrorOf(result.serverError));
-        return;
-      }
-    } catch {
-      setFormError("unknown");
-      return;
-    }
 
-    onSaved();
+      startSaving(onSaved);
+    });
   }
 
   return (
@@ -188,7 +194,7 @@ function TransactionFormFields({ categories, today, transaction, onSaved }: Tran
         )}
       </TransactionField>
       {formError ? <FieldError>{t(`errors.${formError}`)}</FieldError> : null}
-      <Button type="submit" size="lg" disabled={isSubmitting}>
+      <Button type="submit" size="lg" disabled={isSaving}>
         {t(transaction ? "form.save" : "form.submit")}
       </Button>
     </form>
