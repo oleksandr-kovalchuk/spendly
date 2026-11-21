@@ -25,7 +25,7 @@
 
 ## 4. Environments
 
-- [ ] 4.1 Create a production Resend key and set `RESEND_API_KEY` and `CRON_SECRET` in Vercel for production; verify a reset email arrives and the cron run succeeds in the Vercel logs
+- [x] 4.1 Create a production Resend key and set `RESEND_API_KEY` and `CRON_SECRET` in Vercel for production; verify a reset email arrives and the cron run succeeds in the Vercel logs
 
 ## Workflow follow-up
 

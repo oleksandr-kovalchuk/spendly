@@ -1,8 +1,10 @@
 import { randomUUID } from "node:crypto";
 
 import { and, eq, like } from "drizzle-orm";
+import { http, HttpResponse } from "msw";
+import { setupServer } from "msw/node";
 import { after } from "next/server";
-import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 
 import { categories, emailOutbox, transactions } from "@/shared/db/app-schema";
 import { db } from "@/shared/db/client";
@@ -12,6 +14,20 @@ import { auth } from "./auth";
 
 const ORIGIN = "http://localhost:3000";
 const PASSWORD = "correct horse battery";
+
+const server = setupServer();
+
+beforeAll(() => {
+  server.listen({ onUnhandledFrame: "error" });
+});
+
+afterEach(() => {
+  server.resetHandlers();
+});
+
+afterAll(() => {
+  server.close();
+});
 
 function uniqueEmail() {
   return `${randomUUID()}@example.com`;
@@ -67,26 +83,22 @@ function base64Url(value: unknown) {
 
 // Google's token endpoint answers the code exchange; Better Auth reads the profile from its ID token
 function fakeGoogleTokenEndpoint(profile: { sub: string; email: string }) {
-  const realFetch = globalThis.fetch;
   const idToken = [
     base64Url({ alg: "RS256", typ: "JWT" }),
     base64Url({ ...profile, email_verified: true, name: "Google User" }),
     "signature",
   ].join(".");
-  vi.stubGlobal("fetch", (input: RequestInfo | URL, init?: RequestInit) => {
-    const url = input instanceof Request ? input.url : String(input);
-    if (!url.startsWith(GOOGLE_TOKEN_URL)) return realFetch(input, init);
-
-    return Promise.resolve(
-      Response.json({
+  server.use(
+    http.post(GOOGLE_TOKEN_URL, () =>
+      HttpResponse.json({
         access_token: "access-token",
         token_type: "Bearer",
         expires_in: 3600,
         scope: "openid email profile",
         id_token: idToken,
       }),
-    );
-  });
+    ),
+  );
 }
 
 function cookiesOf(response: Response) {
@@ -202,10 +214,6 @@ describe("sign in", () => {
 });
 
 describe("Google sign-in", () => {
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
-
   test("starts at Google's page with the app's client and callback", async () => {
     const response = await startGoogleSignIn();
 
@@ -311,10 +319,6 @@ describe("sign out", () => {
 
 describe("delete account", () => {
   const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000;
-
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
 
   async function signedInWithPassword() {
     const email = uniqueEmail();
@@ -433,10 +437,6 @@ describe("password reset", () => {
     });
   });
 
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
-
   async function requestReset(email: string, headers?: Record<string, string>) {
     const response = await post(
       "/request-password-reset",
@@ -507,7 +507,6 @@ describe("password reset", () => {
     test("sends nothing to a Google-only account", async () => {
       const email = uniqueEmail();
       await signInWithGoogle({ sub: randomUUID(), email });
-      vi.unstubAllGlobals();
 
       expect((await requestReset(email)).status).toBe(200);
       expect(await outboxOf(await userIdOf(email))).toEqual([]);

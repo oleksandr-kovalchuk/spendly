@@ -19,36 +19,43 @@ async function withClient<T>(url: string, run: (client: Client) => Promise<T>) {
   }
 }
 
-test("migrations build the whole schema on an empty database, and run again without changes", async () => {
-  const name = `migrate_${randomUUID().replaceAll("-", "")}`;
-  const emptyDatabaseUrl = new URL(env.DATABASE_URL);
-  emptyDatabaseUrl.pathname = `/${name}`;
-  await withClient(env.DATABASE_URL, (client) => client.query(`CREATE DATABASE ${name}`));
+// Two runs of the migration script in a new Node process take about 5 s under the full suite
+test(
+  "migrations build the whole schema on an empty database, and run again without changes",
+  {
+    timeout: 20_000,
+  },
+  async () => {
+    const name = `migrate_${randomUUID().replaceAll("-", "")}`;
+    const emptyDatabaseUrl = new URL(env.DATABASE_URL);
+    emptyDatabaseUrl.pathname = `/${name}`;
+    await withClient(env.DATABASE_URL, (client) => client.query(`CREATE DATABASE ${name}`));
 
-  try {
-    const migrate = () =>
-      execFileAsync(process.execPath, ["scripts/migrate.mts"], {
-        env: { NODE_ENV: "test", DATABASE_URL: emptyDatabaseUrl.toString() },
-      });
-    await migrate();
-    await migrate();
+    try {
+      const migrate = () =>
+        execFileAsync(process.execPath, ["scripts/migrate.mts"], {
+          env: { NODE_ENV: "test", DATABASE_URL: emptyDatabaseUrl.toString() },
+        });
+      await migrate();
+      await migrate();
 
-    const tables = await withClient(emptyDatabaseUrl.toString(), (client) =>
-      client.query<{ table_name: string }>(
-        "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name",
-      ),
-    );
-    expect(tables.rows.map((row) => row.table_name)).toEqual([
-      "account",
-      "categories",
-      "email_outbox",
-      "rate_limit",
-      "session",
-      "transactions",
-      "user",
-      "verification",
-    ]);
-  } finally {
-    await withClient(env.DATABASE_URL, (client) => client.query(`DROP DATABASE ${name}`));
-  }
-});
+      const tables = await withClient(emptyDatabaseUrl.toString(), (client) =>
+        client.query<{ table_name: string }>(
+          "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name",
+        ),
+      );
+      expect(tables.rows.map((row) => row.table_name)).toEqual([
+        "account",
+        "categories",
+        "email_outbox",
+        "rate_limit",
+        "session",
+        "transactions",
+        "user",
+        "verification",
+      ]);
+    } finally {
+      await withClient(env.DATABASE_URL, (client) => client.query(`DROP DATABASE ${name}`));
+    }
+  },
+);

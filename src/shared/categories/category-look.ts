@@ -109,12 +109,15 @@ export const CATEGORY_ICONS = {
   gift: GiftIcon,
 } as const satisfies Record<CategoryIconKey, LucideIcon>;
 
-// FNV-1a: the same id always picks the same color, without storing one
+// 32-bit FNV-1a: the same id always picks the same color, without storing one
+const FNV_OFFSET_BASIS = 0x811c9dc5;
+const FNV_PRIME = 0x01000193;
+
 function hashOf(text: string) {
-  let hash = 0x811c9dc5;
+  let hash = FNV_OFFSET_BASIS;
   for (const char of text) {
     hash ^= char.codePointAt(0) ?? 0;
-    hash = Math.imul(hash, 0x01000193) >>> 0;
+    hash = Math.imul(hash, FNV_PRIME) >>> 0;
   }
   return hash;
 }

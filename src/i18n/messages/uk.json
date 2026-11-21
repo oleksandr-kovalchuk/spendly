@@ -279,6 +279,7 @@
       "expense": "Витрата",
       "income": "Дохід",
       "amount": "Сума (грн)",
+      "amountPlaceholder": "0.00",
       "category": "Категорія",
       "date": "Дата",
       "dateValue": "Дата: {date}",

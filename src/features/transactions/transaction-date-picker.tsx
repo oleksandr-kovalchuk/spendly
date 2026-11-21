@@ -8,7 +8,7 @@ import { enUS, uk, type Locale as CalendarLocale } from "react-day-picker/locale
 
 import type { Locale } from "@/i18n/routing";
 
-import { utcDateOf } from "@/shared/lib/utc-date";
+import { DAY_TIME_ZONE, utcDateOf } from "@/shared/lib/utc-date";
 import { Button } from "@/shared/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/shared/ui/popover";
 import { Skeleton } from "@/shared/ui/skeleton";
@@ -45,7 +45,7 @@ export function TransactionDatePicker({
 
   // The calendar hands over local-midnight dates: their local day, read back as UTC, is the day
   function fullDateOf(date: Date) {
-    return format.dateTime(utcDateOf(dayOf(date)), { timeZone: "UTC", dateStyle: "full" });
+    return format.dateTime(utcDateOf(dayOf(date)), { timeZone: DAY_TIME_ZONE, dateStyle: "full" });
   }
 
   function handlePick(day: string) {
@@ -54,7 +54,7 @@ export function TransactionDatePicker({
   }
 
   const shown = format.dateTime(utcDateOf(value), {
-    timeZone: "UTC",
+    timeZone: DAY_TIME_ZONE,
     day: "numeric",
     month: "long",
     year: "numeric",

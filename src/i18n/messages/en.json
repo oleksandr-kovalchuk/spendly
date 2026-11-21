@@ -279,6 +279,7 @@
       "expense": "Expense",
       "income": "Income",
       "amount": "Amount (UAH)",
+      "amountPlaceholder": "0.00",
       "category": "Category",
       "date": "Date",
       "dateValue": "Date: {date}",

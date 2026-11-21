@@ -22,28 +22,28 @@ The app SHALL be available in English and Ukrainian, with the language as the fi
 
 #### Scenario: Switch language
 
-- **WHEN** the user picks the other language in the top bar or the sidebar
+- **WHEN** the user picks the other language in the account panel, on the Settings screen or on a signed-out page
 - **THEN** the same page opens in that language, and all UI text, dates, numbers and `<html lang>` follow it
 
 ### Requirement: Theme
 
-The app SHALL offer light and dark themes through one switch, follow the device theme until the user flips it, and remember the choice on the device.
+The app SHALL offer Light, Dark and System themes as one choice, follow the device theme while System is picked (the default), and remember the choice on the device.
 
 #### Scenario: System by default
 
 - **GIVEN** the user has not picked a theme
 - **WHEN** the device uses a dark theme
-- **THEN** the app is dark and the switch is on
+- **THEN** the app is dark and System is the picked option
 
 #### Scenario: Choice remembered
 
-- **WHEN** the user turns the switch on and reloads the page
+- **WHEN** the user picks Dark and reloads the page
 - **THEN** the page is dark from the first paint, without a flash of light colors
 
 #### Scenario: Switch
 
 - **WHEN** a screen reader user reaches the theme control
-- **THEN** it is announced as a switch named "Dark theme", on or off
+- **THEN** it is announced as a group named "Theme" with three options, Light, Dark and System, and the picked one checked
 
 ### Requirement: Mobile-first layout
 
@@ -61,8 +61,13 @@ Every page SHALL fit a 360 px wide screen without horizontal scrolling and SHALL
 
 #### Scenario: Signed-out desktop
 
-- **WHEN** the sign-in page opens on a 1440 px wide screen
-- **THEN** the form stays in a centered column of readable width
+- **WHEN** the sign-in, sign-up or a password page opens on a 1440 px wide screen
+- **THEN** a brand panel sits at the start and the form stays in a column of readable width beside it
+
+#### Scenario: Signed-out phone
+
+- **WHEN** the sign-in page opens on a 360 px wide screen
+- **THEN** a short brand banner shows above the form and the form fits the width
 
 ### Requirement: Accessible pages
 
@@ -99,7 +104,7 @@ A signed-in user SHALL move between the Overview, Transactions and Categories sc
 #### Scenario: Desktop
 
 - **WHEN** a signed-in user opens any screen on a 1024 px or wider screen
-- **THEN** a sidebar shows the same items, the Add button, the language and theme switchers and sign out, and no bottom navigation shows
+- **THEN** a sidebar shows the same items, the Add button and the account button, and no bottom navigation shows
 
 #### Scenario: Current screen
 
@@ -113,7 +118,7 @@ A signed-in user SHALL move between the Overview, Transactions and Categories sc
 
 ### Requirement: Brand color
 
-The app SHALL use one brand accent color, in light and dark variants, for primary actions, focus rings, the current navigation item and charts, with WCAG AA contrast in both themes.
+The app SHALL use one brand accent color, in light and dark variants, for primary actions, focus rings, the current navigation item and charts, with WCAG AA contrast in both themes. Primary actions and the balance card SHALL use the brand gradient, with text on it at least 4.5:1 against every part of the gradient behind it.
 
 #### Scenario: Primary button
 
@@ -125,17 +130,60 @@ The app SHALL use one brand accent color, in light and dark variants, for primar
 - **WHEN** a control has keyboard focus in either theme
 - **THEN** its focus ring has at least 3:1 contrast with the surface around it
 
+#### Scenario: Balance card
+
+- **WHEN** the balance card shows in either theme
+- **THEN** its text has at least 4.5:1 contrast with the gradient behind it
+
 ### Requirement: Motion
 
-Screen changes, list additions and removals, sheets and dialogs, and changing totals SHALL animate briefly, and SHALL NOT animate when the device asks for reduced motion.
+Screen changes, list additions and removals, sheets and dialogs, and changing totals SHALL animate briefly, every page's content SHALL enter with the same short staggered rise, decorative motion SHALL end within 5 seconds, and nothing SHALL animate when the device asks for reduced motion.
 
 #### Scenario: Screen change
 
 - **WHEN** the user moves from Overview to Transactions
 - **THEN** the content changes with a short transition and the navigation does not move
 
+#### Scenario: Page entrance
+
+- **WHEN** any page opens, signed in or out
+- **THEN** its main blocks rise in one after another with the same timing on every page
+
+#### Scenario: Decorative motion ends
+
+- **WHEN** the balance card or the brand panel shows a shine or drift
+- **THEN** it stops within 5 seconds of the page opening
+
 #### Scenario: Reduced motion
 
 - **GIVEN** the device asks for reduced motion
 - **WHEN** the user changes screens, adds a transaction or opens a dialog
 - **THEN** the change happens without movement
+
+### Requirement: Public footer
+
+Signed-out pages SHALL end with a footer that shows the privacy policy link at the start and the copyright with the current year at the end.
+
+#### Scenario: Footer
+
+- **WHEN** a visitor opens the sign-in page in 2026
+- **THEN** the footer shows the privacy policy link at the start and "© 2026 Spendly" at the end, in the current language
+
+### Requirement: Account panel
+
+A signed-in user SHALL open an account panel from one account button, at the end of the sidebar on wide screens and in the top bar on phones; it SHALL show the account's email, a link to Settings, the theme and language controls, and sign out.
+
+#### Scenario: Desktop
+
+- **WHEN** a signed-in user presses the account button in the sidebar on a 1440 px wide screen
+- **THEN** a panel opens next to it with the email, Settings, theme, language and sign out
+
+#### Scenario: Phone
+
+- **WHEN** a signed-in user presses the account button in the top bar on a 360 px wide screen
+- **THEN** a sheet slides up from the bottom with the same contents
+
+#### Scenario: Keyboard
+
+- **WHEN** the panel is open and the user presses Escape
+- **THEN** it closes and focus returns to the account button
