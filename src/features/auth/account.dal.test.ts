@@ -10,7 +10,6 @@ import { hasPassword } from "./account.dal";
 const { requestHeaders } = vi.hoisted(() => ({ requestHeaders: { current: new Headers() } }));
 vi.mock("next/headers", () => ({ headers: () => Promise.resolve(requestHeaders.current) }));
 
-// The data access layer reads the signed-in user's data
 function signIn(cookie: string) {
   requestHeaders.current = new Headers({ cookie });
 }

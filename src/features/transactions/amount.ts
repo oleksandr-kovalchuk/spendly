@@ -31,7 +31,6 @@ export function kopecksOf(input: string) {
   return parsed.kopecks;
 }
 
-// The inverse of `parseAmount`, to fill an input: always a dot and 2 decimals
 export function amountInputOf(kopecks: number) {
   const whole = Math.trunc(kopecks / KOPECKS_PER_HRYVNIA);
   const fraction = String(kopecks % KOPECKS_PER_HRYVNIA).padStart(2, "0");

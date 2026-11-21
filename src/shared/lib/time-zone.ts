@@ -15,7 +15,6 @@ export function resolveTimeZone(value: string | undefined) {
   return value && isTimeZone(value) ? value : FALLBACK_TIME_ZONE;
 }
 
-// "Today" as `YYYY-MM-DD` on the calendar of the given time zone
 export function todayIn(timeZone: string, now: Date) {
   const parts = new Intl.DateTimeFormat("en", {
     timeZone,
@@ -29,7 +28,6 @@ export function todayIn(timeZone: string, now: Date) {
   return `${part("year")}-${part("month")}-${part("day")}`;
 }
 
-// The first and last day of the month that holds `day` (`YYYY-MM-DD`)
 export function monthOf(day: string) {
   const [year = 0, month = 0] = day.split("-").map(Number);
   // Day 0 of the next month (the 1-based `month` as a 0-based index) is this month's last day

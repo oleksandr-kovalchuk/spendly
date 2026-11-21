@@ -47,7 +47,6 @@ async function AddTransaction({ placement }: { placement: Placement }) {
 async function AddTransactionSheetData() {
   const { today, categories } = await getAddFormData();
 
-  // A new "today" (the time zone cookie set after the first load) resets the form's date
   return <AddTransactionSheetHost today={today} categories={categories} />;
 }
 

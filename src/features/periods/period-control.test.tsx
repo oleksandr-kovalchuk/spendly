@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
 import { NuqsTestingAdapter, type UrlUpdateEvent } from "nuqs/adapters/testing";
@@ -9,6 +9,7 @@ import en from "@/i18n/messages/en.json";
 import uk from "@/i18n/messages/uk.json";
 
 import { PeriodControl } from "./period-control";
+import { PERIOD_SWIPE_EVENT } from "./period-swipe-event";
 
 const TODAY = "2026-11-20";
 
@@ -67,6 +68,18 @@ test("steps back and forward and returns to today", async () => {
   await user.click(screen.getByRole("button", { name: "Today" }));
   expect(label()).toHaveTextContent("Friday, November 20, 2026");
   expect(lastQuery()).toBe("");
+});
+
+test("a swipe on the content steps the period like the arrows", async () => {
+  const { lastQuery } = renderControl({});
+
+  act(() => {
+    window.dispatchEvent(new CustomEvent(PERIOD_SWIPE_EVENT, { detail: -1 }));
+  });
+
+  expect(label()).toHaveTextContent("Thursday, November 19, 2026");
+  // The URL is written a moment later
+  await waitFor(() => expect(lastQuery()).toBe("?date=2026-11-19"));
 });
 
 test("keeps the month type in the URL", async () => {

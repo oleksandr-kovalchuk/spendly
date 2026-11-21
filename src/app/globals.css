@@ -250,6 +250,24 @@
   }
 }
 
+/* Only a transform: faded text at the screen's edge would fail contrast */
+@utility scroll-rise {
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      animation: scroll-rise linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 100%;
+    }
+  }
+}
+
+@keyframes scroll-rise {
+  from {
+    translate: 0 48px;
+    scale: 0.96;
+  }
+}
+
 @utility animate-grow {
   transform-origin: left;
   &:dir(rtl) {
@@ -263,6 +281,63 @@
 @utility animate-drift {
   @media (prefers-reduced-motion: no-preference) {
     animation: drift 4s var(--ease-out-soft) both;
+  }
+}
+
+/* Balance digits (RollingText): each digit is a 0-9 strip behind a one-line window; a hidden copy
+   of the digit gives the window its width and baseline */
+@utility rolling-digit {
+  position: relative;
+  display: inline-block;
+  clip-path: inset(0);
+  &::before {
+    content: attr(data-char);
+    visibility: hidden;
+  }
+}
+
+@utility rolling-strip {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  &::before {
+    content: "0\A 1\A 2\A 3\A 4\A 5\A 6\A 7\A 8\A 9";
+    white-space: pre;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    transition: translate 900ms var(--ease-out-soft);
+    animation: roll-in 1.2s 300ms var(--ease-out-soft) backwards;
+  }
+}
+
+@utility rolling-char {
+  &::before {
+    content: attr(data-char);
+  }
+}
+
+/* Spending chart (SpendingDonut): its mask's ring is drawn from twelve o'clock, revealing the arcs.
+   The dash grows from nothing, and its gap is longer than the ring: a dash pushed off the start by
+   an offset, or the pattern's next dash, flickered as a sliver at twelve o'clock. Undashed once
+   drawn, so no seam stays there */
+@utility donut-sweep {
+  @media (prefers-reduced-motion: no-preference) {
+    animation: donut-sweep 1.1s 300ms var(--ease-out-soft) backwards;
+  }
+}
+
+@keyframes donut-sweep {
+  from {
+    stroke-dasharray: 0 200;
+  }
+  to {
+    stroke-dasharray: 100 200;
+  }
+}
+
+@keyframes roll-in {
+  from {
+    translate: 0 0;
   }
 }
 
@@ -294,7 +369,6 @@
   }
 }
 
-/* Screen changes (PageTransition) */
 @utility app-nav-anchor {
   view-transition-name: app-nav;
 }
@@ -322,19 +396,92 @@
   ::view-transition-new(.page-enter) {
     animation: 250ms ease-out both page-rise-in;
   }
-  /* List items (TransactionList) */
   ::view-transition-new(.item-enter) {
     animation: 250ms ease-out both item-in;
   }
   ::view-transition-old(.item-exit) {
     animation: 200ms ease-in both item-out;
   }
-  /* Totals (PeriodTotals) */
+  ::view-transition-old(.slide-from-end) {
+    animation:
+      150ms ease-in both page-fade-out,
+      400ms var(--ease-out-soft) both slide-to-start;
+  }
+  ::view-transition-new(.slide-from-end) {
+    animation:
+      210ms ease-out 150ms both period-fade-in,
+      400ms var(--ease-out-soft) both slide-from-end;
+  }
+  ::view-transition-old(.slide-from-start) {
+    animation:
+      150ms ease-in both page-fade-out,
+      400ms var(--ease-out-soft) both slide-to-end;
+  }
+  ::view-transition-new(.slide-from-start) {
+    animation:
+      210ms ease-out 150ms both period-fade-in,
+      400ms var(--ease-out-soft) both slide-from-start;
+  }
   ::view-transition-old(.total-exit) {
     animation: 150ms ease-in both total-out;
   }
   ::view-transition-new(.total-enter) {
     animation: 250ms ease-out both total-in;
+  }
+}
+
+/* Theme change (revealTheme): only the new theme's snapshot moves, and the nav joins the page's
+   snapshot instead of switching at once */
+.theme-reveal .app-nav-anchor {
+  view-transition-name: none;
+}
+.theme-reveal::view-transition-old(root),
+.theme-reveal::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .theme-reveal::view-transition-new(root) {
+    animation: 600ms ease-in-out both theme-reveal;
+  }
+}
+
+@keyframes theme-reveal {
+  from {
+    clip-path: circle(0 at var(--reveal-x) var(--reveal-y));
+  }
+  to {
+    clip-path: circle(var(--reveal-radius) at var(--reveal-x) var(--reveal-y));
+  }
+}
+
+@keyframes slide-to-start {
+  to {
+    translate: -60px 0;
+  }
+}
+
+@keyframes slide-to-end {
+  to {
+    translate: 60px 0;
+  }
+}
+
+@keyframes slide-from-end {
+  from {
+    translate: 60px 0;
+  }
+}
+
+@keyframes slide-from-start {
+  from {
+    translate: -60px 0;
+  }
+}
+
+@keyframes period-fade-in {
+  from {
+    opacity: 0;
   }
 }
 

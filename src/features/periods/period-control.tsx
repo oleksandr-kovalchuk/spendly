@@ -3,8 +3,9 @@
 import { ChevronDownIcon, ChevronLeft, ChevronRight } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
 import { useQueryStates } from "nuqs";
-import { useState } from "react";
+import { addTransitionType, startTransition, useEffect, useEffectEvent, useState } from "react";
 
+import { PERIOD_EARLIER, PERIOD_LATER, type PeriodDirection } from "@/shared/lib/period-transition";
 import { DAY_TIME_ZONE, utcDateOf } from "@/shared/lib/utc-date";
 import { Button } from "@/shared/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/shared/ui/popover";
@@ -20,6 +21,7 @@ import {
   type PeriodType,
 } from "./period";
 import { periodSearchParsers } from "./period-search";
+import { PERIOD_SWIPE_EVENT } from "./period-swipe-event";
 
 // Days have no time zone: they are formatted on the UTC calendar they are written on
 function usePeriodLabel(period: Period) {
@@ -64,14 +66,44 @@ export function PeriodControl({ today }: { today: string }) {
   const next = stepPeriod(period, 1);
   const isCurrent = isCurrentPeriod(period, today);
 
-  function handleShow(target: Period) {
-    void setSearch(toPeriodSearch(target, today));
+  // With a direction, the navigation's transition carries it, so the content slides that way
+  function handleShow(target: Period, direction?: PeriodDirection) {
+    void setSearch(
+      toPeriodSearch(target, today),
+      direction && {
+        startTransition: (navigate) =>
+          startTransition(() => {
+            addTransitionType(direction);
+            return navigate();
+          }),
+      },
+    );
+  }
+
+  function handleStep(step: -1 | 1) {
+    const target = step === 1 ? next : previous;
+    if (target) handleShow(target, step === 1 ? PERIOD_LATER : PERIOD_EARLIER);
   }
 
   function handlePickType(type: PeriodType) {
     handleShow(periodOf(type, today));
     setIsMenuOpen(false);
   }
+
+  function handleShowCurrent() {
+    const current = periodOf(period.type, today);
+    handleShow(current, current.from < period.from ? PERIOD_EARLIER : PERIOD_LATER);
+    setIsMenuOpen(false);
+  }
+
+  const onSwipe = useEffectEvent((event: Event) => {
+    const step: unknown = event instanceof CustomEvent ? event.detail : undefined;
+    if (step === 1 || step === -1) handleStep(step);
+  });
+  useEffect(() => {
+    window.addEventListener(PERIOD_SWIPE_EVENT, onSwipe);
+    return () => window.removeEventListener(PERIOD_SWIPE_EVENT, onSwipe);
+  }, []);
 
   return (
     <div className="flex w-full items-center gap-1 rounded-full bg-muted p-1 lg:w-auto lg:min-w-80">
@@ -83,7 +115,7 @@ export function PeriodControl({ today }: { today: string }) {
         aria-label={t("previous", { type: period.type })}
         disabled={!previous}
         focusableWhenDisabled
-        onClick={() => previous && handleShow(previous)}
+        onClick={() => handleStep(-1)}
       >
         <ChevronLeft aria-hidden className="rtl:rotate-180" />
       </Button>
@@ -124,7 +156,7 @@ export function PeriodControl({ today }: { today: string }) {
             size="lg"
             disabled={isCurrent}
             focusableWhenDisabled
-            onClick={() => handlePickType(period.type)}
+            onClick={handleShowCurrent}
           >
             {t("current", { type: period.type })}
           </Button>
@@ -137,7 +169,7 @@ export function PeriodControl({ today }: { today: string }) {
         aria-label={t("next", { type: period.type })}
         disabled={!next}
         focusableWhenDisabled
-        onClick={() => next && handleShow(next)}
+        onClick={() => handleStep(1)}
       >
         <ChevronRight aria-hidden className="rtl:rotate-180" />
       </Button>

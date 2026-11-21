@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { toPeriodQuery } from "@/features/periods/period";
 import { PeriodControl } from "@/features/periods/period-control";
+import { PeriodSwipeArea } from "@/features/periods/period-swipe-area";
 import { LazyEditTransactionSheet } from "@/features/transactions/lazy-edit-transaction-sheet";
 import { groupByDay } from "@/features/transactions/group-by-day";
 import { TransactionList } from "@/features/transactions/transaction-list";
@@ -17,6 +18,7 @@ import { PageHeading } from "@/shared/ui/page-heading";
 import { AddTransactionControl } from "@/views/app-shell/add-transaction-control";
 import { PageTransition } from "@/views/app-shell/page-transition";
 import { PeriodSkeleton } from "@/views/app-shell/period-skeleton";
+import { PeriodSlide } from "@/views/app-shell/period-slide";
 import { getShownPeriod, getToday, type ScreenSearchParams } from "@/views/app-shell/screen-data";
 
 // An invalid, repeated or unknown id is the same as a missing transaction
@@ -99,11 +101,15 @@ export async function TransactionsPage({ searchParams }: PageProps<"/[locale]/tr
         <Suspense fallback={null}>
           <EditSheetSection searchParams={searchParams} />
         </Suspense>
-        <TransactionListBoundary>
-          <Suspense fallback={<ListSkeleton />}>
-            <PeriodTransactions searchParams={searchParams} />
-          </Suspense>
-        </TransactionListBoundary>
+        <PeriodSwipeArea>
+          <PeriodSlide>
+            <TransactionListBoundary>
+              <Suspense fallback={<ListSkeleton />}>
+                <PeriodTransactions searchParams={searchParams} />
+              </Suspense>
+            </TransactionListBoundary>
+          </PeriodSlide>
+        </PeriodSwipeArea>
       </div>
     </PageTransition>
   );

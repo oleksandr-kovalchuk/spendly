@@ -155,6 +155,21 @@ export const categorySwatchVariants = cva("", {
   },
 });
 
+export const categoryStrokeVariants = cva("", {
+  variants: {
+    color: {
+      cat1: "stroke-cat-1",
+      cat2: "stroke-cat-2",
+      cat3: "stroke-cat-3",
+      cat4: "stroke-cat-4",
+      cat5: "stroke-cat-5",
+      cat6: "stroke-cat-6",
+      cat7: "stroke-cat-7",
+      cat8: "stroke-cat-8",
+    },
+  },
+});
+
 // The icon in its color on a 15% tint of it: the icon passes 3:1 on the tint in both themes
 export const categoryTileVariants = cva(
   "flex shrink-0 items-center justify-center rounded-xl [&_svg]:shrink-0",

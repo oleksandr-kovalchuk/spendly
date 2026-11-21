@@ -1,3 +1,4 @@
+import { cva } from "class-variance-authority";
 import { cn } from "cn";
 import { useFormatter, useTranslations } from "next-intl";
 
@@ -6,10 +7,24 @@ import { hryvniasOf, MONEY_FORMAT } from "@/shared/lib/money";
 
 import type { SpendingItem } from "./spending-item";
 
-type SpendingLegendProps = { items: SpendingItem[]; labelledBy: string };
+type SpendingLegendProps = {
+  items: SpendingItem[];
+  labelledBy: string;
+  activeId?: string | null;
+  onActiveChange?: (id: string | null) => void;
+};
+
+const swatchVariants = cva("size-2.5 shrink-0 rounded-full transition-transform duration-200", {
+  variants: { isActive: { true: "scale-150", false: "" } },
+});
 
 // A table, so screen readers get the chart's data with its column names
-export function SpendingLegend({ items, labelledBy }: SpendingLegendProps) {
+export function SpendingLegend({
+  items,
+  labelledBy,
+  activeId = null,
+  onActiveChange,
+}: SpendingLegendProps) {
   const t = useTranslations("Stats");
   const format = useFormatter();
   const total = items.reduce((sum, item) => sum + item.amountKopecks, 0);
@@ -25,13 +40,17 @@ export function SpendingLegend({ items, labelledBy }: SpendingLegendProps) {
       </thead>
       <tbody>
         {items.map((item) => (
-          <tr key={item.id}>
+          <tr
+            key={item.id}
+            onPointerEnter={() => onActiveChange?.(item.id)}
+            onPointerLeave={() => onActiveChange?.(null)}
+          >
             <th scope="row" className="py-1.5 text-start font-normal break-words">
               <span className="flex items-center gap-2.5">
                 <span
                   aria-hidden="true"
                   className={cn(
-                    "size-2.5 shrink-0 rounded-full",
+                    swatchVariants({ isActive: item.id === activeId }),
                     categorySwatchVariants({ color: item.color }),
                   )}
                 />

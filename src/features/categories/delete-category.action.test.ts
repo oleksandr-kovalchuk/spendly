@@ -43,7 +43,6 @@ function addTransaction(userId: string, categoryId: string) {
     .values({ userId, categoryId, amountKopecks: 1_000, occurredOn: "2026-03-10" });
 }
 
-// The signed-in user's categories
 async function categoryIds() {
   return (await listCategories()).map((category) => category.id);
 }

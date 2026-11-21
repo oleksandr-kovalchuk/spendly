@@ -18,7 +18,6 @@ async function signedIn() {
   return cookie;
 }
 
-// The signed-in user's own categories
 async function customNames() {
   return (await listCategories())
     .filter((category) => category.defaultKey === null)

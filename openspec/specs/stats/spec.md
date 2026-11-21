@@ -8,7 +8,7 @@ A summary of the shown period on the main page: totals and where the money went.
 
 ### Requirement: Period totals
 
-The Overview screen SHALL show the shown period's balance (income minus expenses) as its largest figure, with total income and total expenses under it and the share of income spent.
+The Overview screen SHALL show the shown period's balance (income minus expenses) as its largest figure, with total income and total expenses under it and the share of income spent; the balance's digits SHALL roll to a new value.
 
 #### Scenario: Totals
 
@@ -31,15 +31,36 @@ The Overview screen SHALL show the shown period's balance (income minus expenses
 - **WHEN** the user adds, edits or deletes a transaction
 - **THEN** the totals update without a page reload, and a screen reader is not interrupted by the change
 
+#### Scenario: Rolling balance
+
+- **WHEN** the Overview screen opens or the balance changes
+- **THEN** each digit of the balance rolls to its value, and a screen reader reads the balance as one number
+
 ### Requirement: Spending by category
 
-The Overview screen SHALL chart the shown period's expenses by category as one bar split into the categories' colors, largest first, with each category's name, amount and share as text next to it.
+The Overview screen SHALL chart the shown period's expenses by category as a ring split into the categories' colors, largest first, with the total spent in its middle and each category's name, amount and share as text next to it; pointing at a category in the ring or the text SHALL show its name and amount in the middle and dim the others.
 
 #### Scenario: Two categories
 
 - **GIVEN** expenses of 300 in Food and 200 in Transport in the shown period
 - **WHEN** the Overview screen opens
-- **THEN** the bar shows Food at 60% and Transport at 40% in their colors, with the amounts as text
+- **THEN** the ring shows Food at 60% and Transport at 40% in their colors, its middle shows expenses of 500, and the amounts show as text
+
+#### Scenario: Tiny share
+
+- **GIVEN** a category with under 1% of the shown period's expenses
+- **WHEN** the ring shows
+- **THEN** the category still shows as a dot in its color, apart from its neighbours
+
+#### Scenario: Pointing at a category
+
+- **WHEN** the user points at Transport in the ring or in the text
+- **THEN** the middle shows Transport and its amount and the other categories dim, until the pointer leaves
+
+#### Scenario: Drawing
+
+- **WHEN** the ring shows or its data changes
+- **THEN** it draws from empty, clockwise from twelve o'clock
 
 #### Scenario: No expenses
 

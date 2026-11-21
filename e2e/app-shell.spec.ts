@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { expectNoViolations, pickTheme } from "./helpers";
+import { expectNoViolations, pickTheme, recordViewTransitions, viewTransitions } from "./helpers";
 
 const LOCALES = [
   { locale: "en", other: "Українська", missing: "Page not found" },
@@ -39,6 +39,19 @@ for (const colorScheme of ["light", "dark"] as const) {
     await expect(page.locator("html")).toHaveClass(colorScheme === "dark" ? /dark/ : /^(?!.*dark)/);
     await expect(page.getByRole("radio", { name: "System", exact: true })).toBeChecked();
     await expectNoViolations(page);
+  });
+}
+
+for (const reducedMotion of ["no-preference", "reduce"] as const) {
+  test(`a new theme spreads in a circle with reduced motion ${reducedMotion}`, async ({ page }) => {
+    await page.emulateMedia({ reducedMotion });
+    await page.addInitScript(recordViewTransitions);
+    await page.goto("/en/sign-in");
+    const transitions = viewTransitions(page, reducedMotion);
+
+    await pickTheme(page, "en", "dark");
+
+    await transitions.expectAnimation("theme-reveal");
   });
 }
 

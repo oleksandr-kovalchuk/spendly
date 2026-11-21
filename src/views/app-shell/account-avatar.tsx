@@ -5,7 +5,7 @@ const avatarVariants = cva(
   { variants: { size: { default: "size-8 text-sm", lg: "size-10 text-base" } } },
 );
 
-// The email's first letter on the brand gradient; the email next to it names the account
+// Decorative: the email next to it names the account
 export function AccountAvatar({
   email,
   size = "default",

@@ -109,7 +109,7 @@ A visitor SHALL sign up or sign in with a Google account from the sign-in and si
 
 ### Requirement: Request a password reset
 
-A visitor SHALL request a password reset link by email from the sign-in page; the response SHALL be the same whether or not the email has a password account.
+A visitor SHALL request a password reset link by email from the sign-in page; the response SHALL be the same whether or not the email has an account.
 
 #### Scenario: Password account
 
@@ -124,7 +124,7 @@ A visitor SHALL request a password reset link by email from the sign-in page; th
 #### Scenario: Google-only account
 
 - **WHEN** a visitor requests a reset for an email whose account has only Google sign-in
-- **THEN** they see the same message, and no email is sent
+- **THEN** they see the same message, and the email receives a link like for a password account
 
 #### Scenario: Invalid email
 
@@ -149,6 +149,11 @@ A user SHALL set a new password of 8 to 128 characters through a valid reset lin
 
 - **WHEN** the user opens the link and submits a valid new password
 - **THEN** the sign-in page opens with a message to sign in with the new password, the old password no longer works, and the account is signed out on every device
+
+#### Scenario: First password for a Google account
+
+- **WHEN** a user whose account has only Google sign-in sets a password through a valid link
+- **THEN** the password and Google both sign in to the same account
 
 #### Scenario: Used or expired link
 

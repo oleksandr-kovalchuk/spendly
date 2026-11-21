@@ -24,7 +24,6 @@ import { deleteTransaction } from "./delete-transaction.action";
 type DeleteTransactionButtonProps = {
   transactionId: string;
   label: string;
-  // The list's period, which the action returns to
   listQuery: Record<string, string>;
 };
 

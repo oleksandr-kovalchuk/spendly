@@ -39,7 +39,6 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-// The status bar of the installed app follows the system theme
 export const viewport: Viewport = {
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: BACKGROUND_LIGHT },

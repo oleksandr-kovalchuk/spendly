@@ -3,6 +3,7 @@ import { Suspense } from "react";
 
 import { toPeriodQuery } from "@/features/periods/period";
 import { PeriodControl } from "@/features/periods/period-control";
+import { PeriodSwipeArea } from "@/features/periods/period-swipe-area";
 import { PeriodStats } from "@/features/stats/period-stats";
 import { getPeriodTotals, listSpendingByCategory } from "@/features/stats/stats.dal";
 import { StatsBoundary } from "@/features/stats/stats-boundary";
@@ -16,6 +17,7 @@ import { PageHeading } from "@/shared/ui/page-heading";
 import { AddTransactionControl } from "@/views/app-shell/add-transaction-control";
 import { PageTransition } from "@/views/app-shell/page-transition";
 import { PeriodSkeleton } from "@/views/app-shell/period-skeleton";
+import { PeriodSlide } from "@/views/app-shell/period-slide";
 import { getShownPeriod, getToday, type ScreenSearchParams } from "@/views/app-shell/screen-data";
 
 const LATEST_COUNT = 5;
@@ -63,8 +65,8 @@ function StatsSkeleton() {
   return (
     <div className="@container">
       <div className="grid gap-4 @3xl:grid-cols-12">
-        <Skeleton className="h-64 rounded-3xl @3xl:col-span-7 @3xl:h-72" />
-        <Skeleton className="h-56 rounded-2xl @3xl:col-span-5 @3xl:h-72" />
+        <Skeleton className="h-64 rounded-3xl @3xl:col-span-6 @3xl:h-72" />
+        <Skeleton className="h-56 rounded-2xl @3xl:col-span-6 @3xl:h-72" />
       </div>
     </div>
   );
@@ -82,16 +84,20 @@ export async function OverviewPage({ searchParams }: PageProps<"/[locale]">) {
             <PeriodSection />
           </Suspense>
         </div>
-        <StatsBoundary>
-          <Suspense fallback={<StatsSkeleton />}>
-            <PeriodStatsSection searchParams={searchParams} />
-          </Suspense>
-        </StatsBoundary>
-        <TransactionListBoundary>
-          <Suspense fallback={<Skeleton className="h-64 rounded-2xl" />}>
-            <LatestSection searchParams={searchParams} />
-          </Suspense>
-        </TransactionListBoundary>
+        <PeriodSwipeArea>
+          <PeriodSlide>
+            <StatsBoundary>
+              <Suspense fallback={<StatsSkeleton />}>
+                <PeriodStatsSection searchParams={searchParams} />
+              </Suspense>
+            </StatsBoundary>
+            <TransactionListBoundary>
+              <Suspense fallback={<Skeleton className="h-64 rounded-2xl" />}>
+                <LatestSection searchParams={searchParams} />
+              </Suspense>
+            </TransactionListBoundary>
+          </PeriodSlide>
+        </PeriodSwipeArea>
       </div>
     </PageTransition>
   );

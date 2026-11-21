@@ -11,7 +11,6 @@ type TransactionFieldProps = {
   children: (controlProps: ControlProps) => ReactNode;
 };
 
-// Links the label and the error to the control, whatever the control is
 export function TransactionField({ label, error, children }: TransactionFieldProps) {
   const id = useId();
   const errorId = `${id}-error`;

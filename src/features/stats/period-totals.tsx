@@ -3,6 +3,9 @@ import { useFormatter, useLocale, useTranslations } from "next-intl";
 import { ViewTransition } from "react";
 
 import { hryvniasOf, MONEY_FORMAT } from "@/shared/lib/money";
+import { NO_PERIOD_ANIMATION } from "@/shared/lib/period-transition";
+
+import { RollingText } from "./rolling-text";
 
 // The balance is carried over from earlier periods, so it isn't the period's income minus expenses
 type PeriodTotalsProps = { incomeKopecks: number; expenseKopecks: number; balanceKopecks: number };
@@ -22,9 +25,10 @@ function BalanceValue({ kopecks }: { kopecks: number }) {
 
   return (
     <span className="block">
-      {head.map((part) => part.value).join("")}
+      <span className="sr-only">{parts.map((part) => part.value).join("")}</span>
+      <RollingText text={head.map((part) => part.value).join("")} />
       <span className="text-2xl font-medium tracking-tight @sm:text-3xl @3xl:text-4xl">
-        {tail.map((part) => part.value).join("")}
+        <RollingText text={tail.map((part) => part.value).join("")} />
       </span>
     </span>
   );
@@ -42,19 +46,12 @@ export function PeriodTotals({ incomeKopecks, expenseKopecks, balanceKopecks }: 
   ] as const;
 
   return (
-    <div className="sheen grid gap-5 rounded-3xl bg-aurora p-5 text-aurora-foreground shadow-aurora lg:p-7">
+    <div className="sheen grid h-full content-between gap-5 rounded-3xl bg-aurora p-5 text-aurora-foreground shadow-aurora lg:p-7">
       <dl className="grid grid-cols-2 gap-x-2 gap-y-5">
         <div className="col-span-2 grid gap-1">
           <dt className="text-sm font-medium">{t("balance")}</dt>
           <dd className="text-4xl font-semibold tracking-tighter break-all tabular-nums @sm:text-5xl @3xl:text-6xl">
-            <ViewTransition
-              key={balanceKopecks}
-              enter="total-enter"
-              exit="total-exit"
-              default="none"
-            >
-              <BalanceValue kopecks={balanceKopecks} />
-            </ViewTransition>
+            <BalanceValue kopecks={balanceKopecks} />
           </dd>
         </div>
         {totals.map(({ key, kopecks }) => {
@@ -68,7 +65,12 @@ export function PeriodTotals({ incomeKopecks, expenseKopecks, balanceKopecks }: 
                 {t(key)}
               </dt>
               <dd className="text-lg font-semibold tracking-tight break-all tabular-nums">
-                <ViewTransition key={kopecks} enter="total-enter" exit="total-exit" default="none">
+                <ViewTransition
+                  key={kopecks}
+                  enter={{ ...NO_PERIOD_ANIMATION, default: "total-enter" }}
+                  exit={{ ...NO_PERIOD_ANIMATION, default: "total-exit" }}
+                  default="none"
+                >
                   <span className="block">{format.number(hryvniasOf(kopecks), MONEY_FORMAT)}</span>
                 </ViewTransition>
               </dd>

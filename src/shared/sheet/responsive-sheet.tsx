@@ -22,7 +22,6 @@ type ResponsiveSheetProps = {
   children: ReactNode;
 };
 
-// A bottom sheet with swipe to close on a phone, a dialog from the `lg` breakpoint
 export function ResponsiveSheet({
   open,
   onOpenChange,

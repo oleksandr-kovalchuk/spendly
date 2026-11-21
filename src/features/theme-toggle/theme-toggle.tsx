@@ -8,6 +8,8 @@ import { useId, useSyncExternalStore } from "react";
 
 import { Skeleton } from "@/shared/ui/skeleton";
 
+import { revealTheme } from "./reveal-theme";
+
 const THEMES = [
   { value: "light", icon: SunIcon },
   { value: "dark", icon: MoonIcon },
@@ -43,11 +45,9 @@ const skeletonVariants = cva("rounded-full", {
   variants: { size: { compact: "h-7 w-26", labeled: "h-10 w-72" } },
 });
 
-// Icons only where room is short; the Settings screen shows the names too
 export function ThemeToggle({ size = "compact" }: { size?: Size }) {
   const t = useTranslations("Header");
   const name = useId();
-  // Until one is picked, the stored theme is the default, System
   const { theme, setTheme } = useTheme();
   // The stored theme is unknown on the server, so the options wait for hydration
   const isHydrated = useSyncExternalStore(
@@ -70,7 +70,11 @@ export function ThemeToggle({ size = "compact" }: { size?: Size }) {
             name={name}
             value={value}
             checked={theme === value}
-            onChange={() => setTheme(value)}
+            onChange={(event) =>
+              revealTheme(event.currentTarget.parentElement ?? event.currentTarget, () =>
+                setTheme(value),
+              )
+            }
             className="sr-only"
           />
           <Icon aria-hidden />
