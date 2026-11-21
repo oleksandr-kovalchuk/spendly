@@ -15,6 +15,9 @@ export default defineConfig({
     env: {
       BETTER_AUTH_SECRET: "test-secret-test-secret-test-secret-0123456789",
       BETTER_AUTH_URL: "http://localhost:3000",
+      GOOGLE_CLIENT_ID: "test-google-client-id",
+      GOOGLE_CLIENT_SECRET: "test-google-client-secret",
+      CRON_SECRET: "test-cron-secret-0123456789",
     },
     // next-intl's middleware imports "next/server" without the extension Node's ESM loader needs
     server: { deps: { inline: ["next-intl"] } },

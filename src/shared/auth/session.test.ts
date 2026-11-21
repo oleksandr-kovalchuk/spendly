@@ -4,10 +4,12 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 
 import { auth } from "./auth";
 import { authedAction, UNAUTHORIZED_ERROR } from "./authed-action";
-import { getCurrentUser } from "./session";
+import { getCurrentUser, requireUser } from "./session";
 
 const { requestHeaders } = vi.hoisted(() => ({ requestHeaders: { current: new Headers() } }));
 vi.mock("next/headers", () => ({ headers: () => Promise.resolve(requestHeaders.current) }));
+// Next's request APIs throw outside a request; the page's language comes from its URL
+vi.mock("next-intl/server", () => ({ getLocale: () => Promise.resolve("uk") }));
 
 const ORIGIN = "http://localhost:3000";
 
@@ -77,5 +79,21 @@ describe("authedAction", () => {
     const result = await authedAction.action(({ ctx }) => Promise.resolve(ctx.user.email))();
 
     expect(result.data).toBe(email);
+  });
+});
+
+describe("requireUser", () => {
+  test("returns the signed-in user", async () => {
+    const email = `${randomUUID()}@example.com`;
+    requestHeaders.current = new Headers({ cookie: await signInAs(email) });
+
+    expect(await requireUser()).toEqual({ id: expect.any(String), email });
+  });
+
+  test("without a session, sends to the sign-in page in the page's language", async () => {
+    // Next's redirect() throws an error whose digest holds the target
+    await expect(requireUser()).rejects.toMatchObject({
+      digest: expect.stringContaining(";/uk/sign-in;"),
+    });
   });
 });

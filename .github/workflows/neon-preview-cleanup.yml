@@ -1,8 +1,7 @@
 name: Neon preview cleanup
 
-# The Vercel-Managed Neon integration creates `preview/<git-branch>` for every
-# preview deployment and never deletes it, so closed PRs use up the plan's
-# branch limit.
+# The Vercel Neon integration creates `preview/<branch>` per deployment and never deletes it,
+# so closed PRs would use up the plan's branch limit
 on:
   pull_request:
     types: [closed]
@@ -29,7 +28,7 @@ jobs:
             echo "::error::Unexpected characters in branch name: $BRANCH"
             exit 1
           fi
-          # A preview that never deployed has no branch: nothing to delete, not a failure
+          # A preview that never deployed has no branch to delete
           count=$(curl -sSf --max-time 30 \
             -H "Authorization: Bearer $NEON_API_KEY" \
             --get --data-urlencode "search=$BRANCH" \

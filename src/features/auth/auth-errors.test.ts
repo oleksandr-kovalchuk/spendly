@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 
-import { fieldErrorOf, formErrorOf, isFieldError } from "./auth-errors";
+import { fieldErrorOf, formErrorOf, googleErrorOf, isFieldError } from "./auth-errors";
 
 test("a Better Auth field code maps to a field and its error", () => {
   expect(fieldErrorOf({ status: 400, code: "PASSWORD_TOO_SHORT" })).toEqual({
@@ -27,4 +27,17 @@ test("only the known codes are field errors", () => {
   expect(isFieldError("emailInvalid")).toBe(true);
   expect(isFieldError("invalidCredentials")).toBe(false);
   expect(isFieldError(undefined)).toBe(false);
+});
+
+test.each([
+  ["account_not_linked", "accountNotLinked"],
+  ["invalid_code", "unknown"],
+  ["state_mismatch", "unknown"],
+] as const)("Google's %s error is the message %s", (code, expected) => {
+  expect(googleErrorOf(code)).toBe(expected);
+});
+
+test("cancelling at Google, or no error, shows no message", () => {
+  expect(googleErrorOf("access_denied")).toBeUndefined();
+  expect(googleErrorOf(undefined)).toBeUndefined();
 });

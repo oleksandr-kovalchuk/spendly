@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { getMessages, getTranslations } from "next-intl/server";
 import { Geist, Geist_Mono } from "next/font/google";
@@ -8,6 +8,8 @@ import "../globals.css";
 
 import { routing } from "@/i18n/routing";
 import { APP_NAME } from "@/shared/lib/page-title";
+import { SITE_URL } from "@/shared/lib/site-url";
+import { BACKGROUND_DARK, BACKGROUND_LIGHT } from "@/shared/lib/theme-colors";
 import { AppProviders } from "@/shared/providers/app-providers";
 
 const geistSans = Geist({
@@ -28,10 +30,21 @@ export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("Layout");
 
   return {
+    metadataBase: new URL(SITE_URL),
     title: APP_NAME,
     description: t("description"),
+    // The home screen name on iPhone, which otherwise suggests the page's title
+    appleWebApp: { title: APP_NAME },
   };
 }
+
+// The status bar of the installed app follows the system theme
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: BACKGROUND_LIGHT },
+    { media: "(prefers-color-scheme: dark)", color: BACKGROUND_DARK },
+  ],
+};
 
 export default async function RootLayout({ children }: LayoutProps<"/[locale]">) {
   const current = await locale();
@@ -45,6 +58,9 @@ export default async function RootLayout({ children }: LayoutProps<"/[locale]">)
     Categories: categories,
     Transactions: transactions,
     Periods: periods,
+    DataReset: dataReset,
+    Toast: toast,
+    Sheet: sheet,
   } = await getMessages();
 
   return (
@@ -52,7 +68,7 @@ export default async function RootLayout({ children }: LayoutProps<"/[locale]">)
     // the scroll padding keeps a focused control above the phone's bottom navigation
     <html
       lang={current}
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased max-lg:scroll-pb-20`}
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased max-lg:scroll-pb-24`}
       suppressHydrationWarning
     >
       <body className="flex min-h-full flex-col">
@@ -64,6 +80,9 @@ export default async function RootLayout({ children }: LayoutProps<"/[locale]">)
             Categories: categories,
             Transactions: transactions,
             Periods: periods,
+            DataReset: dataReset,
+            Toast: toast,
+            Sheet: sheet,
           }}
         >
           <AppProviders>

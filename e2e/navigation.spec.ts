@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
-import { expectNoViolations, field, setRandomClientIp, signUpAndIn } from "./helpers";
+import { expectNoViolations, field, pickAppTheme, setRandomClientIp, signUpAndIn } from "./helpers";
 
 test.use({ timezoneId: "UTC" });
 
@@ -15,20 +15,18 @@ test("signed-out pages show no app navigation", async ({ page }) => {
   await expect(page.getByRole("link", { name: "Transactions" })).toHaveCount(0);
 });
 
-for (const { locale, overview, transactions, categories, dark } of [
+for (const { locale, overview, transactions, categories } of [
   {
     locale: "en",
     overview: "Overview",
     transactions: "Transactions",
     categories: "Categories",
-    dark: "Dark",
   },
   {
     locale: "uk",
     overview: "Огляд",
     transactions: "Транзакції",
     categories: "Категорії",
-    dark: "Темна",
   },
 ] as const) {
   test(`the navigation marks the current screen in ${locale}`, async ({ page }, testInfo) => {
@@ -38,10 +36,9 @@ for (const { locale, overview, transactions, categories, dark } of [
     await expect(nav).toHaveCount(1);
     const box = await nav.boundingBox();
     if (isPhone(page)) {
-      // Fixed to the bottom edge of the screen
-      expect((box?.y ?? 0) + (box?.height ?? 0)).toBe(page.viewportSize()?.height);
+      // Floating 12 px above the bottom edge of the screen
+      expect((box?.y ?? 0) + (box?.height ?? 0)).toBe((page.viewportSize()?.height ?? 0) - 12);
     } else {
-      // The sidebar sits at the start edge
       expect((await page.getByRole("banner").boundingBox())?.x).toBe(0);
     }
 
@@ -51,7 +48,6 @@ for (const { locale, overview, transactions, categories, dark } of [
     await expect(page).toHaveURL(new RegExp(`/${locale}/transactions$`));
     await expect(current).toHaveText(transactions);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(transactions);
-    // Focus moves from the link to the new screen
     await expect(page.getByRole("main")).toBeFocused();
     // The title streams in after a client-side navigation
     await expect(page).toHaveTitle(`${transactions} | Spendly`);
@@ -60,26 +56,23 @@ for (const { locale, overview, transactions, categories, dark } of [
     await nav.getByRole("link", { name: categories }).click();
     await expect(current).toHaveText(categories);
     await expect(page).toHaveTitle(`${categories} | Spendly`);
-    await page.getByRole("button", { name: dark, exact: true }).click();
-    await expect(page.locator("html")).toHaveClass(/dark/);
+    await pickAppTheme(page, locale, "dark");
     await expectNoViolations(page);
   });
 }
 
-for (const { locale, screens, empty, food, theme } of [
+for (const { locale, screens, empty, food } of [
   {
     locale: "en",
     screens: ["Overview", "Transactions", "Categories"],
     empty: ["No expenses in this period.", "No transactions in this period."],
     food: "Food",
-    theme: { light: "Light", dark: "Dark" },
   },
   {
     locale: "uk",
     screens: ["Огляд", "Транзакції", "Категорії"],
     empty: ["У цьому періоді немає витрат.", "У цьому періоді немає транзакцій."],
     food: "Їжа",
-    theme: { light: "Світла", dark: "Темна" },
   },
 ] as const) {
   test(`every screen with its empty states has no accessibility violations in ${locale}`, async ({
@@ -91,8 +84,7 @@ for (const { locale, screens, empty, food, theme } of [
     const nav = page.getByRole("navigation");
 
     for (const name of ["light", "dark"] as const) {
-      await page.getByRole("button", { name: theme[name], exact: true }).click();
-      await expect(page.locator("html")).toHaveClass(name === "dark" ? /dark/ : /^(?!.*dark)/);
+      await pickAppTheme(page, locale, name);
 
       await nav.getByRole("link", { name: overview }).click();
       await expect(page.getByRole("heading", { level: 1 })).toHaveText(overview);
@@ -123,7 +115,7 @@ test("Tab reaches every control, and the bottom navigation covers none", async (
   await page.getByRole("link", { name: "Transactions", exact: true }).click();
   await expect(page).toHaveURL(/\/en\/transactions$/);
   for (const note of ["first", "second", "third"]) {
-    // The navigation's Add: the empty list has one too
+    // The empty list has an Add button too
     await page.locator("header, nav").getByRole("button", { name: "Add transaction" }).click();
     const sheet = page.getByRole("dialog", { name: "Add transaction" });
     await field(page, "Amount (UAH)").fill("10");
@@ -170,7 +162,8 @@ test("Tab reaches every control, and the bottom navigation covers none", async (
       "Overview",
       "Transactions",
       "Categories",
-      "Sign out",
+      // The account's actions open from one button: "Account" on phones, with the email on desktops
+      expect.stringContaining("Account"),
       "Add transaction",
     ]),
   );
@@ -182,13 +175,12 @@ test("Tab reaches every control, and the bottom navigation covers none", async (
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/\/en$/);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Overview");
-  // The next Tab starts in the new screen, not after the link
   await expect(page.getByRole("main")).toBeFocused();
-  // The period control streams in after the heading
-  const day = page.getByRole("button", { name: "Day", exact: true });
-  await expect(day).toBeVisible();
+  // The period control streams in after the heading; its first control steps back
+  const previous = page.getByRole("button", { name: "Previous day", exact: true });
+  await expect(previous).toBeVisible();
   await page.keyboard.press("Tab");
-  await expect(day).toBeFocused();
+  await expect(previous).toBeFocused();
 });
 
 type RecordedAnimation = { name: string; duration: number | string };
@@ -248,7 +240,6 @@ for (const reducedMotion of ["no-preference", "reduce"] as const) {
         expect.arrayContaining(["page-fade-out", "page-rise-in"]),
       );
     }
-    // The navigation doesn't move
     expect(await nav.boundingBox()).toEqual(navBox);
   });
 }

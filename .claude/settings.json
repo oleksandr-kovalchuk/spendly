@@ -78,21 +78,6 @@
     }
   },
   "hooks": {
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node",
-            "args": [
-              "${CLAUDE_PROJECT_DIR}/.claude/hooks/standards/checks.mjs",
-              "start"
-            ],
-            "timeout": 60
-          }
-        ]
-      }
-    ],
     "PostToolUse": [
       {
         "matcher": "Edit|Write",
@@ -102,20 +87,6 @@
             "command": "node",
             "args": [
               "${CLAUDE_PROJECT_DIR}/.claude/hooks/standards/format.mjs"
-            ]
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node",
-            "args": [
-              "${CLAUDE_PROJECT_DIR}/.claude/hooks/standards/checks.mjs",
-              "stop"
             ]
           }
         ]

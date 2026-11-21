@@ -3,7 +3,7 @@ import { monthOf } from "@/shared/lib/time-zone";
 export const PERIOD_TYPES = ["day", "week", "month", "year"] as const;
 export type PeriodType = (typeof PERIOD_TYPES)[number];
 
-const DEFAULT_PERIOD_TYPE: PeriodType = "month";
+const DEFAULT_PERIOD_TYPE: PeriodType = "day";
 const DAYS_PER_WEEK = 7;
 const MONDAY = 1;
 const MIN_YEAR = 1;
@@ -46,7 +46,7 @@ export function isCalendarDay(value: string) {
   return year >= MIN_YEAR && year <= MAX_YEAR && toDay(parseDay(value)) === value;
 }
 
-// The period of the given type that holds `day`; weeks run Monday to Sunday
+// Weeks run Monday to Sunday
 export function periodOf(type: PeriodType, day: string): Period {
   const date = parseDay(day);
   const year = date.getUTCFullYear();
@@ -70,7 +70,7 @@ export function periodOf(type: PeriodType, day: string): Period {
   }
 }
 
-// The previous (-1) or next (1) period of the same type; undefined past the supported years
+// Undefined past the supported years
 export function stepPeriod(period: Period, direction: -1 | 1): Period | undefined {
   const day = direction === -1 ? parseDay(period.from) : parseDay(period.to);
   const next = toDate(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate() + direction);
@@ -83,7 +83,7 @@ function single(value: RawValue) {
   return typeof value === "string" ? value : undefined;
 }
 
-// A missing type is a month and a missing date is today; anything invalid is the current month
+// A missing type is a day and a missing date is today; anything invalid is today
 export function parsePeriod(search: { period?: RawValue; date?: RawValue }, today: string): Period {
   const fallback = periodOf(DEFAULT_PERIOD_TYPE, today);
   const rawType = search.period ?? DEFAULT_PERIOD_TYPE;
@@ -99,7 +99,7 @@ export function isCurrentPeriod(period: Period, today: string) {
   return period.from <= today && today <= period.to;
 }
 
-// The URL keeps neither default: the month type and a date in the current period
+// The URL keeps neither default: the day type and a date in the current period
 export function toPeriodSearch(period: Period, today: string): PeriodSearch {
   return {
     period: period.type === DEFAULT_PERIOD_TYPE ? null : period.type,

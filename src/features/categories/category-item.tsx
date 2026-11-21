@@ -1,45 +1,85 @@
 "use client";
 
+import { PencilIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
+import dynamic from "next/dynamic";
 import { useRef, useState } from "react";
-import { flushSync } from "react-dom";
 
+import { CategoryIcon } from "@/shared/categories/category-icon";
+import type { CategoryIconKey, DefaultCategoryKey } from "@/shared/db/app-constants";
 import { Button } from "@/shared/ui/button";
 
-import { RenameCategoryForm } from "./rename-category-form";
+import { DeleteCategoryButton } from "./delete-category-button";
 
-export function CategoryItem({ id, label }: { id: string; label: string }) {
+const EditCategorySheet = dynamic(
+  () => import("./edit-category-sheet").then((mod) => mod.EditCategorySheet),
+  { ssr: false },
+);
+
+type CategoryItemProps = {
+  id: string;
+  label: string;
+  defaultKey: DefaultCategoryKey | null;
+  icon: CategoryIconKey | null;
+  transactionCount: number;
+  otherLabel: string;
+};
+
+export function CategoryItem({
+  id,
+  label,
+  defaultKey,
+  icon,
+  transactionCount,
+  otherLabel,
+}: CategoryItemProps) {
   const t = useTranslations("Categories");
-  const [isRenaming, setIsRenaming] = useState(false);
-  const renameButtonRef = useRef<HTMLButtonElement>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  // The name the sheet opened with: a save's refresh brings the new one while the sheet closes
+  const [editedLabel, setEditedLabel] = useState(label);
+  const editButtonRef = useRef<HTMLButtonElement>(null);
+  // A default category only gets a new name
+  const action = defaultKey === null ? "edit" : "rename";
 
-  // Focus goes back to the Rename button, which the closing form gives way to
-  function handleClose() {
-    flushSync(() => setIsRenaming(false));
-    renameButtonRef.current?.focus();
-  }
-
-  if (isRenaming) {
-    return (
-      <li className="py-3">
-        <RenameCategoryForm id={id} label={label} onClose={handleClose} />
-      </li>
-    );
+  function handleEdit() {
+    setEditedLabel(label);
+    setIsEditing(true);
   }
 
   return (
-    <li className="flex items-center justify-between gap-4 py-2">
-      <span className="min-w-0 font-medium break-words">{label}</span>
-      <Button
-        ref={renameButtonRef}
-        type="button"
-        variant="ghost"
-        size="sm"
-        aria-label={t("list.rename", { category: label })}
-        onClick={() => setIsRenaming(true)}
-      >
-        {t("list.renameAction")}
-      </Button>
+    <li className="flex items-center gap-3 py-2">
+      <CategoryIcon category={{ id, defaultKey, icon }} size="sm" />
+      <span className="min-w-0 flex-1 font-medium wrap-break-word">{label}</span>
+      {/* Icons, not words: a long name and two worded buttons don't fit a small screen */}
+      <div className="flex gap-1">
+        <Button
+          ref={editButtonRef}
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          aria-label={t(`list.${action}`, { category: label })}
+          onClick={handleEdit}
+        >
+          <PencilIcon aria-hidden />
+        </Button>
+        <DeleteCategoryButton
+          id={id}
+          label={label}
+          transactionCount={transactionCount}
+          isOther={defaultKey === "other"}
+          otherLabel={otherLabel}
+        />
+      </div>
+      {/* Closing returns focus to Rename or Edit, also where a tap doesn't focus it (Safari) */}
+      <EditCategorySheet
+        id={id}
+        label={editedLabel}
+        defaultKey={defaultKey}
+        icon={icon}
+        open={isEditing}
+        onOpenChange={setIsEditing}
+        finalFocus={() => editButtonRef.current}
+      />
     </li>
   );
 }

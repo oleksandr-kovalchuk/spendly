@@ -1,0 +1,2 @@
+ALTER TABLE "categories" ADD COLUMN "icon" text;--> statement-breakpoint
+ALTER TABLE "categories" ADD CONSTRAINT "categories_icon_check" CHECK ("categories"."icon" is null or ("categories"."default_key" is null and "categories"."icon" in ('tag', 'coffee', 'utensils', 'pizza', 'beer', 'shirt', 'car', 'fuel', 'plane', 'bike', 'baby', 'pawPrint', 'graduationCap', 'bookOpen', 'dumbbell', 'pill', 'scissors', 'smartphone', 'wifi', 'gamepad', 'music', 'wrench', 'sofa', 'piggyBank', 'wallet', 'creditCard', 'receipt', 'trendingUp', 'handCoins', 'laptop', 'heart', 'gift')));

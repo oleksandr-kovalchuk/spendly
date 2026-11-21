@@ -1,4 +1,3 @@
-// The mini build: the form loads it in the browser, where the full one adds ~30 KB
 import * as z from "zod/mini";
 
 import { routing } from "@/i18n/routing";
@@ -28,7 +27,7 @@ export const addTransactionSchema = z.omit(transactionSchema, { type: true });
 
 export const updateTransactionSchema = z.extend(addTransactionSchema, { id: z.uuid() });
 // The list a delete returns to: its language (a Server Action can't read the route's) and its
-// period (the screen's `period` and `date`, which it validates, falling back to the current month)
+// period (the screen's `period` and `date`, which it validates, falling back to today)
 const listQuerySchema = z.partialRecord(
   z.enum(["period", "date"]),
   z.string().check(z.maxLength(LIST_QUERY_VALUE_MAX_LENGTH)),

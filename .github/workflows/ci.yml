@@ -33,6 +33,9 @@ jobs:
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/spendly
       BETTER_AUTH_SECRET: ci-only-secret-not-used-anywhere-else
       BETTER_AUTH_URL: http://localhost:3210
+      # Fake: E2E only checks where the Google button sends the browser
+      GOOGLE_CLIENT_ID: ci-only-google-client-id
+      GOOGLE_CLIENT_SECRET: ci-only-google-client-secret
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

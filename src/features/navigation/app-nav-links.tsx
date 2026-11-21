@@ -14,7 +14,7 @@ const SCREENS = [
   { name: "transactions", segment: "transactions", icon: ReceiptTextIcon, hasPeriod: true },
   { name: "categories", segment: "categories", icon: TagsIcon, hasPeriod: false },
 ] as const;
-// Raw strings, copied as they are: the screen validates them and falls back to the current month
+// Raw strings, copied as they are: the screen validates them and falls back to today
 const periodParsers = { period: parseAsString, date: parseAsString };
 
 type Layout = "bar" | "sidebar";
@@ -26,7 +26,6 @@ type NavListProps = {
   periodQuery?: Record<string, string>;
 };
 
-// The action goes after the second screen
 const ACTION_INDEX = 2;
 
 const listVariants = cva("", {
@@ -41,9 +40,9 @@ const linkVariants = cva(
   {
     variants: {
       layout: {
-        bar: "h-16 flex-col justify-center gap-1 text-xs text-muted-foreground before:inset-x-6 before:top-0 before:h-1 hover:text-foreground focus-visible:ring-inset aria-[current=page]:text-foreground aria-[current=page]:before:bg-primary",
+        bar: "h-16 flex-col justify-center gap-1 rounded-3xl text-xs text-muted-foreground before:inset-x-0 before:top-1.5 before:mx-auto before:h-1 before:w-6 hover:text-foreground focus-visible:ring-inset aria-[current=page]:text-primary aria-[current=page]:before:bg-primary",
         sidebar:
-          "h-10 gap-3 rounded-lg px-3 text-sm before:inset-y-2 before:start-0 before:w-1 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground aria-[current=page]:bg-sidebar-accent aria-[current=page]:text-sidebar-accent-foreground aria-[current=page]:before:bg-sidebar-primary",
+          "h-11 gap-3 rounded-xl px-3 text-sm before:inset-y-2.5 before:start-0 before:w-1 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground aria-[current=page]:bg-sidebar-accent aria-[current=page]:text-sidebar-accent-foreground aria-[current=page]:before:bg-sidebar-primary",
       },
     },
   },

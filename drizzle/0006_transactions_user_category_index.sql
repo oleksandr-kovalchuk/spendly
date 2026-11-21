@@ -1,0 +1,1 @@
+CREATE INDEX "transactions_user_category_idx" ON "transactions" USING btree ("user_id","category_id");

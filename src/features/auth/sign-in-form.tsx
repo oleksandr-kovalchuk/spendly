@@ -11,13 +11,22 @@ import { TextField } from "@/shared/forms/text-field";
 import { Button } from "@/shared/ui/button";
 import { FieldError } from "@/shared/ui/field";
 
-import { formErrorOf, isFieldError, type FormError } from "./auth-errors";
+import { formErrorOf, type FormError, type GoogleError } from "./auth-errors";
 import { signInSchema, type SignInValues } from "./auth-schemas";
+import { PasswordField } from "./password-field";
+import { useFieldErrorMessage } from "./use-field-error-message";
 
-type SignInFormProps = { defaultEmail?: string; hasJustRegistered: boolean };
+export type SignInNotice = "registered" | "passwordReset" | "accountDeleted";
 
-export function SignInForm({ defaultEmail = "", hasJustRegistered }: SignInFormProps) {
+type SignInFormProps = {
+  defaultEmail?: string;
+  notice?: SignInNotice;
+  googleError?: GoogleError;
+};
+
+export function SignInForm({ defaultEmail = "", notice, googleError }: SignInFormProps) {
   const t = useTranslations("Auth");
+  const messageOf = useFieldErrorMessage();
   const locale = useLocale();
   const [formError, setFormError] = useState<FormError>();
   const form = useForm<SignInValues>({
@@ -40,17 +49,14 @@ export function SignInForm({ defaultEmail = "", hasJustRegistered }: SignInFormP
     window.location.assign(`/${locale}`);
   }
 
-  function messageOf(message: string | undefined) {
-    return isFieldError(message) ? t(`errors.${message}`) : undefined;
-  }
-
   return (
     <form onSubmit={form.handleSubmit(handleSubmit)} noValidate className="grid gap-4">
-      {hasJustRegistered ? (
+      {notice ? (
         <output className="block rounded-lg bg-muted px-3 py-2 text-sm">
-          {t("signIn.registered")}
+          {t(`signIn.${notice}`)}
         </output>
       ) : null}
+      {googleError ? <FieldError>{t(`errors.${googleError}`)}</FieldError> : null}
       <TextField
         label={t("fields.email")}
         type="email"
@@ -59,23 +65,22 @@ export function SignInForm({ defaultEmail = "", hasJustRegistered }: SignInFormP
         error={messageOf(errors.email?.message)}
         {...form.register("email")}
       />
-      <TextField
+      <PasswordField
         label={t("fields.password")}
-        type="password"
         autoComplete="current-password"
         error={messageOf(errors.password?.message)}
         {...form.register("password")}
       />
+      <Link
+        href={`/${locale}/forgot-password`}
+        className="inline-flex min-h-6 items-center justify-self-end text-sm text-foreground underline underline-offset-4"
+      >
+        {t("signIn.forgotPassword")}
+      </Link>
       {formError ? <FieldError>{t(`errors.${formError}`)}</FieldError> : null}
-      <Button type="submit" size="lg" disabled={isSubmitting}>
+      <Button type="submit" size="xl" disabled={isSubmitting} focusableWhenDisabled>
         {t("signIn.submit")}
       </Button>
-      <p className="text-sm text-muted-foreground">
-        {t("signIn.noAccount")}{" "}
-        <Link href={`/${locale}/sign-up`} className="text-foreground underline underline-offset-4">
-          {t("signIn.signUpLink")}
-        </Link>
-      </p>
     </form>
   );
 }

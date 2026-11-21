@@ -11,7 +11,7 @@ function transaction(id: string, occurredOn: string): TransactionDto {
     occurredOn,
     note: null,
     categoryId: "0198a8c0-0000-7000-8000-000000000001",
-    category: { defaultKey: "food", name: null },
+    category: { defaultKey: "food", name: null, icon: null },
   };
 }
 

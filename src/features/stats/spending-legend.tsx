@@ -1,13 +1,14 @@
+import { cn } from "cn";
 import { useFormatter, useTranslations } from "next-intl";
 
+import { categorySwatchVariants } from "@/shared/categories/category-look";
 import { hryvniasOf, MONEY_FORMAT } from "@/shared/lib/money";
 
 import type { SpendingItem } from "./spending-item";
 
 type SpendingLegendProps = { items: SpendingItem[]; labelledBy: string };
 
-// Each category's name, amount and share of the period's expenses, in the chart's order;
-// a table, so screen readers get the chart's data with its column names
+// A table, so screen readers get the chart's data with its column names
 export function SpendingLegend({ items, labelledBy }: SpendingLegendProps) {
   const t = useTranslations("Stats");
   const format = useFormatter();
@@ -25,8 +26,17 @@ export function SpendingLegend({ items, labelledBy }: SpendingLegendProps) {
       <tbody>
         {items.map((item) => (
           <tr key={item.id}>
-            <th scope="row" className="py-1 text-start font-normal break-words">
-              {item.label}
+            <th scope="row" className="py-1.5 text-start font-normal break-words">
+              <span className="flex items-center gap-2.5">
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    "size-2.5 shrink-0 rounded-full",
+                    categorySwatchVariants({ color: item.color }),
+                  )}
+                />
+                {item.label}
+              </span>
             </th>
             <td className="py-1 ps-4 text-end font-medium whitespace-nowrap">
               {format.number(hryvniasOf(item.amountKopecks), MONEY_FORMAT)}

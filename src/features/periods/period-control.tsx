@@ -1,10 +1,13 @@
 "use client";
 
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronDownIcon, ChevronLeft, ChevronRight } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
 import { useQueryStates } from "nuqs";
+import { useState } from "react";
 
+import { utcDateOf } from "@/shared/lib/utc-date";
 import { Button } from "@/shared/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/shared/ui/popover";
 
 import {
   isCurrentPeriod,
@@ -21,13 +24,9 @@ import { periodSearchParsers } from "./period-search";
 // Days have no time zone: they are formatted on the UTC calendar they are written on
 const FORMAT_TIME_ZONE = "UTC";
 
-function toDate(day: string) {
-  return new Date(`${day}T00:00:00Z`);
-}
-
 function usePeriodLabel(period: Period) {
   const format = useFormatter();
-  const from = toDate(period.from);
+  const from = utcDateOf(period.from);
 
   switch (period.type) {
     case "day":
@@ -39,7 +38,7 @@ function usePeriodLabel(period: Period) {
         year: "numeric",
       });
     case "week":
-      return format.dateTimeRange(from, toDate(period.to), {
+      return format.dateTimeRange(from, utcDateOf(period.to), {
         timeZone: FORMAT_TIME_ZONE,
         day: "numeric",
         month: "long",
@@ -54,17 +53,18 @@ function usePeriodLabel(period: Period) {
   }
 }
 
-// The URL holds the period, so the server renders the list for it and a shared link shows it too
 export function PeriodControl({ today }: { today: string }) {
   const t = useTranslations("Periods");
   const [search, setSearch] = useQueryStates(periodSearchParsers, {
     history: "push",
     shallow: false,
   });
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const period = parsePeriod(search, today);
   const label = usePeriodLabel(period);
   const previous = stepPeriod(period, -1);
   const next = stepPeriod(period, 1);
+  const isCurrent = isCurrentPeriod(period, today);
 
   function handleShow(target: Period) {
     void setSearch(toPeriodSearch(target, today));
@@ -72,62 +72,80 @@ export function PeriodControl({ today }: { today: string }) {
 
   function handlePickType(type: PeriodType) {
     handleShow(periodOf(type, today));
+    setIsMenuOpen(false);
   }
 
   return (
-    <div className="grid gap-3">
-      <fieldset className="grid grid-cols-4 gap-1">
-        <legend className="sr-only">{t("type")}</legend>
-        {PERIOD_TYPES.map((type) => {
-          const isPressed = type === period.type;
-          return (
-            <Button
-              key={type}
-              variant={isPressed ? "default" : "outline"}
-              size="lg"
-              aria-pressed={isPressed}
-              onClick={() => handlePickType(type)}
-            >
-              {t(`types.${type}`)}
-            </Button>
-          );
-        })}
-      </fieldset>
-      <div className="flex items-center gap-2">
-        <Button
-          variant="outline"
-          size="icon-lg"
-          aria-label={t("previous", { type: period.type })}
-          disabled={!previous}
-          focusableWhenDisabled
-          onClick={() => previous && handleShow(previous)}
-        >
-          <ChevronLeft aria-hidden className="rtl:rotate-180" />
-        </Button>
-        <p aria-live="polite" className="min-w-0 flex-1 text-center font-medium text-balance">
-          {label}
-        </p>
-        <Button
-          variant="outline"
-          size="icon-lg"
-          aria-label={t("next", { type: period.type })}
-          disabled={!next}
-          focusableWhenDisabled
-          onClick={() => next && handleShow(next)}
-        >
-          <ChevronRight aria-hidden className="rtl:rotate-180" />
-        </Button>
-      </div>
+    <div className="flex w-full items-center gap-1 rounded-full bg-muted p-1 lg:w-auto lg:min-w-80">
       {/* Buttons that disable themselves when pressed stay focusable: a native `disabled` drops focus to the body */}
       <Button
-        variant="ghost"
-        className="justify-self-center"
-        disabled={isCurrentPeriod(period, today)}
+        variant="outline"
+        size="icon-lg"
+        className="rounded-full border-transparent bg-card shadow-soft"
+        aria-label={t("previous", { type: period.type })}
+        disabled={!previous}
         focusableWhenDisabled
-        onClick={() => handlePickType(period.type)}
+        onClick={() => previous && handleShow(previous)}
       >
-        {t("current", { type: period.type })}
+        <ChevronLeft aria-hidden className="rtl:rotate-180" />
       </Button>
+      <Popover open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+        <PopoverTrigger
+          render={
+            <Button
+              variant="ghost"
+              size="lg"
+              className="min-w-0 flex-1 rounded-full font-medium hover:bg-card aria-expanded:bg-card"
+            />
+          }
+          aria-label={t("menu", { period: label })}
+        >
+          <span className="truncate">{label}</span>
+          <ChevronDownIcon aria-hidden />
+        </PopoverTrigger>
+        <PopoverContent className="w-64">
+          <fieldset className="grid grid-cols-2 gap-1">
+            <legend className="sr-only">{t("type")}</legend>
+            {PERIOD_TYPES.map((type) => {
+              const isPressed = type === period.type;
+              return (
+                <Button
+                  key={type}
+                  variant={isPressed ? "default" : "outline"}
+                  size="lg"
+                  aria-pressed={isPressed}
+                  onClick={() => handlePickType(type)}
+                >
+                  {t(`types.${type}`)}
+                </Button>
+              );
+            })}
+          </fieldset>
+          <Button
+            variant="ghost"
+            size="lg"
+            disabled={isCurrent}
+            focusableWhenDisabled
+            onClick={() => handlePickType(period.type)}
+          >
+            {t("current", { type: period.type })}
+          </Button>
+        </PopoverContent>
+      </Popover>
+      <Button
+        variant="outline"
+        size="icon-lg"
+        className="rounded-full border-transparent bg-card shadow-soft"
+        aria-label={t("next", { type: period.type })}
+        disabled={!next}
+        focusableWhenDisabled
+        onClick={() => next && handleShow(next)}
+      >
+        <ChevronRight aria-hidden className="rtl:rotate-180" />
+      </Button>
+      <p aria-live="polite" className="sr-only">
+        {label}
+      </p>
     </div>
   );
 }

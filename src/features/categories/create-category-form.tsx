@@ -2,74 +2,79 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
-import { useForm, useFormState } from "react-hook-form";
+import { useState, useTransition } from "react";
+import { Controller, useForm, useFormState } from "react-hook-form";
 
-import type { CategoryType } from "@/shared/db/app-constants";
+import { DEFAULT_CATEGORY_ICON, type CategoryType } from "@/shared/db/app-constants";
 import { TextField } from "@/shared/forms/text-field";
 import { Button } from "@/shared/ui/button";
 import { FieldError } from "@/shared/ui/field";
 
-import { isFieldError } from "./category-errors";
-import { categoryNameSchema, type CategoryNameValues } from "./category-schema";
+import { ownCategorySchema, type OwnCategoryValues } from "./category-schema";
 import { createCategory } from "./create-category.action";
+import { IconPicker } from "./icon-picker";
+import { useNameErrorMessage } from "./use-name-error-message";
 
-type Status = "idle" | "added" | "failed";
+type CreateCategoryFormProps = { type: CategoryType; onSaved: () => void };
 
-export function CreateCategoryForm({ type }: { type: CategoryType }) {
+export function CreateCategoryForm({ type, onSaved }: CreateCategoryFormProps) {
   const t = useTranslations("Categories");
-  const [status, setStatus] = useState<Status>("idle");
-  // A single field: validating on blur would flag it whenever focus passes through
-  const form = useForm<CategoryNameValues>({
-    resolver: zodResolver(categoryNameSchema),
+  const nameErrorMessage = useNameErrorMessage();
+  const [hasFailed, setHasFailed] = useState(false);
+  const [isSaving, startSaving] = useTransition();
+  // Validating the name on blur would flag it whenever focus passes through to the icons
+  const form = useForm<OwnCategoryValues>({
+    resolver: zodResolver(ownCategorySchema),
     mode: "onSubmit",
     reValidateMode: "onChange",
-    defaultValues: { name: "" },
+    defaultValues: { name: "", icon: DEFAULT_CATEGORY_ICON },
   });
-  const { errors, isSubmitting } = useFormState({ control: form.control });
+  const { errors } = useFormState({ control: form.control });
   const nameError = errors.name?.message;
 
-  async function handleSubmit(values: CategoryNameValues) {
-    setStatus("idle");
+  // The sheet closes in the commit that shows the new category, as TransactionForm explains
+  function handleSubmit(values: OwnCategoryValues) {
+    setHasFailed(false);
 
-    try {
-      const result = await createCategory({ type, name: values.name });
-      const message = result.validationErrors?.name?._errors?.[0];
-      if (message) {
-        form.setError("name", { message }, { shouldFocus: true });
+    startSaving(async () => {
+      try {
+        const result = await createCategory({ type, ...values });
+        const message = result.validationErrors?.name?._errors?.[0];
+        if (message) {
+          form.setError("name", { message }, { shouldFocus: true });
+          return;
+        }
+        if (result.serverError || result.validationErrors) {
+          setHasFailed(true);
+          return;
+        }
+      } catch {
+        setHasFailed(true);
         return;
       }
-      if (result.serverError || result.validationErrors) {
-        setStatus("failed");
-        return;
-      }
-    } catch {
-      setStatus("failed");
-      return;
-    }
 
-    form.reset({ name: "" });
-    setStatus("added");
+      startSaving(onSaved);
+    });
   }
 
   return (
-    <form onSubmit={form.handleSubmit(handleSubmit)} noValidate className="@container grid gap-3">
+    <form onSubmit={form.handleSubmit(handleSubmit)} noValidate className="grid gap-4">
       <TextField
-        label={t(`form.${type}Label`)}
+        label={t("form.nameLabel")}
         type="text"
         autoComplete="off"
-        error={
-          nameError === undefined
-            ? undefined
-            : t(isFieldError(nameError) ? `errors.${nameError}` : "errors.unknown")
-        }
+        error={nameErrorMessage(nameError)}
         {...form.register("name")}
       />
-      {status === "failed" ? <FieldError>{t("errors.unknown")}</FieldError> : null}
-      {status === "added" ? (
-        <output className="block rounded-lg bg-muted px-3 py-2 text-sm">{t("form.added")}</output>
-      ) : null}
-      <Button type="submit" size="lg" disabled={isSubmitting} className="@sm:justify-self-start">
+      <Controller
+        control={form.control}
+        name="icon"
+        render={({ field }) => (
+          <IconPicker name={field.name} value={field.value} onChange={field.onChange} />
+        )}
+      />
+      {hasFailed ? <FieldError>{t("errors.unknown")}</FieldError> : null}
+      <Button type="submit" size="xl" disabled={isSaving} focusableWhenDisabled>
         {t("form.add")}
       </Button>
     </form>

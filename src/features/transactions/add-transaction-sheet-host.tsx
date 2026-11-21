@@ -3,10 +3,9 @@
 import dynamic from "next/dynamic";
 
 import { useAddTransaction } from "./add-transaction-context";
-import type { CategoryOption } from "./transaction-form";
+import type { CategoryOption } from "./category-option";
 
-// The sheet and its form aren't needed for the first paint: they load after it, and a tap
-// before that opens the sheet once it's there
+// Loads after the first paint; a tap before that opens the sheet once it's loaded
 const AddTransactionSheet = dynamic(
   () => import("./add-transaction-sheet").then((mod) => mod.AddTransactionSheet),
   { ssr: false },

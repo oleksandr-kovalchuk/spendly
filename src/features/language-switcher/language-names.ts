@@ -9,3 +9,9 @@ export const OTHER_LOCALE = {
   en: "uk",
   uk: "en",
 } as const satisfies Record<Locale, Locale>;
+
+// "UA", not "UK": the language code reads as the United Kingdom
+export const LANGUAGE_CODES = {
+  en: "EN",
+  uk: "UA",
+} as const satisfies Record<Locale, string>;

@@ -44,7 +44,9 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - nuqs shows a `shallow: false` update at once, Next's `useSearchParams` only after its server render (~1 s): code copying URL state nuqs writes reads it with a nuqs hook
 - A `ViewTransition` animates `enter`/`exit` only with no DOM node between it and the changed subtree: wrap every level that can appear, keep a list's container mounted when empty
 - A dialog closed apart from its Server Action's refresh can make React skip the refresh's view transition (Base UI flushes the close): close it in the action's transition
+- A toast (Base UI) added as a view transition starts makes React skip it (its first render and measuring are synchronous): add it after the sheet's close (`onOpenChangeComplete`) or in an unmount cleanup, which React runs once the transition ends; a toast has `role="dialog"`, so name the dialog in locators
 - `getLocale()` from `next-intl/server` throws inside a Server Action: pass the locale in the action's input, validated against `routing.locales`
 - Browser code importing `@/shared/db/app-schema` ships the ORM (~30 KB): put constants the browser needs in `@/shared/db/app-constants`
 - Browser code uses `zod/mini`, not `zod`: the full build adds ~15 KB and its JIT probe sends a CSP report (decision 0007)
 - A Server Action deleting what the URL names (`?edit=`) must not `refresh()` (that renders `notFound()`): `redirect(url, RedirectType.replace)` to the list; a plain one pushes
+- E2E's server treats `E2E_TODAY` from `e2e/today.ts` as today (decision 0010): compute test dates from `TODAY`; a server `pnpm e2e` reuses locally needs it too

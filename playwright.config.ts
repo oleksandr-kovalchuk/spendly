@@ -1,4 +1,11 @@
+import { existsSync } from "node:fs";
+
 import { defineConfig, devices } from "@playwright/test";
+
+import { TODAY } from "./e2e/today";
+
+// The tests read reset links from the server's database; CI sets DATABASE_URL in the job
+if (existsSync(".env")) process.loadEnvFile(".env");
 
 const PORT = Number(process.env.PORT ?? 3210);
 
@@ -21,5 +28,8 @@ export default defineConfig({
     command: `pnpm start --port ${PORT}`,
     url: `http://localhost:${PORT}/en`,
     reuseExistingServer: !process.env.CI,
+    // Emails stay pending in the outbox instead of going to Resend; .env doesn't override them.
+    // The app treats TODAY as today, so the tests' dates don't depend on the day they run
+    env: { RESEND_API_KEY: "", E2E_TODAY: TODAY },
   },
 });

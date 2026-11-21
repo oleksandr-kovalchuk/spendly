@@ -2,17 +2,19 @@ import "server-only";
 
 import { asc, eq } from "drizzle-orm";
 
-import type { CategoryType, DefaultCategoryKey } from "@/shared/db/app-constants";
+import { requireUser } from "@/shared/auth/session";
+import type { CategoryIconKey, CategoryType, DefaultCategoryKey } from "@/shared/db/app-constants";
 import { categories } from "@/shared/db/app-schema";
 import { db } from "@/shared/db/client";
 
-import { createDefaultCategories, DEFAULT_CATEGORIES } from "./default-categories";
+import { DEFAULT_CATEGORIES } from "./default-categories";
 
 export type CategoryDto = {
   id: string;
   type: CategoryType;
   defaultKey: DefaultCategoryKey | null;
   name: string | null;
+  icon: CategoryIconKey | null;
 };
 
 // Defaults keep their listed order, then the user's own categories in creation order
@@ -23,26 +25,20 @@ function defaultRank({ type, defaultKey }: CategoryDto) {
   return rank === -1 ? DEFAULT_CATEGORIES.length : rank;
 }
 
-async function selectCategories(userId: string): Promise<CategoryDto[]> {
+// No list means the user deleted every category, so the defaults aren't created again here
+export async function listCategories(): Promise<CategoryDto[]> {
+  const { id: userId } = await requireUser();
   const found = await db
     .select({
       id: categories.id,
       type: categories.type,
       defaultKey: categories.defaultKey,
       name: categories.name,
+      icon: categories.icon,
     })
     .from(categories)
     .where(eq(categories.userId, userId))
     .orderBy(asc(categories.createdAt), asc(categories.id));
 
   return found.toSorted((a, b) => defaultRank(a) - defaultRank(b));
-}
-
-export async function listCategories(userId: string): Promise<CategoryDto[]> {
-  const found = await selectCategories(userId);
-  if (found.length > 0) return found;
-
-  // Sign-up creates the defaults in a hook after the user row, so a failed hook leaves none
-  await createDefaultCategories(userId);
-  return selectCategories(userId);
 }

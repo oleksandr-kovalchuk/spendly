@@ -2,6 +2,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
+import type { ComponentProps } from "react";
 import { beforeEach, expect, test, vi } from "vitest";
 
 import en from "@/i18n/messages/en.json";
@@ -18,10 +19,10 @@ beforeEach(() => {
   vi.stubGlobal("location", { assign });
 });
 
-function renderForm(props: { defaultEmail?: string; hasJustRegistered?: boolean } = {}) {
+function renderForm(props: Partial<ComponentProps<typeof SignInForm>> = {}) {
   render(
     <NextIntlClientProvider locale="en" messages={en}>
-      <SignInForm hasJustRegistered={false} {...props} />
+      <SignInForm {...props} />
     </NextIntlClientProvider>,
   );
 
@@ -56,6 +57,25 @@ test("a successful sign in loads the main page in full", async () => {
   expect(assign).toHaveBeenCalledWith("/en");
 });
 
+test("submit stays disabled, and focusable, until the request ends", async () => {
+  const { promise, resolve } = Promise.withResolvers<object>();
+  signIn.mockReturnValue(promise);
+  const user = renderForm({ defaultEmail: "ann@example.com" });
+  await user.type(screen.getByLabelText("Password"), "long-enough-password");
+  await user.click(screen.getByRole("button", { name: "Sign in" }));
+
+  await vi.waitFor(() => {
+    expect(screen.getByRole("button", { name: "Sign in" })).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
+  });
+  resolve({ error: null });
+  await vi.waitFor(() => {
+    expect(assign).toHaveBeenCalledWith("/en");
+  });
+});
+
 test("wrong credentials show one form error and keep the user on the page", async () => {
   signIn.mockResolvedValue({ error: { status: 401, code: "INVALID_EMAIL_OR_PASSWORD" } });
   const user = renderForm({ defaultEmail: "ann@example.com" });
@@ -78,14 +98,64 @@ test("a rate limit answer says to try again later", async () => {
 });
 
 test("after sign up the email is filled in and a notice is shown", () => {
-  renderForm({ defaultEmail: "ann@example.com", hasJustRegistered: true });
+  renderForm({ defaultEmail: "ann@example.com", notice: "registered" });
 
   expect(screen.getByLabelText("Email")).toHaveValue("ann@example.com");
   expect(screen.getByRole("status")).toHaveTextContent("Your account is ready.");
 });
 
-test("without a fresh sign up there is no notice", () => {
+test("after deleting the account a notice says it's gone", () => {
+  renderForm({ notice: "accountDeleted" });
+
+  expect(screen.getByRole("status")).toHaveTextContent(
+    "Your account and all its data have been deleted.",
+  );
+});
+
+test("after a password reset a notice asks for the new password", () => {
+  renderForm({ notice: "passwordReset" });
+
+  expect(screen.getByRole("status")).toHaveTextContent(
+    "Your password has changed. Sign in with the new one.",
+  );
+});
+
+test("links to the forgot-password page in the page's language", () => {
+  renderForm();
+
+  expect(screen.getByRole("link", { name: "Forgot password?" })).toHaveAttribute(
+    "href",
+    "/en/forgot-password",
+  );
+});
+
+test("a failed Google sign-in shows why", () => {
+  renderForm({ googleError: "accountNotLinked" });
+
+  expect(screen.getByRole("alert")).toHaveTextContent(
+    "This email already has an account with a password. Sign in with your password.",
+  );
+});
+
+test("without a notice there is none", () => {
   renderForm();
 
   expect(screen.queryByRole("status")).not.toBeInTheDocument();
+});
+
+test("the password can be shown and hidden again without sending the form", async () => {
+  const user = renderForm();
+  const password = screen.getByLabelText("Password");
+  const toggle = screen.getByRole("button", { name: "Show password" });
+  await user.type(password, "secret");
+
+  await user.click(toggle);
+  expect(password).toHaveAttribute("type", "text");
+  expect(password).toHaveValue("secret");
+  expect(toggle).toHaveAttribute("aria-pressed", "true");
+
+  await user.click(toggle);
+  expect(password).toHaveAttribute("type", "password");
+  expect(toggle).toHaveAttribute("aria-pressed", "false");
+  expect(signIn).not.toHaveBeenCalled();
 });

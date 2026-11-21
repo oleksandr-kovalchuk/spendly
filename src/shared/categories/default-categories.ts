@@ -17,9 +17,13 @@ export const DEFAULT_CATEGORIES = [
   { type: "income", defaultKey: "other" },
 ] as const satisfies readonly { type: CategoryType; defaultKey: DefaultCategoryKey }[];
 
-// Not `server-only`: Better Auth's hook calls it, and its CLI loads the auth config outside Next
-export async function createDefaultCategories(userId: string) {
-  await db
+// Not `server-only`: Better Auth's hook calls it, and its CLI loads the auth config outside Next.
+// A reset passes its transaction
+export async function createDefaultCategories(
+  userId: string,
+  executor: Pick<typeof db, "insert"> = db,
+) {
+  await executor
     .insert(categories)
     .values(DEFAULT_CATEGORIES.map((category) => ({ userId, ...category })))
     .onConflictDoNothing();

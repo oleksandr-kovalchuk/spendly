@@ -23,13 +23,13 @@ function redirectTo(url: string) {
 async function signedIn() {
   const { id, cookie } = await createUser();
   requestHeaders.current = new Headers({ cookie });
-  const categories = await listCategories(id);
+  const categories = await listCategories();
   const food = categories.find((c) => c.defaultKey === "food" && c.type === "expense");
   if (!food) throw new Error("Default categories are missing");
   await addTransaction({ amount: "10", categoryId: food.id, date: "2026-03-10", note: "" });
-  const [stored] = await listTransactions(id, RANGE);
+  const [stored] = await listTransactions(RANGE);
   if (!stored) throw new Error("The transaction was not stored");
-  return { id, stored };
+  return { id, cookie, stored };
 }
 
 beforeEach(() => {
@@ -38,7 +38,7 @@ beforeEach(() => {
 
 describe("deleteTransaction", () => {
   test("deletes the transaction of the user and returns to the list's period", async () => {
-    const { id, stored } = await signedIn();
+    const { stored } = await signedIn();
 
     await expect(
       deleteTransaction({
@@ -47,7 +47,7 @@ describe("deleteTransaction", () => {
         listQuery: { period: "week", date: "2026-03-09" },
       }),
     ).rejects.toMatchObject(redirectTo("/uk/transactions?period=week&date=2026-03-09"));
-    expect(await listTransactions(id, RANGE)).toEqual([]);
+    expect(await listTransactions(RANGE)).toEqual([]);
   });
 
   test("without a period it returns to the list's default", async () => {
@@ -59,17 +59,17 @@ describe("deleteTransaction", () => {
   });
 
   test("an unknown language is rejected", async () => {
-    const { id, stored } = await signedIn();
+    const { stored } = await signedIn();
 
     // @ts-expect-error -- a client can send any string
     const result = await deleteTransaction({ id: stored.id, locale: "de" });
 
     expect(result.validationErrors).toBeDefined();
-    expect(await listTransactions(id, RANGE)).toEqual([stored]);
+    expect(await listTransactions(RANGE)).toEqual([stored]);
   });
 
   test("a period value that is too long is rejected", async () => {
-    const { id, stored } = await signedIn();
+    const { stored } = await signedIn();
 
     const result = await deleteTransaction({
       id: stored.id,
@@ -78,7 +78,7 @@ describe("deleteTransaction", () => {
     });
 
     expect(result.validationErrors).toBeDefined();
-    expect(await listTransactions(id, RANGE)).toEqual([stored]);
+    expect(await listTransactions(RANGE)).toEqual([stored]);
   });
 
   test("a second delete of the same transaction is rejected", async () => {
@@ -99,7 +99,8 @@ describe("deleteTransaction", () => {
     const result = await deleteTransaction({ id: owner.stored.id, locale: "en" });
 
     expect(result.serverError).toBe("transactionNotFound");
-    expect(await listTransactions(owner.id, RANGE)).toEqual([owner.stored]);
+    requestHeaders.current = new Headers({ cookie: owner.cookie });
+    expect(await listTransactions(RANGE)).toEqual([owner.stored]);
   });
 
   test("an id that is not a UUID is rejected", async () => {

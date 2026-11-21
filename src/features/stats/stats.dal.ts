@@ -3,10 +3,16 @@ import "server-only";
 import { and, desc, eq, gte, lte, sql, type SQL } from "drizzle-orm";
 
 import type { DefaultCategoryKey } from "@/shared/db/app-constants";
+import { requireUser } from "@/shared/auth/session";
 import { categories, transactions } from "@/shared/db/app-schema";
 import { db } from "@/shared/db/client";
 
-export type PeriodTotals = { incomeKopecks: number; expenseKopecks: number };
+// The balance is carried over: all income minus all expenses up to the period's last day
+export type PeriodTotals = {
+  incomeKopecks: number;
+  expenseKopecks: number;
+  balanceKopecks: number;
+};
 
 export type CategorySpending = {
   categoryId: string;
@@ -30,24 +36,27 @@ function inRange(userId: string, range: Range) {
 const sumOf = (condition: SQL) =>
   sql`coalesce(sum(${transactions.amountKopecks}) filter (where ${condition}), 0)`.mapWith(Number);
 
-export async function getPeriodTotals(userId: string, range: Range): Promise<PeriodTotals> {
+// One scan up to the period's end: the period's totals filter it further by its first day
+export async function getPeriodTotals(range: Range): Promise<PeriodTotals> {
+  const { id: userId } = await requireUser();
+  const isIncome = sql`${categories.type} = 'income'`;
+  const isExpense = sql`${categories.type} = 'expense'`;
+  const inPeriod = sql`${transactions.occurredOn} >= ${range.from}`;
   const [row] = await db
     .select({
-      incomeKopecks: sumOf(sql`${categories.type} = 'income'`),
-      expenseKopecks: sumOf(sql`${categories.type} = 'expense'`),
+      incomeKopecks: sumOf(sql`${isIncome} and ${inPeriod}`),
+      expenseKopecks: sumOf(sql`${isExpense} and ${inPeriod}`),
+      balanceKopecks: sql`${sumOf(isIncome)} - ${sumOf(isExpense)}`.mapWith(Number),
     })
     .from(transactions)
     .innerJoin(categories, eq(transactions.categoryId, categories.id))
-    .where(inRange(userId, range));
+    .where(and(eq(transactions.userId, userId), lte(transactions.occurredOn, range.to)));
 
-  return row ?? { incomeKopecks: 0, expenseKopecks: 0 };
+  return row ?? { incomeKopecks: 0, expenseKopecks: 0, balanceKopecks: 0 };
 }
 
-// The period's expenses per category, largest first
-export async function listSpendingByCategory(
-  userId: string,
-  range: Range,
-): Promise<CategorySpending[]> {
+export async function listSpendingByCategory(range: Range): Promise<CategorySpending[]> {
+  const { id: userId } = await requireUser();
   const amountKopecks = sql`sum(${transactions.amountKopecks})`.mapWith(Number);
   const rows = await db
     .select({

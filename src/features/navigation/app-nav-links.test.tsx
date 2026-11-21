@@ -81,7 +81,7 @@ test("the period screens keep the shown period; edit and Categories don't", () =
   );
 });
 
-test("a month away from today keeps only its date", () => {
+test("a day away from today keeps only its date", () => {
   navigation.pathname = "/uk";
   navigation.search = "date=2026-10-01";
   renderLinks("uk");

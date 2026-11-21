@@ -2,13 +2,15 @@
 
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { categoryLabel } from "@/shared/categories/category-label";
+import { ResponsiveSheet } from "@/shared/sheet/responsive-sheet";
+import { toast } from "@/shared/ui/toast";
 
 import { DeleteTransactionButton } from "./delete-transaction-button";
-import { TransactionForm, type CategoryOption } from "./transaction-form";
-import { TransactionSheet } from "./transaction-sheet";
+import type { CategoryOption } from "./category-option";
+import { TransactionForm } from "./transaction-form";
 import type { TransactionDto } from "./transactions.dal";
 
 type EditTransactionSheetProps = {
@@ -30,33 +32,36 @@ export function EditTransactionSheet({
   const router = useRouter();
   const locale = useLocale();
   const [isOpen, setIsOpen] = useState(true);
+  const isSavedRef = useRef(false);
 
+  function handleSaved() {
+    isSavedRef.current = true;
+    setIsOpen(false);
+  }
+
+  // The toast waits until the sheet has closed, as AddTransactionSheet explains
   function handleOpenChangeComplete(open: boolean) {
     if (open) return;
+    if (isSavedRef.current) toast.add({ type: "success", title: t("toast.updated") });
     const query = new URLSearchParams(listQuery);
-    // The list stays where it was under the sheet
     router.replace(`/${locale}/transactions${query.size > 0 ? `?${query.toString()}` : ""}`, {
       scroll: false,
     });
   }
 
   return (
-    <TransactionSheet
+    <ResponsiveSheet
       open={isOpen}
       onOpenChange={setIsOpen}
       onOpenChangeComplete={handleOpenChangeComplete}
       title={t("form.editHeading")}
     >
-      <TransactionForm
-        categories={categories}
-        transaction={transaction}
-        onSaved={() => setIsOpen(false)}
-      />
+      <TransactionForm categories={categories} transaction={transaction} onSaved={handleSaved} />
       <DeleteTransactionButton
         transactionId={transaction.id}
         label={categoryLabel(transaction.category, tCategories)}
         listQuery={listQuery}
       />
-    </TransactionSheet>
+    </ResponsiveSheet>
   );
 }

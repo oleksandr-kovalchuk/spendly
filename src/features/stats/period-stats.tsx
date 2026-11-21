@@ -1,19 +1,18 @@
 import { ChartBarIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useId, type ReactNode } from "react";
+import { useId, type ComponentProps, type ReactNode } from "react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
 import { Empty, EmptyContent, EmptyHeader, EmptyMedia, EmptyTitle } from "@/shared/ui/empty";
 
 import { PeriodTotals } from "./period-totals";
-import { SpendingChart } from "./spending-chart";
+import { SpendingBar } from "./spending-bar";
 import type { SpendingItem } from "./spending-item";
 import { SpendingLegend } from "./spending-legend";
 
 type PeriodStatsProps = {
-  totals: { incomeKopecks: number; expenseKopecks: number };
+  totals: ComponentProps<typeof PeriodTotals>;
   spending: SpendingItem[];
-  // Shown in the empty chart: the button that opens the add form
   emptyAction: ReactNode;
 };
 
@@ -22,35 +21,39 @@ export function PeriodStats({ totals, spending, emptyAction }: PeriodStatsProps)
   const headingId = useId();
 
   return (
-    <div className="@container grid gap-4">
-      <PeriodTotals {...totals} />
-      <section aria-labelledby={headingId}>
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              <h2 id={headingId}>{t("byCategory")}</h2>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {spending.length === 0 ? (
-              <Empty>
-                <EmptyHeader>
-                  <EmptyMedia variant="icon">
-                    <ChartBarIcon aria-hidden />
-                  </EmptyMedia>
-                  <EmptyTitle>{t("noExpenses")}</EmptyTitle>
-                </EmptyHeader>
-                <EmptyContent>{emptyAction}</EmptyContent>
-              </Empty>
-            ) : (
-              <div className="grid gap-4 @xl:grid-cols-2">
-                <SpendingChart items={spending} />
-                <SpendingLegend items={spending} labelledBy={headingId} />
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </section>
+    <div className="@container">
+      <div className="grid stagger gap-4 @3xl:grid-cols-12">
+        <div className="@3xl:col-span-7">
+          <PeriodTotals {...totals} />
+        </div>
+        <section aria-labelledby={headingId} className="@3xl:col-span-5">
+          <Card className="h-full">
+            <CardHeader>
+              <CardTitle>
+                <h2 id={headingId}>{t("byCategory")}</h2>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="grid content-start gap-4">
+              {spending.length === 0 ? (
+                <Empty>
+                  <EmptyHeader>
+                    <EmptyMedia variant="icon">
+                      <ChartBarIcon aria-hidden />
+                    </EmptyMedia>
+                    <EmptyTitle>{t("noExpenses")}</EmptyTitle>
+                  </EmptyHeader>
+                  <EmptyContent>{emptyAction}</EmptyContent>
+                </Empty>
+              ) : (
+                <>
+                  <SpendingBar items={spending} />
+                  <SpendingLegend items={spending} labelledBy={headingId} />
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </section>
+      </div>
     </div>
   );
 }

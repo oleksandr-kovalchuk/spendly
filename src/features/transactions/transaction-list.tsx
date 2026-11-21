@@ -1,30 +1,27 @@
-import { ArrowDownIcon, ArrowUpIcon, ReceiptTextIcon } from "lucide-react";
+import { ReceiptTextIcon } from "lucide-react";
 import { useFormatter, useLocale, useTranslations } from "next-intl";
 import Link from "next/link";
 import { ViewTransition, type ReactNode } from "react";
 
+import { utcDateOf } from "@/shared/lib/utc-date";
+import { CategoryIcon } from "@/shared/categories/category-icon";
 import { categoryLabel } from "@/shared/categories/category-label";
 import { hryvniasOf, MONEY_FORMAT } from "@/shared/lib/money";
 import { Card, CardContent } from "@/shared/ui/card";
 import { Empty, EmptyContent, EmptyHeader, EmptyMedia, EmptyTitle } from "@/shared/ui/empty";
 
+import { amountVariants } from "./amount-variants";
 import type { DayGroup } from "./group-by-day";
 
 type TransactionListProps = {
   groups: DayGroup[];
   // The page's other search params, kept in the edit links
   periodQuery?: Record<string, string>;
-  // Shown in the empty list: the button that opens the add form
   emptyAction: ReactNode;
 };
 
-// An arrow next to the signed amount: down for an expense, up for an income
-const TYPE_ICONS = { expense: ArrowDownIcon, income: ArrowUpIcon } as const;
-
-// Each item is a link to its edit form; the item's text is the link's name. Added and removed
-// items and days fade in and out (the CSS is in globals.css), other updates don't animate. React
-// animates a ViewTransition only with no DOM node between it and what's added or removed, so the
-// days have their own, and the container stays when the list empties.
+// React animates a ViewTransition only with no DOM node between it and what's added or removed,
+// so each day has its own, and the container stays when the list empties
 export function TransactionList({ groups, periodQuery, emptyAction }: TransactionListProps) {
   const t = useTranslations("Transactions");
   const locale = useLocale();
@@ -54,7 +51,7 @@ export function TransactionList({ groups, periodQuery, emptyAction }: Transactio
             <h2 className="text-sm font-medium text-muted-foreground">
               {/* A day has no time zone: it is shown on the UTC calendar it was written on */}
               <time dateTime={group.date}>
-                {format.dateTime(new Date(`${group.date}T00:00:00Z`), {
+                {format.dateTime(utcDateOf(group.date), {
                   timeZone: "UTC",
                   weekday: "long",
                   day: "numeric",
@@ -62,11 +59,10 @@ export function TransactionList({ groups, periodQuery, emptyAction }: Transactio
                 })}
               </time>
             </h2>
-            <Card className="py-0">
+            <Card className="py-1">
               <ul className="divide-y divide-border">
                 {group.transactions.map((transaction) => {
                   const sign = transaction.type === "income" ? 1 : -1;
-                  const TypeIcon = TYPE_ICONS[transaction.type];
 
                   return (
                     <ViewTransition
@@ -81,16 +77,21 @@ export function TransactionList({ groups, periodQuery, emptyAction }: Transactio
                             pathname: `/${locale}/transactions`,
                             query: { ...periodQuery, edit: transaction.id },
                           }}
-                          // The sheet opens over the list, which stays where it was
                           scroll={false}
-                          // No hover background: muted text on the muted color fails AA contrast
-                          className="group flex items-center gap-3 px-4 py-3 outline-none focus-visible:ring-3 focus-visible:ring-ring focus-visible:ring-inset"
+                          // No hover background: muted text on bg-muted fails AA contrast
+                          className="group flex items-center gap-3 px-5 py-3 outline-none focus-visible:ring-3 focus-visible:ring-ring focus-visible:ring-inset"
                         >
-                          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted">
-                            <TypeIcon aria-hidden className="size-4" />
+                          <span className="shrink-0 transition-transform duration-200 ease-out group-hover:scale-110">
+                            <CategoryIcon
+                              category={{
+                                id: transaction.categoryId,
+                                defaultKey: transaction.category.defaultKey,
+                                icon: transaction.category.icon,
+                              }}
+                            />
                           </span>
                           <span className="grid min-w-0 flex-1">
-                            <span className="font-medium group-hover:underline">
+                            <span className="font-medium transition-colors group-hover:text-primary">
                               {categoryLabel(transaction.category, tCategories)}
                             </span>
                             {transaction.note ? (
@@ -99,7 +100,7 @@ export function TransactionList({ groups, periodQuery, emptyAction }: Transactio
                               </span>
                             ) : null}
                           </span>
-                          <span className="shrink-0 font-medium tabular-nums">
+                          <span className={amountVariants({ type: transaction.type })}>
                             {format.number(hryvniasOf(sign * transaction.amountKopecks), {
                               ...MONEY_FORMAT,
                               signDisplay: "always",

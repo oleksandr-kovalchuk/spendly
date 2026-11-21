@@ -2,9 +2,11 @@ import "server-only";
 
 import { and, desc, eq, gte, lte, type SQL } from "drizzle-orm";
 
-import type { CategoryType, DefaultCategoryKey } from "@/shared/db/app-constants";
-import { categories, transactions } from "@/shared/db/app-schema";
+import type { CategoryIconKey, CategoryType, DefaultCategoryKey } from "@/shared/db/app-constants";
+import { requireUser } from "@/shared/auth/session";
+import { categories, TRANSACTION_CATEGORY_FOREIGN_KEY, transactions } from "@/shared/db/app-schema";
 import { db } from "@/shared/db/client";
+import { violatesConstraint } from "@/shared/db/constraint-error";
 
 export type TransactionDto = {
   id: string;
@@ -13,7 +15,11 @@ export type TransactionDto = {
   occurredOn: string;
   note: string | null;
   categoryId: string;
-  category: { defaultKey: DefaultCategoryKey | null; name: string | null };
+  category: {
+    defaultKey: DefaultCategoryKey | null;
+    name: string | null;
+    icon: CategoryIconKey | null;
+  };
 };
 
 type NewTransaction = {
@@ -29,17 +35,21 @@ export type UpdateResult =
 
 export type InsertResult = { isAdded: true } | { isAdded: false; error: "categoryNotFound" };
 
+// The foreign key refuses a category that is missing or another user's, even one deleted meanwhile
+function isCategoryRefused(error: unknown) {
+  return violatesConstraint(error, TRANSACTION_CATEGORY_FOREIGN_KEY);
+}
+
 export async function insertTransaction(
   userId: string,
   input: NewTransaction,
 ): Promise<InsertResult> {
-  const [category] = await db
-    .select({ id: categories.id })
-    .from(categories)
-    .where(and(eq(categories.id, input.categoryId), eq(categories.userId, userId)));
-  if (!category) return { isAdded: false, error: "categoryNotFound" };
-
-  await db.insert(transactions).values({ userId, ...input });
+  try {
+    await db.insert(transactions).values({ userId, ...input });
+  } catch (error) {
+    if (isCategoryRefused(error)) return { isAdded: false, error: "categoryNotFound" };
+    throw error;
+  }
   return { isAdded: true };
 }
 
@@ -52,6 +62,7 @@ const transactionColumns = {
   categoryId: transactions.categoryId,
   categoryDefaultKey: categories.defaultKey,
   categoryName: categories.name,
+  categoryIcon: categories.icon,
 };
 
 function selectTransactions(where: SQL | undefined) {
@@ -66,32 +77,36 @@ function selectTransactions(where: SQL | undefined) {
 function toDto({
   categoryDefaultKey,
   categoryName,
+  categoryIcon,
   ...row
 }: Awaited<ReturnType<typeof selectTransactions>>[number]): TransactionDto {
-  return { ...row, category: { defaultKey: categoryDefaultKey, name: categoryName } };
+  return {
+    ...row,
+    category: { defaultKey: categoryDefaultKey, name: categoryName, icon: categoryIcon },
+  };
 }
 
-// Both ends are days (`YYYY-MM-DD`) and are included
+// Both ends are days (`YYYY-MM-DD`) and are included; a limit keeps only the newest ones
 export async function listTransactions(
-  userId: string,
   range: { from: string; to: string },
+  limit?: number,
 ): Promise<TransactionDto[]> {
-  const rows = await selectTransactions(
+  const { id: userId } = await requireUser();
+  const query = selectTransactions(
     and(
       eq(transactions.userId, userId),
       gte(transactions.occurredOn, range.from),
       lte(transactions.occurredOn, range.to),
     ),
   );
+  const rows = limit === undefined ? await query : await query.limit(limit);
 
   return rows.map(toDto);
 }
 
 // Another user's transaction is the same as a missing one
-export async function findTransaction(
-  userId: string,
-  transactionId: string,
-): Promise<TransactionDto | undefined> {
+export async function findTransaction(transactionId: string): Promise<TransactionDto | undefined> {
+  const { id: userId } = await requireUser();
   const [row] = await selectTransactions(
     and(eq(transactions.userId, userId), eq(transactions.id, transactionId)),
   );
@@ -104,19 +119,17 @@ export async function updateTransaction(
   transactionId: string,
   input: NewTransaction,
 ): Promise<UpdateResult> {
-  const [category] = await db
-    .select({ id: categories.id })
-    .from(categories)
-    .where(and(eq(categories.id, input.categoryId), eq(categories.userId, userId)));
-  if (!category) return { isUpdated: false, error: "categoryNotFound" };
-
-  const updated = await db
-    .update(transactions)
-    .set(input)
-    .where(and(eq(transactions.id, transactionId), eq(transactions.userId, userId)))
-    .returning({ id: transactions.id });
-  if (updated.length === 0) return { isUpdated: false, error: "transactionNotFound" };
-
+  try {
+    const updated = await db
+      .update(transactions)
+      .set(input)
+      .where(and(eq(transactions.id, transactionId), eq(transactions.userId, userId)))
+      .returning({ id: transactions.id });
+    if (updated.length === 0) return { isUpdated: false, error: "transactionNotFound" };
+  } catch (error) {
+    if (isCategoryRefused(error)) return { isUpdated: false, error: "categoryNotFound" };
+    throw error;
+  }
   return { isUpdated: true };
 }
 

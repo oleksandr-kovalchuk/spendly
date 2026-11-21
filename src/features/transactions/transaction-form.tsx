@@ -9,23 +9,23 @@ import { CATEGORY_TYPES, type CategoryType } from "@/shared/db/app-constants";
 import { Button } from "@/shared/ui/button";
 import { FieldError } from "@/shared/ui/field";
 import { Input } from "@/shared/ui/input";
-import { NativeSelect, NativeSelectOption } from "@/shared/ui/native-select";
 
 import { addTransaction } from "./add-transaction.action";
 import { amountInputOf } from "./amount";
+import type { CategoryOption } from "./category-option";
+import { CategoryTiles } from "./category-tiles";
+import { TransactionDatePicker } from "./transaction-date-picker";
 import { TransactionField } from "./transaction-field";
 import { isFieldError } from "./transaction-errors";
 import { transactionSchema, type TransactionValues } from "./transaction-schema";
 import type { TransactionDto } from "./transactions.dal";
 import { updateTransaction } from "./update-transaction.action";
 
-export type CategoryOption = { id: string; type: CategoryType; label: string };
 type TransactionFormProps = {
   categories: CategoryOption[];
   onSaved: () => void;
 } & (
   | { today: string; transaction?: undefined }
-  // Edits this transaction instead of adding one
   | { transaction: TransactionDto; today?: undefined }
 );
 type FormError = "categoryNotFound" | "transactionNotFound" | "unknown";
@@ -124,7 +124,7 @@ function TransactionFormFields({ categories, today, transaction, onSaved }: Tran
           {CATEGORY_TYPES.map((value) => (
             <label
               key={value}
-              className="flex h-8 cursor-pointer items-center justify-center rounded-lg border border-input text-sm has-checked:border-primary has-checked:bg-primary/10 has-checked:font-medium has-focus-visible:ring-3 has-focus-visible:ring-ring"
+              className="relative flex h-10 cursor-pointer items-center justify-center rounded-xl border border-input bg-card text-sm has-checked:border-primary has-checked:bg-accent has-checked:font-semibold has-checked:text-accent-foreground has-checked:ring-2 has-checked:ring-primary has-focus-visible:ring-3 has-focus-visible:ring-ring"
             >
               <input
                 type="radio"
@@ -155,37 +155,36 @@ function TransactionFormFields({ categories, today, transaction, onSaved }: Tran
             />
           )}
         </TransactionField>
-        <TransactionField label={t("form.date")} error={messageOf(errors.date?.message)}>
-          {(controlProps) => (
-            <Input type="date" autoComplete="off" {...controlProps} {...form.register("date")} />
+        <Controller
+          control={form.control}
+          name="date"
+          render={({ field, fieldState }) => (
+            <TransactionField label={t("form.date")} error={messageOf(fieldState.error?.message)}>
+              {(controlProps) => (
+                <TransactionDatePicker
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  controlProps={controlProps}
+                />
+              )}
+            </TransactionField>
           )}
-        </TransactionField>
+        />
       </div>
       <Controller
         control={form.control}
         name="categoryId"
         render={({ field, fieldState }) => (
-          <TransactionField label={t("form.category")} error={messageOf(fieldState.error?.message)}>
-            {(controlProps) => (
-              <NativeSelect
-                className="w-full"
-                {...controlProps}
-                name={field.name}
-                ref={field.ref}
-                value={field.value}
-                onBlur={field.onBlur}
-                onChange={field.onChange}
-              >
-                {categories
-                  .filter((category) => category.type === type)
-                  .map((category) => (
-                    <NativeSelectOption key={category.id} value={category.id}>
-                      {category.label}
-                    </NativeSelectOption>
-                  ))}
-              </NativeSelect>
-            )}
-          </TransactionField>
+          <CategoryTiles
+            legend={t("form.category")}
+            categories={categories.filter((category) => category.type === type)}
+            name={field.name}
+            value={field.value}
+            error={messageOf(fieldState.error?.message)}
+            onChange={field.onChange}
+            onBlur={field.onBlur}
+          />
         )}
       />
       <TransactionField label={t("form.note")} error={messageOf(errors.note?.message)}>
@@ -194,7 +193,7 @@ function TransactionFormFields({ categories, today, transaction, onSaved }: Tran
         )}
       </TransactionField>
       {formError ? <FieldError>{t(`errors.${formError}`)}</FieldError> : null}
-      <Button type="submit" size="lg" disabled={isSaving}>
+      <Button type="submit" size="xl" disabled={isSaving} focusableWhenDisabled>
         {t(transaction ? "form.save" : "form.submit")}
       </Button>
     </form>

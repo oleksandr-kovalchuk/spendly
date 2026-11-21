@@ -1,10 +1,13 @@
-// The mini build: the forms load it in the browser, where the full one adds ~30 KB
 import * as z from "zod/mini";
 
-import { CATEGORY_TYPES, MAX_CATEGORY_NAME_LENGTH } from "@/shared/db/app-constants";
+import {
+  CATEGORY_ICON_KEYS,
+  CATEGORY_TYPES,
+  MAX_CATEGORY_NAME_LENGTH,
+} from "@/shared/db/app-constants";
 
 // Messages are codes: the forms translate them
-export const categoryNameSchema = z.object({
+const categoryNameSchema = z.object({
   name: z
     .string()
     .check(
@@ -14,9 +17,20 @@ export const categoryNameSchema = z.object({
     ),
 });
 
-export const createCategorySchema = z.extend(categoryNameSchema, { type: z.enum(CATEGORY_TYPES) });
+// A user's own category: a default one has no icon to choose
+export const ownCategorySchema = z.extend(categoryNameSchema, {
+  icon: z.enum(CATEGORY_ICON_KEYS),
+});
 
-// No type: a category keeps the type it was created with
-export const renameCategorySchema = z.extend(categoryNameSchema, { id: z.uuid() });
+export const createCategorySchema = z.extend(ownCategorySchema, { type: z.enum(CATEGORY_TYPES) });
 
-export type CategoryNameValues = z.infer<typeof categoryNameSchema>;
+// No type: a category keeps the type it was created with. A default category's icon can't
+// change, so the server ignores one sent for it
+export const updateCategorySchema = z.extend(categoryNameSchema, {
+  id: z.uuid(),
+  icon: z.optional(z.enum(CATEGORY_ICON_KEYS)),
+});
+
+export const deleteCategorySchema = z.object({ id: z.uuid() });
+
+export type OwnCategoryValues = z.infer<typeof ownCategorySchema>;

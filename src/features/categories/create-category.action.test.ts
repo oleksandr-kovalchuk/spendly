@@ -5,20 +5,22 @@ import { createUser } from "@/shared/auth/test-user";
 import { listCategories } from "@/shared/categories/categories.dal";
 
 import { createCategory } from "./create-category.action";
-import { renameCategory } from "./rename-category.action";
+import { updateCategory } from "./update-category.action";
 
 const { requestHeaders } = vi.hoisted(() => ({ requestHeaders: { current: new Headers() } }));
 vi.mock("next/headers", () => ({ headers: () => Promise.resolve(requestHeaders.current) }));
 vi.mock("next/cache", () => ({ refresh: vi.fn() }));
 
+// Returns the session cookie, to sign the user back in after another one
 async function signedIn() {
-  const { id, cookie } = await createUser();
+  const { cookie } = await createUser();
   requestHeaders.current = new Headers({ cookie });
-  return id;
+  return cookie;
 }
 
-async function customNames(userId: string) {
-  return (await listCategories(userId))
+// The signed-in user's own categories
+async function customNames() {
+  return (await listCategories())
     .filter((category) => category.defaultKey === null)
     .map(({ type, name }) => `${type}:${name}`);
 }
@@ -29,77 +31,97 @@ beforeEach(() => {
 
 describe("createCategory", () => {
   test("adds a category of the given type, with the name trimmed", async () => {
-    const id = await signedIn();
+    await signedIn();
 
-    const result = await createCategory({ type: "expense", name: "  Coffee " });
+    const result = await createCategory({ type: "expense", name: "  Coffee ", icon: "tag" });
 
     expect(result.serverError).toBeUndefined();
     expect(result.validationErrors).toBeUndefined();
-    expect(await customNames(id)).toEqual(["expense:Coffee"]);
+    expect(await customNames()).toEqual(["expense:Coffee"]);
   });
 
   test.each([
     ["Coffee", "coffee"],
     ["Кава", "КАВА"],
   ])("a name differing only in case from %s is taken", async (first, second) => {
-    const id = await signedIn();
-    await createCategory({ type: "expense", name: first });
+    await signedIn();
+    await createCategory({ type: "expense", name: first, icon: "tag" });
 
-    const result = await createCategory({ type: "expense", name: second });
+    const result = await createCategory({ type: "expense", name: second, icon: "tag" });
 
     expect(result.validationErrors?.name?._errors).toEqual(["nameTaken"]);
-    expect(await customNames(id)).toEqual([`expense:${first}`]);
+    expect(await customNames()).toEqual([`expense:${first}`]);
   });
 
   test("the same name is free in the other type and for another user", async () => {
     const first = await signedIn();
-    await createCategory({ type: "expense", name: "Bonus" });
-    await createCategory({ type: "income", name: "bonus" });
-    const second = await signedIn();
-    await createCategory({ type: "expense", name: "Bonus" });
+    await createCategory({ type: "expense", name: "Bonus", icon: "tag" });
+    await createCategory({ type: "income", name: "bonus", icon: "tag" });
+    await signedIn();
+    await createCategory({ type: "expense", name: "Bonus", icon: "tag" });
 
-    expect(await customNames(first)).toEqual(["expense:Bonus", "income:bonus"]);
-    expect(await customNames(second)).toEqual(["expense:Bonus"]);
+    expect(await customNames()).toEqual(["expense:Bonus"]);
+    requestHeaders.current = new Headers({ cookie: first });
+    expect(await customNames()).toEqual(["expense:Bonus", "income:bonus"]);
   });
 
   test.each(["food", "ЇЖА"])(
     "%s repeats the name of a default not renamed, in any language",
     async (name) => {
-      const id = await signedIn();
+      await signedIn();
 
-      const result = await createCategory({ type: "expense", name });
+      const result = await createCategory({ type: "expense", name, icon: "tag" });
 
       expect(result.validationErrors?.name?._errors).toEqual(["nameTaken"]);
-      expect(await customNames(id)).toEqual([]);
+      expect(await customNames()).toEqual([]);
     },
   );
 
   test("a default's name is free once the default is renamed, and in the other type", async () => {
-    const id = await signedIn();
-    const food = (await listCategories(id)).find((category) => category.defaultKey === "food");
+    await signedIn();
+    const food = (await listCategories()).find((category) => category.defaultKey === "food");
     if (!food) throw new Error("The default Food category is missing");
-    await renameCategory({ id: food.id, name: "Groceries" });
+    await updateCategory({ id: food.id, name: "Groceries" });
 
-    await createCategory({ type: "expense", name: "Food" });
-    await createCategory({ type: "income", name: "Transport" });
+    await createCategory({ type: "expense", name: "Food", icon: "tag" });
+    await createCategory({ type: "income", name: "Transport", icon: "tag" });
 
-    expect(await customNames(id)).toEqual(["expense:Food", "income:Transport"]);
+    expect(await customNames()).toEqual(["expense:Food", "income:Transport"]);
   });
 
   test.each([
     ["   ", "nameRequired"],
     ["x".repeat(41), "nameTooLong"],
   ])("rejects the name %j and adds nothing", async (name, error) => {
-    const id = await signedIn();
+    await signedIn();
 
-    const result = await createCategory({ type: "income", name });
+    const result = await createCategory({ type: "income", name, icon: "tag" });
 
     expect(result.validationErrors?.name?._errors).toEqual([error]);
-    expect(await customNames(id)).toEqual([]);
+    expect(await customNames()).toEqual([]);
+  });
+
+  test("stores the chosen icon", async () => {
+    await signedIn();
+
+    await createCategory({ type: "expense", name: "Coffee", icon: "coffee" });
+
+    const coffee = (await listCategories()).find((category) => category.name === "Coffee");
+    expect(coffee?.icon).toBe("coffee");
+  });
+
+  test("rejects an icon outside the set and adds nothing", async () => {
+    await signedIn();
+
+    // @ts-expect-error: a client can send any value
+    const result = await createCategory({ type: "expense", name: "Coffee", icon: "rocket" });
+
+    expect(result.validationErrors?.icon).toBeDefined();
+    expect(await customNames()).toEqual([]);
   });
 
   test("rejects a request without a session", async () => {
-    const result = await createCategory({ type: "expense", name: "Coffee" });
+    const result = await createCategory({ type: "expense", name: "Coffee", icon: "tag" });
 
     expect(result.serverError).toBe(UNAUTHORIZED_ERROR);
   });

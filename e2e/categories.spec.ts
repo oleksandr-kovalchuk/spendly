@@ -1,6 +1,14 @@
 import { expect, test } from "@playwright/test";
 
-import { expectNoViolations, field, setRandomClientIp, signUpAndIn, TEXTS } from "./helpers";
+import {
+  expectNoViolations,
+  field,
+  notifications,
+  pickCategory,
+  setRandomClientIp,
+  signUpAndIn,
+  TEXTS,
+} from "./helpers";
 
 test.use({ timezoneId: "UTC" });
 
@@ -12,14 +20,13 @@ for (const locale of ["en", "uk"] as const) {
   test(`categories are created and renamed in ${locale}`, async ({ page }, testInfo) => {
     await signUpAndIn(page, locale, testInfo);
 
-    // An expense in Food before the rename
     await page.getByRole("link", { name: text.transactions, exact: true }).click();
     await expect(page).toHaveURL(new RegExp(`/${locale}/transactions$`));
-    // The navigation's Add: the empty list has one too
+    // The empty list has an Add button too
     await page.locator("header, nav").getByRole("button", { name: text.addTransaction }).click();
     const sheet = page.getByRole("dialog", { name: text.addTransaction });
     await field(page, text.amount).fill("42");
-    await sheet.getByLabel(text.category, { exact: true }).selectOption({ label: text.food });
+    await pickCategory(sheet, text.food);
     await sheet.getByRole("button", { name: text.add, exact: true }).click();
     await expect(sheet).toHaveCount(0);
     await expect(page.getByRole("listitem").filter({ hasText: text.food })).toBeVisible();
@@ -28,7 +35,6 @@ for (const locale of ["en", "uk"] as const) {
     await expect(page).toHaveURL(new RegExp(`/${locale}/categories$`));
     await expect(page.getByRole("heading", { level: 1, name: text.categories })).toBeVisible();
 
-    // The defaults show translated
     const expenses = page.getByRole("region", { name: text.expenseCategories });
     const income = page.getByRole("region", { name: text.incomeCategories });
     await expect(expenses.getByRole("listitem").first()).toHaveText(new RegExp(`^${text.food}`));
@@ -38,45 +44,54 @@ for (const locale of ["en", "uk"] as const) {
     await expect(income.getByRole("listitem").first()).toHaveText(new RegExp(`^${text.salary}`));
     await expectNoViolations(page);
 
-    // Create, then a duplicate regardless of case is a field error
-    await field(expenses, text.newExpense).fill("Coffee");
-    await expenses.getByRole("button", { name: text.add, exact: true }).click();
-    await expect(expenses.getByText(text.added)).toBeVisible();
+    const addButton = expenses.getByRole("button", { name: text.addExpense });
+    const addCategorySheet = page.getByRole("dialog", { name: text.newExpense });
+    const nameField = field(addCategorySheet, text.categoryName);
+    await addButton.click();
+    await expect(nameField).toBeFocused();
+    await nameField.fill("Coffee");
+    await addCategorySheet.getByRole("button", { name: text.add, exact: true }).click();
+    await expect(addCategorySheet).toHaveCount(0);
+    await expect(notifications(page, locale).getByText(text.added)).toBeVisible();
     await expect(expenses.getByRole("listitem").filter({ hasText: "Coffee" })).toBeVisible();
+    await expect(addButton).toBeFocused();
 
-    await field(expenses, text.newExpense).fill("coffee");
-    await expenses.getByRole("button", { name: text.add, exact: true }).click();
-    await expect(field(expenses, text.newExpense)).toHaveAccessibleDescription(text.nameTaken);
-    await expect(field(expenses, text.newExpense)).toHaveAttribute("aria-invalid", "true");
-    await expect(expenses.getByRole("listitem").filter({ hasText: /coffee/i })).toHaveCount(1);
+    await addButton.click();
+    await nameField.fill("coffee");
+    await addCategorySheet.getByRole("button", { name: text.add, exact: true }).click();
+    await expect(nameField).toHaveAccessibleDescription(text.nameTaken);
+    await expect(nameField).toHaveAttribute("aria-invalid", "true");
     await expectNoViolations(page);
+    await page.keyboard.press("Escape");
+    await expect(addCategorySheet).toHaveCount(0);
+    await expect(expenses.getByRole("listitem").filter({ hasText: /coffee/i })).toHaveCount(1);
 
-    // Rename a default, then a duplicate on rename is a field error too
-    await expenses.getByRole("button", { name: `${text.rename} ${text.food}` }).click();
-    const renameField = expenses.getByRole("textbox", { name: new RegExp(text.food) });
+    const renameName = `${text.rename} ${text.food}`;
+    await expenses.getByRole("button", { name: renameName }).click();
+    const renameSheet = page.getByRole("dialog", { name: renameName });
+    const renameField = field(renameSheet, text.categoryName);
     await expect(renameField).toBeFocused();
     await renameField.fill("coffee");
-    await expenses.getByRole("button", { name: text.save }).click();
+    await renameSheet.getByRole("button", { name: text.save }).click();
     await expect(renameField).toHaveAccessibleDescription(text.nameTaken);
     await expectNoViolations(page);
 
     await renameField.fill("Groceries");
-    await expenses.getByRole("button", { name: text.save }).click();
+    await renameSheet.getByRole("button", { name: text.save }).click();
+    await expect(renameSheet).toHaveCount(0);
     await expect(expenses.getByRole("button", { name: `${text.rename} Groceries` })).toBeFocused();
     await expect(expenses.getByRole("listitem").filter({ hasText: text.food })).toHaveCount(0);
 
-    // The add form, opened on this screen, offers the new names
-    // The navigation's Add: the empty list has one too
+    // The empty list has an Add button too
     await page.locator("header, nav").getByRole("button", { name: text.addTransaction }).click();
     const addSheet = page.getByRole("dialog", { name: text.addTransaction });
-    const picker = addSheet.getByLabel(text.category, { exact: true });
-    await expect(picker.getByRole("option", { name: "Coffee" })).toHaveCount(1);
-    await expect(picker.getByRole("option", { name: "Groceries" })).toHaveCount(1);
-    await expect(picker.getByRole("option", { name: text.food })).toHaveCount(0);
+    const picker = addSheet.getByRole("radiogroup", { name: text.category, exact: true });
+    await expect(picker.getByRole("radio", { name: "Coffee", exact: true })).toHaveCount(1);
+    await expect(picker.getByRole("radio", { name: "Groceries", exact: true })).toHaveCount(1);
+    await expect(picker.getByRole("radio", { name: text.food, exact: true })).toHaveCount(0);
     await page.keyboard.press("Escape");
     await expect(addSheet).toHaveCount(0);
 
-    // The old expense shows the new name
     await page.getByRole("link", { name: text.transactions, exact: true }).click();
     await expect(page).toHaveURL(new RegExp(`/${locale}/transactions$`));
     await expect(page.getByRole("listitem").filter({ hasText: "Groceries" })).toBeVisible();
@@ -88,8 +103,9 @@ test("a renamed default keeps its name in the other language", async ({ page }, 
   await page.goto("/en/categories");
   const expenses = page.getByRole("region", { name: TEXTS.en.expenseCategories });
   await expenses.getByRole("button", { name: "Rename Food" }).click();
-  await expenses.getByRole("textbox", { name: /Food/ }).fill("Groceries");
-  await expenses.getByRole("button", { name: TEXTS.en.save }).click();
+  const sheet = page.getByRole("dialog", { name: "Rename Food" });
+  await field(sheet, TEXTS.en.categoryName).fill("Groceries");
+  await sheet.getByRole("button", { name: TEXTS.en.save }).click();
   await expect(expenses.getByRole("button", { name: "Rename Groceries" })).toBeVisible();
 
   await page.goto("/uk/categories");
@@ -98,13 +114,72 @@ test("a renamed default keeps its name in the other language", async ({ page }, 
   await expect(ukExpenses.getByRole("listitem").nth(1)).toHaveText(/^Транспорт/);
 });
 
+test("an own category gets an icon, and deleting a category moves its transactions to Other", async ({
+  page,
+}, testInfo) => {
+  const text = TEXTS.en;
+  await signUpAndIn(page, "en", testInfo);
+  await page.goto("/en/categories");
+  const expenses = page.getByRole("region", { name: text.expenseCategories });
+
+  await expenses.getByRole("button", { name: text.addExpense }).click();
+  const addCategorySheet = page.getByRole("dialog", { name: text.newExpense });
+  await field(addCategorySheet, text.categoryName).fill("Latte");
+  // The radio is visually hidden: a user taps the tile
+  await addCategorySheet
+    .locator("label")
+    .filter({ has: page.getByRole("radio", { name: "Coffee", exact: true }) })
+    .click();
+  await expect(addCategorySheet.getByRole("radio", { name: "Coffee", exact: true })).toBeChecked();
+  await addCategorySheet.getByRole("button", { name: text.add, exact: true }).click();
+  await expect(notifications(page, "en").getByText(text.added)).toBeVisible();
+  await expenses.getByRole("button", { name: "Edit Latte" }).click();
+  const editSheet = page.getByRole("dialog", { name: "Edit Latte" });
+  await expect(editSheet.getByRole("radio", { name: "Coffee", exact: true })).toBeChecked();
+  await expectNoViolations(page);
+  await page.keyboard.press("Escape");
+  await expect(editSheet).toHaveCount(0);
+
+  await page.locator("header, nav").getByRole("button", { name: text.addTransaction }).click();
+  const sheet = page.getByRole("dialog", { name: text.addTransaction });
+  await field(page, text.amount).fill("42");
+  await pickCategory(sheet, "Latte");
+  await sheet.getByRole("button", { name: text.add, exact: true }).click();
+  await expect(sheet).toHaveCount(0);
+
+  await expenses.getByRole("button", { name: "Delete Latte" }).click();
+  const dialog = page.getByRole("alertdialog", { name: "Delete “Latte”?" });
+  await expect(dialog).toHaveAccessibleDescription(
+    "Its 1 transaction moves to “Other”. This can't be undone.",
+  );
+  await expectNoViolations(page);
+  await dialog.getByRole("button", { name: text.del }).click();
+  await expect(notifications(page, "en").getByText("Category deleted.")).toBeVisible();
+  await expect(expenses.getByRole("listitem").filter({ hasText: "Latte" })).toHaveCount(0);
+  await expect(expenses.getByRole("heading", { name: text.expenseCategories })).toBeFocused();
+
+  // Other now holds the transaction, so it can't be deleted
+  await expenses.getByRole("button", { name: "Delete Other" }).click();
+  const blocked = page.getByRole("alertdialog", { name: "“Other” can't be deleted" });
+  await expect(blocked.getByRole("button", { name: text.del })).toHaveCount(0);
+  await blocked.getByRole("button", { name: "Close" }).click();
+
+  await page.getByRole("link", { name: text.transactions, exact: true }).click();
+  await expect(page).toHaveURL(/\/en\/transactions$/);
+  await expect(
+    page.getByRole("listitem").filter({ hasText: "Other" }).filter({ hasText: "42" }),
+  ).toBeVisible();
+});
+
 test("the categories page fits a small screen", async ({ page }, testInfo) => {
   await signUpAndIn(page, "uk", testInfo);
   await page.goto("/uk/categories");
   const expenses = page.getByRole("region", { name: TEXTS.uk.expenseCategories });
-  await field(expenses, TEXTS.uk.newExpense).fill("Дуже довга назва категорії витрат: сорок");
-  await expenses.getByRole("button", { name: TEXTS.uk.add, exact: true }).click();
-  await expect(expenses.getByText(TEXTS.uk.added)).toBeVisible();
+  await expenses.getByRole("button", { name: TEXTS.uk.addExpense }).click();
+  const sheet = page.getByRole("dialog", { name: TEXTS.uk.newExpense });
+  await field(sheet, TEXTS.uk.categoryName).fill("Дуже довга назва категорії витрат: сорок");
+  await sheet.getByRole("button", { name: TEXTS.uk.add, exact: true }).click();
+  await expect(notifications(page, "uk").getByText(TEXTS.uk.added)).toBeVisible();
 
   const overflow = await page.evaluate(
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,

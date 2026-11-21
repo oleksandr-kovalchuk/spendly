@@ -29,6 +29,27 @@
       "when": 1795171444852,
       "tag": "0003_category_names",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1795257885035,
+      "tag": "0004_email_outbox",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1795268550333,
+      "tag": "0005_category_icons",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1795276544120,
+      "tag": "0006_transactions_user_category_index",
+      "breakpoints": true
     }
   ]
 }

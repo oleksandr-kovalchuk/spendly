@@ -16,10 +16,10 @@ const RANGE = { from: "2026-03-01", to: "2026-03-31" };
 async function signedIn() {
   const { id, cookie } = await createUser();
   requestHeaders.current = new Headers({ cookie });
-  const categories = await listCategories(id);
+  const categories = await listCategories();
   const food = categories.find((c) => c.defaultKey === "food" && c.type === "expense");
   if (!food) throw new Error("Default categories are missing");
-  return { id, categoryId: food.id };
+  return { id, cookie, categoryId: food.id };
 }
 
 beforeEach(() => {
@@ -28,7 +28,7 @@ beforeEach(() => {
 
 describe("addTransaction", () => {
   test("stores the amount in kopecks and an empty note as none", async () => {
-    const { id, categoryId } = await signedIn();
+    const { categoryId } = await signedIn();
 
     const result = await addTransaction({
       amount: "125,50",
@@ -39,7 +39,7 @@ describe("addTransaction", () => {
 
     expect(result.serverError).toBeUndefined();
     expect(result.validationErrors).toBeUndefined();
-    const [stored] = await listTransactions(id, RANGE);
+    const [stored] = await listTransactions(RANGE);
     expect(stored).toMatchObject({ amountKopecks: 12_550, note: null, type: "expense" });
   });
 
@@ -49,12 +49,12 @@ describe("addTransaction", () => {
     ["0", "amountInvalid"],
     ["1000000000", "amountTooLarge"],
   ])("rejects the amount %j", async (amount, code) => {
-    const { id, categoryId } = await signedIn();
+    const { categoryId } = await signedIn();
 
     const result = await addTransaction({ amount, categoryId, date: "2026-03-10", note: "" });
 
     expect(result.validationErrors?.amount?._errors).toEqual([code]);
-    expect(await listTransactions(id, RANGE)).toEqual([]);
+    expect(await listTransactions(RANGE)).toEqual([]);
   });
 
   test("rejects an impossible date and a note over 200 characters", async () => {
@@ -83,8 +83,10 @@ describe("addTransaction", () => {
     });
 
     expect(result.serverError).toBe("categoryNotFound");
-    expect(await listTransactions(other.id, RANGE)).toEqual([]);
-    expect(await listTransactions(owner.id, RANGE)).toEqual([]);
+    requestHeaders.current = new Headers({ cookie: other.cookie });
+    expect(await listTransactions(RANGE)).toEqual([]);
+    requestHeaders.current = new Headers({ cookie: owner.cookie });
+    expect(await listTransactions(RANGE)).toEqual([]);
   });
 
   test("rejects a request without a session", async () => {
