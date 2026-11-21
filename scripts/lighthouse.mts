@@ -11,14 +11,16 @@ import { join } from "node:path";
 import { chromium, type BrowserContext } from "@playwright/test";
 import { z } from "zod";
 
-// The same port as Playwright's server, which BETTER_AUTH_URL names in CI
+// The same port as Playwright's server, which BETTER_AUTH_URL names in CI.
+// A standalone script: the app's env module needs the secrets it doesn't use
 // oxlint-disable-next-line node/no-process-env
-const PORT = Number(process.env.PORT ?? 3210);
+const PORT = z.coerce.number().int().positive().default(3210).parse(process.env.PORT);
 const BASE_URL = `http://localhost:${PORT}`;
 const PUBLIC_PATHS = ["/en/sign-in", "/en/sign-up"];
 const SIGNED_IN_PATHS = ["/en", "/en/transactions", "/en/categories"];
 const PASSWORD = "correct horse battery";
 const SERVER_START_TIMEOUT_MS = 60_000;
+const REQUEST_TIMEOUT_MS = 10_000;
 const DEBUGGING_PORT_TIMEOUT_MS = 10_000;
 const POLL_INTERVAL_MS = 500;
 // Where `lhci collect` saves its reports
@@ -35,7 +37,9 @@ async function waitForServer() {
   const deadline = Date.now() + SERVER_START_TIMEOUT_MS;
   while (Date.now() < deadline) {
     if (server.exitCode !== null) throw new Error(`The server exited with ${server.exitCode}`);
-    const isUp = await fetch(`${BASE_URL}/en/sign-in`).then(
+    const isUp = await fetch(`${BASE_URL}/en/sign-in`, {
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    }).then(
       (response) => response.ok,
       () => false,
     );
