@@ -149,7 +149,7 @@ function TransactionFormFields({ categories, today, transaction, onSaved }: Tran
               type="text"
               inputMode="decimal"
               autoComplete="off"
-              placeholder="0.00"
+              placeholder={t("form.amountPlaceholder")}
               {...controlProps}
               {...form.register("amount")}
             />

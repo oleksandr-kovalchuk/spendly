@@ -5,7 +5,7 @@ import { useFormatter, useTranslations } from "next-intl";
 import { useQueryStates } from "nuqs";
 import { useState } from "react";
 
-import { utcDateOf } from "@/shared/lib/utc-date";
+import { DAY_TIME_ZONE, utcDateOf } from "@/shared/lib/utc-date";
 import { Button } from "@/shared/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/shared/ui/popover";
 
@@ -22,8 +22,6 @@ import {
 import { periodSearchParsers } from "./period-search";
 
 // Days have no time zone: they are formatted on the UTC calendar they are written on
-const FORMAT_TIME_ZONE = "UTC";
-
 function usePeriodLabel(period: Period) {
   const format = useFormatter();
   const from = utcDateOf(period.from);
@@ -31,7 +29,7 @@ function usePeriodLabel(period: Period) {
   switch (period.type) {
     case "day":
       return format.dateTime(from, {
-        timeZone: FORMAT_TIME_ZONE,
+        timeZone: DAY_TIME_ZONE,
         weekday: "long",
         day: "numeric",
         month: "long",
@@ -39,15 +37,15 @@ function usePeriodLabel(period: Period) {
       });
     case "week":
       return format.dateTimeRange(from, utcDateOf(period.to), {
-        timeZone: FORMAT_TIME_ZONE,
+        timeZone: DAY_TIME_ZONE,
         day: "numeric",
         month: "long",
         year: "numeric",
       });
     case "month":
-      return format.dateTime(from, { timeZone: FORMAT_TIME_ZONE, month: "long", year: "numeric" });
+      return format.dateTime(from, { timeZone: DAY_TIME_ZONE, month: "long", year: "numeric" });
     case "year":
-      return format.dateTime(from, { timeZone: FORMAT_TIME_ZONE, year: "numeric" });
+      return format.dateTime(from, { timeZone: DAY_TIME_ZONE, year: "numeric" });
     default:
       throw new Error("Unhandled period type", { cause: period.type satisfies never });
   }

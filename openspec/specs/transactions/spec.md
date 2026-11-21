@@ -61,7 +61,7 @@ The Transactions screen SHALL list the user's transactions grouped by day, newes
 #### Scenario: Item
 
 - **WHEN** the list shows a transaction
-- **THEN** it shows the category, the note, and the amount with a plus sign for income and a minus sign for expenses, and the whole item opens its edit form
+- **THEN** it shows the category with its icon and color, the note, and the amount with a plus sign for income and a minus sign for expenses, and the whole item opens its edit form
 
 #### Scenario: Empty
 
@@ -109,3 +109,22 @@ Adding and editing SHALL happen in one form that opens over the current screen: 
 
 - **WHEN** the user opens the home page URL with a transaction to edit
 - **THEN** the Transactions screen opens with that transaction's form open and the same period
+
+### Requirement: Form controls
+
+The transaction form SHALL pick the date from a calendar opened by a button that shows the chosen day, and the category from tiles showing each category's icon and name, one tap per pick.
+
+#### Scenario: Pick a date
+
+- **WHEN** the user opens the date button and picks 7 March 2026
+- **THEN** the calendar closes and the button shows 7 March 2026 in the current language
+
+#### Scenario: Pick a category
+
+- **WHEN** the user taps the Transport tile
+- **THEN** Transport is chosen, its tile marked by a ring and bold text, not by color alone
+
+#### Scenario: Keyboard
+
+- **WHEN** a keyboard user reaches the date button and the category tiles
+- **THEN** the calendar opens and its days are reachable with the arrow keys, and the tiles work as one radio group

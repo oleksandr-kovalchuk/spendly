@@ -3,7 +3,7 @@ import { useFormatter, useLocale, useTranslations } from "next-intl";
 import Link from "next/link";
 import { useId } from "react";
 
-import { utcDateOf } from "@/shared/lib/utc-date";
+import { DAY_TIME_ZONE, utcDateOf } from "@/shared/lib/utc-date";
 import { CategoryIcon } from "@/shared/categories/category-icon";
 import { categoryLabel } from "@/shared/categories/category-label";
 import { hryvniasOf, MONEY_FORMAT } from "@/shared/lib/money";
@@ -49,7 +49,7 @@ export function LatestTransactions({ transactions, periodQuery }: LatestTransact
               const isIncome = transaction.type === "income";
               // A day has no time zone: it is shown on the UTC calendar it was written on
               const day = format.dateTime(utcDateOf(transaction.occurredOn), {
-                timeZone: "UTC",
+                timeZone: DAY_TIME_ZONE,
                 day: "numeric",
                 month: "long",
               });

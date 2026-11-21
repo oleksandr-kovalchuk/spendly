@@ -1,6 +1,7 @@
 import { getFormatter, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 
+import { DAY_TIME_ZONE } from "@/shared/lib/utc-date";
 import { PageHeading } from "@/shared/ui/page-heading";
 
 const CONTACT_EMAIL = "kov280396@gmail.com";
@@ -48,7 +49,7 @@ export async function PrivacyPage() {
         <PageHeading>{t("title")}</PageHeading>
         <p className="text-sm text-muted-foreground">
           {t("updated", {
-            date: format.dateTime(UPDATED_ON, { dateStyle: "long", timeZone: "UTC" }),
+            date: format.dateTime(UPDATED_ON, { dateStyle: "long", timeZone: DAY_TIME_ZONE }),
           })}
         </p>
       </header>

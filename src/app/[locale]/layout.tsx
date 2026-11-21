@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { locale } from "next/root-params";
 import "../globals.css";
 
+import { CLIENT_NAMESPACES } from "@/i18n/client-namespaces";
 import { routing } from "@/i18n/routing";
 import { APP_NAME } from "@/shared/lib/page-title";
 import { SITE_URL } from "@/shared/lib/site-url";
@@ -51,17 +52,10 @@ export default async function RootLayout({ children }: LayoutProps<"/[locale]">)
   if (!hasLocale(routing.locales, current)) notFound();
 
   const t = await getTranslations("Layout");
-  const {
-    Header: header,
-    Auth: auth,
-    Error: error,
-    Categories: categories,
-    Transactions: transactions,
-    Periods: periods,
-    DataReset: dataReset,
-    Toast: toast,
-    Sheet: sheet,
-  } = await getMessages();
+  const messages = await getMessages();
+  const clientMessages = Object.fromEntries(
+    CLIENT_NAMESPACES.map((namespace) => [namespace, messages[namespace]]),
+  );
 
   return (
     // The theme script of next-themes sets the class before hydration;
@@ -72,19 +66,7 @@ export default async function RootLayout({ children }: LayoutProps<"/[locale]">)
       suppressHydrationWarning
     >
       <body className="flex min-h-full flex-col">
-        <NextIntlClientProvider
-          messages={{
-            Header: header,
-            Auth: auth,
-            Error: error,
-            Categories: categories,
-            Transactions: transactions,
-            Periods: periods,
-            DataReset: dataReset,
-            Toast: toast,
-            Sheet: sheet,
-          }}
-        >
+        <NextIntlClientProvider messages={clientMessages}>
           <AppProviders>
             <a
               href="#main-content"

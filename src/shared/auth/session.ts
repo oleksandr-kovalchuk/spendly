@@ -3,6 +3,7 @@ import "server-only";
 import { getLocale } from "next-intl/server";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import { cache } from "react";
 
 import { auth } from "./auth";
@@ -10,6 +11,7 @@ import { auth } from "./auth";
 export type CurrentUser = { id: string; email: string };
 
 export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
+  await connection();
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) return null;
 

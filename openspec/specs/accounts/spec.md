@@ -55,7 +55,7 @@ A signed-in user SHALL sign out from any page, which ends the session on that de
 
 ### Requirement: Private pages
 
-Pages and actions with user data SHALL require a session; the sign-in and sign-up pages SHALL send a signed-in user to the main page.
+Pages and actions with user data SHALL require a session; the sign-in, sign-up and forgot-password pages SHALL send a signed-in user to the main page.
 
 #### Scenario: Signed out
 
@@ -69,5 +69,93 @@ Pages and actions with user data SHALL require a session; the sign-in and sign-u
 
 #### Scenario: Signed in
 
-- **WHEN** a signed-in user opens the sign-in page
+- **WHEN** a signed-in user opens the sign-in or forgot-password page
 - **THEN** the main page opens
+
+### Requirement: Sign in with Google
+
+A visitor SHALL sign up or sign in with a Google account from the sign-in and sign-up pages; the first Google sign-in creates the account.
+
+#### Scenario: First Google sign-in
+
+- **WHEN** a visitor whose Google email has no account continues with Google and allows access
+- **THEN** an account with the default categories is created and the main page opens signed in
+
+#### Scenario: Returning Google user
+
+- **WHEN** a user who signed up with Google continues with Google again
+- **THEN** the main page opens signed in to the same account
+
+#### Scenario: Email has a password account
+
+- **WHEN** a visitor continues with Google using an email that already has a password account
+- **THEN** the sign-in page opens with a message to sign in with the password, and the visitor stays signed out
+
+#### Scenario: Cancelled at Google
+
+- **WHEN** the visitor cancels on Google's page
+- **THEN** the sign-in page opens, signed out, without an error message
+
+#### Scenario: Google not configured
+
+- **GIVEN** the environment has no Google keys
+- **WHEN** a visitor opens the sign-in or sign-up page
+- **THEN** no Google button shows
+
+#### Scenario: Too many attempts
+
+- **WHEN** one IP makes more than 10 sign-in or sign-up attempts in a minute, Google ones included
+- **THEN** further attempts are refused with a message to try again later
+
+### Requirement: Request a password reset
+
+A visitor SHALL request a password reset link by email from the sign-in page; the response SHALL be the same whether or not the email has a password account.
+
+#### Scenario: Password account
+
+- **WHEN** a visitor requests a reset for an email with a password account
+- **THEN** a message says a link was sent if the account exists, and the email receives a link, valid for one hour, in the language of the page
+
+#### Scenario: Unknown email
+
+- **WHEN** a visitor requests a reset for an email without an account
+- **THEN** they see the same message, and no email is sent
+
+#### Scenario: Google-only account
+
+- **WHEN** a visitor requests a reset for an email whose account has only Google sign-in
+- **THEN** they see the same message, and no email is sent
+
+#### Scenario: Invalid email
+
+- **WHEN** the email is malformed
+- **THEN** an error shows next to the field, and no email is sent
+
+#### Scenario: Too many requests from one IP
+
+- **WHEN** one IP makes more than 3 reset requests in a minute
+- **THEN** further requests are refused with a message to try again later
+
+#### Scenario: Too many emails to one account
+
+- **WHEN** an account has already been sent 3 reset emails in the last hour
+- **THEN** a new request shows the same message, and no email is sent
+
+### Requirement: Reset the password
+
+A user SHALL set a new password of 8 to 128 characters through a valid reset link; the reset SHALL end every session of the account.
+
+#### Scenario: Valid link
+
+- **WHEN** the user opens the link and submits a valid new password
+- **THEN** the sign-in page opens with a message to sign in with the new password, the old password no longer works, and the account is signed out on every device
+
+#### Scenario: Used or expired link
+
+- **WHEN** the user opens a link that was already used or is more than one hour old
+- **THEN** a message says the link is invalid or expired, with a link to request a new one, and the password is unchanged
+
+#### Scenario: Invalid password
+
+- **WHEN** the new password is shorter than 8 characters
+- **THEN** an error shows next to the field, and the password is unchanged

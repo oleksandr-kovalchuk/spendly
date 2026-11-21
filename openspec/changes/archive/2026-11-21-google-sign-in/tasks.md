@@ -12,5 +12,5 @@
 ## 2. Environments
 
 - [x] 2.1 Add the production origin and redirect URI to the Google OAuth client; verify they're listed under Clients
-- [ ] 2.2 Set `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` in Vercel for Production only, not Preview; verify Google sign-in in production after the deploy
-- [ ] 2.3 Publish the consent screen (Audience → Publish app); verify a Google account not in the test users can sign in
+- [x] 2.2 Set `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` in Vercel for Production only, not Preview; verify Google sign-in in production after the deploy
+- [x] 2.3 Publish the consent screen (Audience → Publish app); verify a Google account not in the test users can sign in

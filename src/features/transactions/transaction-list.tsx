@@ -3,7 +3,7 @@ import { useFormatter, useLocale, useTranslations } from "next-intl";
 import Link from "next/link";
 import { ViewTransition, type ReactNode } from "react";
 
-import { utcDateOf } from "@/shared/lib/utc-date";
+import { DAY_TIME_ZONE, utcDateOf } from "@/shared/lib/utc-date";
 import { CategoryIcon } from "@/shared/categories/category-icon";
 import { categoryLabel } from "@/shared/categories/category-label";
 import { hryvniasOf, MONEY_FORMAT } from "@/shared/lib/money";
@@ -52,7 +52,7 @@ export function TransactionList({ groups, periodQuery, emptyAction }: Transactio
               {/* A day has no time zone: it is shown on the UTC calendar it was written on */}
               <time dateTime={group.date}>
                 {format.dateTime(utcDateOf(group.date), {
-                  timeZone: "UTC",
+                  timeZone: DAY_TIME_ZONE,
                   weekday: "long",
                   day: "numeric",
                   month: "long",

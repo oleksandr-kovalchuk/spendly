@@ -54,8 +54,9 @@ test("a short password shows its error, and a long one is rejected as well", asy
   expect(await screen.findByText("The password must have at least 8 characters.")).toBeVisible();
   expect(signUp).not.toHaveBeenCalled();
 
+  // clear() leaves the focus in the field; typing 129 keys one by one takes seconds
   await user.clear(screen.getByLabelText("Password"));
-  await user.type(screen.getByLabelText("Password"), "a".repeat(129));
+  await user.paste("a".repeat(129));
   await user.click(screen.getByRole("button", { name: "Sign up" }));
 
   expect(await screen.findByText("The password must have at most 128 characters.")).toBeVisible();

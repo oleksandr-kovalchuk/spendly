@@ -14,17 +14,24 @@ async function loadAuthWithoutGoogle() {
   return import("./auth");
 }
 
-test("without Google keys, Google sign-in is off and its route refuses to start", async () => {
-  const { auth, isGoogleSignInEnabled } = await loadAuthWithoutGoogle();
+// A fresh import of the auth module and its dependencies takes about 5 s under the full suite
+test(
+  "without Google keys, Google sign-in is off and its route refuses to start",
+  {
+    timeout: 20_000,
+  },
+  async () => {
+    const { auth, isGoogleSignInEnabled } = await loadAuthWithoutGoogle();
 
-  const response = await auth.handler(
-    new Request(`${ORIGIN}/api/auth/sign-in/social`, {
-      method: "POST",
-      headers: { "content-type": "application/json", origin: ORIGIN, "x-real-ip": "10.0.0.1" },
-      body: JSON.stringify({ provider: "google", callbackURL: "/en" }),
-    }),
-  );
+    const response = await auth.handler(
+      new Request(`${ORIGIN}/api/auth/sign-in/social`, {
+        method: "POST",
+        headers: { "content-type": "application/json", origin: ORIGIN, "x-real-ip": "10.0.0.1" },
+        body: JSON.stringify({ provider: "google", callbackURL: "/en" }),
+      }),
+    );
 
-  expect(isGoogleSignInEnabled).toBe(false);
-  expect(response.status).toBe(404);
-});
+    expect(isGoogleSignInEnabled).toBe(false);
+    expect(response.status).toBe(404);
+  },
+);
