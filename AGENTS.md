@@ -34,20 +34,17 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 ### Known pitfalls
 
-- `notFound()` in a dynamic route (Cache Components) runs after the 200 shell streams: the 404 page renders but the status stays 200; E2E checks the 404 content and `noindex`, not the status. Only the prerendered `[locale]/[...rest]` route returns a real 404 (decision 0005)
+- `notFound()` in a dynamic route streams the 404 page with status 200: E2E checks its content and `noindex`; only `[locale]/[...rest]` returns a real 404 (decision 0005)
 - `meta[name="robots"]` is in the DOM twice (head and streamed body): select `head meta[name="robots"]`
-- axe reads mid-animation colors (an opening dialog, a submit button re-enabled after its request): await `document.getAnimations()` finishing first; don't exclude the dialog
-- AA contrast fails for `text-muted-foreground` on `bg-muted` (4.34:1) and tinted `bg-destructive/10 text-destructive` (3.82:1): use solid tokens (a ring instead of `bg-muted`, `bg-destructive text-destructive-foreground`), check light and dark
-- A button that becomes `disabled` when pressed (a "current period" button, an arrow at a bound) drops keyboard focus to `<body>`: give it `focusableWhenDisabled` (renders `aria-disabled`), assert `aria-disabled` in tests
-- "Today" uses UTC until `TimeZoneSync` sets the time zone cookie after the first load and refreshes: anything defaulting to today needs `today` in its `key` to reset
-- `shadcn add` writes faint focus rings (`ring-ring/50`, `focus-visible:ring-destructive/20`, and `aria-invalid:ring-destructive/20`, which hides focus on an invalid field): use the solid `ring`, add `aria-invalid:focus-visible:ring-ring` (and its `dark:` twin), and Tab to the new component in both themes
-- Chromium tabs into Recharts' SVG layers even with `accessibilityLayer={false}`, and axe can't see it: a decorative chart whose data is shown as text goes in an `inert` wrapper; check the Tab order through the chart
-- With a fully static shell, browsers get the 404 page without its title (Next drops the not-found metadata): the signed-out top bar keeps a runtime part (`SessionSignOut`); check the title with the E2E test, since a bare Playwright script (headless user agent) never sees it, even when it works
-- Next keeps a visited screen mounted but hidden (`Activity`), so a CSS locator (`[aria-live]`, `h2 time`) can match the hidden screen too: use role locators, which skip hidden elements, or `.filter({ visible: true })`; nav `li`s count as `listitem`s, so wait for a specific item
-- Next's `useSearchParams` changes only when the server render a nuqs `shallow: false` update starts has finished (about 1 s), while nuqs shows the new value at once: code that copies URL state nuqs writes (the nav's period links) reads it with a nuqs hook, or a quick tap uses the old value
-- `global-error.tsx` ships on every route: importing `shared/ui/button` there adds a second Base UI copy (~15 KB gzip) once the root layout has no Button; it uses a native `button`
-- React animates a `ViewTransition`'s `enter`/`exit` only with no DOM node between it and the inserted or removed subtree: wrap every level that can appear or disappear (a day group, not only its items) and keep the container mounted when a list empties; check that `document.startViewTransition` runs for the first and the last item
-- `getLocale()` from `next-intl/server` throws inside a Server Action (it reads root params): pass the locale in the action's input, validated against `routing.locales`
+- AA contrast fails for `text-muted-foreground` on `bg-muted` and for `bg-destructive/10 text-destructive`: use solid tokens (a ring, `bg-destructive`), check both themes
+- A button that turns `disabled` when pressed drops focus to `<body>`: give it `focusableWhenDisabled` (renders `aria-disabled`) and assert `aria-disabled` in tests
+- "Today" is UTC until `TimeZoneSync` sets its cookie and refreshes: anything defaulting to today needs `today` in its `key`
+- `shadcn add` writes faint focus rings (`ring-ring/50`, `ring-destructive/20`): use the solid `ring`, add `aria-invalid:focus-visible:ring-ring` (and `dark:`), Tab to it in both themes
+- Next keeps a visited screen mounted but hidden (`Activity`): use role locators or `.filter({ visible: true })`, not CSS ones; nav items are `listitem`s too, so wait for a specific one
+- nuqs shows a `shallow: false` update at once, Next's `useSearchParams` only after its server render (~1 s): code copying URL state nuqs writes reads it with a nuqs hook
+- A `ViewTransition` animates `enter`/`exit` only with no DOM node between it and the changed subtree: wrap every level that can appear, keep a list's container mounted when empty
+- A dialog closed apart from its Server Action's refresh can make React skip the refresh's view transition (Base UI flushes the close): close it in the action's transition
+- `getLocale()` from `next-intl/server` throws inside a Server Action: pass the locale in the action's input, validated against `routing.locales`
 - Browser code importing `@/shared/db/app-schema` ships the ORM (~30 KB): put constants the browser needs in `@/shared/db/app-constants`
 - Browser code uses `zod/mini`, not `zod`: the full build adds ~15 KB and its JIT probe sends a CSP report (decision 0007)
-- A Server Action that deletes what the current URL names (`?edit=`) must not `refresh()`: the refresh renders that URL, which calls `notFound()`; `redirect(url, RedirectType.replace)` to the list instead, since a Server Action's `redirect()` pushes and Back would reopen the deleted item's URL (a unit test can't see this: outside a request it defaults to replace)
+- A Server Action deleting what the URL names (`?edit=`) must not `refresh()` (that renders `notFound()`): `redirect(url, RedirectType.replace)` to the list; a plain one pushes
