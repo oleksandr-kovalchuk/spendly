@@ -86,6 +86,25 @@ test("valid values are sent, and the user moves to sign in with the email", asyn
   expect(push).toHaveBeenCalledWith("/en/sign-in?email=ann%40example.com&registered=1");
 });
 
+test("submit stays disabled, and focusable, until the request ends", async () => {
+  const { promise, resolve } = Promise.withResolvers<object>();
+  signUp.mockReturnValue(promise);
+  const user = renderForm();
+  await fill(user, "ann@example.com", "long-enough-password");
+  await user.click(screen.getByRole("button", { name: "Sign up" }));
+
+  await vi.waitFor(() => {
+    expect(screen.getByRole("button", { name: "Sign up" })).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
+  });
+  resolve({ error: null });
+  await vi.waitFor(() => {
+    expect(push).toHaveBeenCalledOnce();
+  });
+});
+
 test("a server field error is shown next to its field", async () => {
   signUp.mockResolvedValue({ error: { status: 400, code: "INVALID_EMAIL" } });
   const user = renderForm();
@@ -113,4 +132,21 @@ test("the form is in Ukrainian for the uk locale", async () => {
   await user.click(screen.getByRole("button", { name: "Зареєструватися" }));
 
   expect(await screen.findByText(uk.Auth.errors.emailInvalid)).toBeVisible();
+});
+
+test("the password can be shown and hidden again without sending the form", async () => {
+  const user = renderForm();
+  const password = screen.getByLabelText("Password");
+  const toggle = screen.getByRole("button", { name: "Show password" });
+  await user.type(password, "secret");
+
+  await user.click(toggle);
+  expect(password).toHaveAttribute("type", "text");
+  expect(password).toHaveValue("secret");
+  expect(toggle).toHaveAttribute("aria-pressed", "true");
+
+  await user.click(toggle);
+  expect(password).toHaveAttribute("type", "password");
+  expect(toggle).toHaveAttribute("aria-pressed", "false");
+  expect(signUp).not.toHaveBeenCalled();
 });

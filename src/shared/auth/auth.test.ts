@@ -1,10 +1,12 @@
 import { randomUUID } from "node:crypto";
 
-import { eq } from "drizzle-orm";
-import { describe, expect, test } from "vitest";
+import { and, eq, like } from "drizzle-orm";
+import { after } from "next/server";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
+import { categories, emailOutbox, transactions } from "@/shared/db/app-schema";
 import { db } from "@/shared/db/client";
-import { account, session, user } from "@/shared/db/auth-schema";
+import { account, session, user, verification } from "@/shared/db/auth-schema";
 
 import { auth } from "./auth";
 
@@ -47,6 +49,65 @@ function signIn(email: string, password = PASSWORD, headers?: Record<string, str
 
 function usersWithEmail(email: string) {
   return db.select().from(user).where(eq(user.email, email));
+}
+
+const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
+
+function startGoogleSignIn(headers?: Record<string, string>) {
+  return post(
+    "/sign-in/social",
+    { provider: "google", callbackURL: "/en", errorCallbackURL: "/en/sign-in" },
+    headers,
+  );
+}
+
+function base64Url(value: unknown) {
+  return Buffer.from(JSON.stringify(value)).toString("base64url");
+}
+
+// Google's token endpoint answers the code exchange; Better Auth reads the profile from its ID token
+function fakeGoogleTokenEndpoint(profile: { sub: string; email: string }) {
+  const realFetch = globalThis.fetch;
+  const idToken = [
+    base64Url({ alg: "RS256", typ: "JWT" }),
+    base64Url({ ...profile, email_verified: true, name: "Google User" }),
+    "signature",
+  ].join(".");
+  vi.stubGlobal("fetch", (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = input instanceof Request ? input.url : String(input);
+    if (!url.startsWith(GOOGLE_TOKEN_URL)) return realFetch(input, init);
+
+    return Promise.resolve(
+      Response.json({
+        access_token: "access-token",
+        token_type: "Bearer",
+        expires_in: 3600,
+        scope: "openid email profile",
+        id_token: idToken,
+      }),
+    );
+  });
+}
+
+function cookiesOf(response: Response) {
+  return response.headers
+    .getSetCookie()
+    .map((cookie) => cookie.split(";")[0])
+    .join("; ");
+}
+
+// What the browser does: open Google's page, come back to the callback with a code
+async function signInWithGoogle(profile: { sub: string; email: string }) {
+  fakeGoogleTokenEndpoint(profile);
+  const started = await startGoogleSignIn();
+  const { url } = (await started.json()) as { url: string };
+  const state = new URL(url).searchParams.get("state") ?? "";
+
+  return auth.handler(
+    new Request(`${ORIGIN}/api/auth/callback/google?code=google-code&state=${state}`, {
+      headers: { cookie: cookiesOf(started), "x-real-ip": uniqueIp() },
+    }),
+  );
 }
 
 describe("sign up", () => {
@@ -140,10 +201,77 @@ describe("sign in", () => {
   });
 });
 
+describe("Google sign-in", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  test("starts at Google's page with the app's client and callback", async () => {
+    const response = await startGoogleSignIn();
+
+    expect(response.status).toBe(200);
+    const { url } = (await response.json()) as { url: string };
+    const google = new URL(url);
+    expect(google.origin + google.pathname).toBe("https://accounts.google.com/o/oauth2/v2/auth");
+    expect(google.searchParams.get("client_id")).toBe("test-google-client-id");
+    expect(google.searchParams.get("redirect_uri")).toBe(`${ORIGIN}/api/auth/callback/google`);
+  });
+
+  test("the first sign-in creates the account with the default categories and signs in", async () => {
+    const email = uniqueEmail();
+
+    const response = await signInWithGoogle({ sub: randomUUID(), email });
+
+    expect(response.status).toBe(302);
+    expect(response.headers.get("location")).toBe("/en");
+    expect(cookiesOf(response)).toContain("better-auth.session_token=");
+    const [created] = await usersWithEmail(email);
+    expect(created).toBeDefined();
+    const defaults = await db
+      .select()
+      .from(categories)
+      .where(eq(categories.userId, created?.id ?? ""));
+    expect(defaults.length).toBeGreaterThan(0);
+  });
+
+  test("a returning user signs in to the same account", async () => {
+    const profile = { sub: randomUUID(), email: uniqueEmail() };
+    await signInWithGoogle(profile);
+
+    const response = await signInWithGoogle(profile);
+
+    expect(response.headers.get("location")).toBe("/en");
+    expect(cookiesOf(response)).toContain("better-auth.session_token=");
+    expect(await usersWithEmail(profile.email)).toHaveLength(1);
+  });
+
+  // The app doesn't verify emails, so anyone could have signed up with this one
+  test("isn't linked to a password account with the same email", async () => {
+    const email = uniqueEmail();
+    await signUp(email);
+
+    const response = await signInWithGoogle({ sub: randomUUID(), email });
+
+    expect(response.headers.get("location")).toBe("/en/sign-in?error=account_not_linked");
+    expect(cookiesOf(response)).not.toContain("better-auth.session_token=");
+    const [existing] = await usersWithEmail(email);
+    const googleAccounts = await db
+      .select()
+      .from(account)
+      .where(and(eq(account.userId, existing?.id ?? ""), eq(account.providerId, "google")));
+    expect(googleAccounts).toEqual([]);
+  });
+});
+
 describe("rate limit", () => {
   test.each([
     ["sign-in", (ip: string) => signIn(uniqueEmail(), PASSWORD, { "x-real-ip": ip })],
     ["sign-up", (ip: string) => signUp(uniqueEmail(), PASSWORD, { "x-real-ip": ip })],
+    ["Google sign-in", (ip: string) => startGoogleSignIn({ "x-real-ip": ip })],
+    [
+      "account deletion",
+      (ip: string) => post("/delete-user", { password: PASSWORD }, { "x-real-ip": ip }),
+    ],
   ])("refuses the 11th %s attempt from one IP in a minute", async (_name, attempt) => {
     const ip = uniqueIp();
 
@@ -178,5 +306,297 @@ describe("sign out", () => {
 
     expect(response.status).toBe(200);
     expect(await auth.api.getSession({ headers })).toBeNull();
+  });
+});
+
+describe("delete account", () => {
+  const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000;
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  async function signedInWithPassword() {
+    const email = uniqueEmail();
+    await signUp(email);
+    const cookie = (await signIn(email)).headers.get("set-cookie")?.split(";")[0] ?? "";
+    const [created] = await usersWithEmail(email);
+
+    return { id: created?.id ?? "", cookie };
+  }
+
+  async function signedInWithGoogle() {
+    const email = uniqueEmail();
+    const cookie = cookiesOf(await signInWithGoogle({ sub: randomUUID(), email }));
+    const [created] = await usersWithEmail(email);
+
+    return { id: created?.id ?? "", cookie };
+  }
+
+  function deleteAccount(cookie: string, body: Record<string, string> = {}) {
+    return post("/delete-user", body, { cookie });
+  }
+
+  async function codeOf(response: Response) {
+    const body = (await response.json()) as { code?: string };
+    return body.code;
+  }
+
+  async function usersWithId(id: string) {
+    return db.select({ id: user.id }).from(user).where(eq(user.id, id));
+  }
+
+  test("deletes a password account with all its data when the password is right", async () => {
+    const { id, cookie } = await signedInWithPassword();
+    const [category] = await db
+      .select({ id: categories.id })
+      .from(categories)
+      .where(eq(categories.userId, id));
+    await db.insert(transactions).values({
+      userId: id,
+      categoryId: category?.id ?? "",
+      amountKopecks: 100,
+      occurredOn: "2026-11-21",
+    });
+
+    const response = await deleteAccount(cookie, { password: PASSWORD });
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("set-cookie")).toMatch(/better-auth\.session_token=;/);
+    expect(await usersWithId(id)).toEqual([]);
+    expect(await db.select().from(account).where(eq(account.userId, id))).toEqual([]);
+    expect(await db.select().from(session).where(eq(session.userId, id))).toEqual([]);
+    expect(await db.select().from(categories).where(eq(categories.userId, id))).toEqual([]);
+    expect(await db.select().from(transactions).where(eq(transactions.userId, id))).toEqual([]);
+  });
+
+  test("keeps the account when the password is wrong", async () => {
+    const { id, cookie } = await signedInWithPassword();
+
+    const response = await deleteAccount(cookie, { password: "wrong password" });
+
+    expect(response.status).toBe(400);
+    expect(await codeOf(response)).toBe("INVALID_PASSWORD");
+    expect(await usersWithId(id)).toHaveLength(1);
+  });
+
+  // Better Auth alone accepts a session from the last day instead of the password
+  test("a password account needs its password, even right after signing in", async () => {
+    const { id, cookie } = await signedInWithPassword();
+
+    const response = await deleteAccount(cookie);
+
+    expect(response.status).toBe(400);
+    expect(await codeOf(response)).toBe("PASSWORD_REQUIRED");
+    expect(await usersWithId(id)).toHaveLength(1);
+  });
+
+  test("deletes a Google account signed in during the last day", async () => {
+    const { id, cookie } = await signedInWithGoogle();
+
+    const response = await deleteAccount(cookie);
+
+    expect(response.status).toBe(200);
+    expect(await usersWithId(id)).toEqual([]);
+  });
+
+  test("asks a Google account to sign in again when its session is older than a day", async () => {
+    const { id, cookie } = await signedInWithGoogle();
+    await db
+      .update(session)
+      .set({ createdAt: new Date(Date.now() - TWO_DAYS_MS) })
+      .where(eq(session.userId, id));
+
+    const response = await deleteAccount(cookie);
+
+    expect(response.status).toBe(400);
+    expect(await codeOf(response)).toBe("SESSION_EXPIRED");
+    expect(await usersWithId(id)).toHaveLength(1);
+  });
+
+  test("refuses a request without a session", async () => {
+    const response = await deleteAccount("", { password: PASSWORD });
+
+    expect(response.status).toBe(401);
+  });
+});
+
+describe("password reset", () => {
+  const RESET_PAGE = "/uk/reset-password";
+  const NEW_PASSWORD = "a brand new password";
+  const background: Promise<unknown>[] = [];
+
+  beforeEach(() => {
+    // Better Auth hands the email to after(), which Next runs once the response is out
+    vi.mocked(after).mockImplementation((task) => {
+      background.push(typeof task === "function" ? Promise.resolve().then(task) : task);
+    });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  async function requestReset(email: string, headers?: Record<string, string>) {
+    const response = await post(
+      "/request-password-reset",
+      { email, redirectTo: RESET_PAGE },
+      headers,
+    );
+    await Promise.all(background.splice(0));
+    return response;
+  }
+
+  async function userIdOf(email: string) {
+    const [found] = await usersWithEmail(email);
+    if (!found) throw new Error(`No user with ${email}`);
+    return found.id;
+  }
+
+  function outboxOf(userId: string) {
+    return db
+      .select({ kind: emailOutbox.kind, locale: emailOutbox.locale, status: emailOutbox.status })
+      .from(emailOutbox)
+      .where(eq(emailOutbox.userId, userId));
+  }
+
+  // What the emailed link carries; E2E reads it the same way
+  async function resetTokenOf(email: string) {
+    const [row] = await db
+      .select({ identifier: verification.identifier })
+      .from(verification)
+      .where(
+        and(
+          eq(verification.value, await userIdOf(email)),
+          like(verification.identifier, "reset-password:%"),
+        ),
+      );
+    if (!row) throw new Error(`No reset token for ${email}`);
+    return row.identifier.slice("reset-password:".length);
+  }
+
+  function resetPassword(token: string, newPassword = NEW_PASSWORD) {
+    return post("/reset-password", { token, newPassword });
+  }
+
+  describe("request", () => {
+    test("records an email in the page's language for a password account", async () => {
+      const email = uniqueEmail();
+      await signUp(email);
+
+      const response = await requestReset(email);
+
+      expect(response.status).toBe(200);
+      // Tests have no Resend key, so the email stays pending
+      expect(await outboxOf(await userIdOf(email))).toEqual([
+        { kind: "password_reset", locale: "uk", status: "pending" },
+      ]);
+    });
+
+    test("answers the same for an unknown email", async () => {
+      const email = uniqueEmail();
+      await signUp(email);
+
+      const known = await requestReset(email);
+      const unknown = await requestReset(uniqueEmail());
+
+      expect(unknown.status).toBe(known.status);
+      expect(await unknown.json()).toEqual(await known.json());
+    });
+
+    test("sends nothing to a Google-only account", async () => {
+      const email = uniqueEmail();
+      await signInWithGoogle({ sub: randomUUID(), email });
+      vi.unstubAllGlobals();
+
+      expect((await requestReset(email)).status).toBe(200);
+      expect(await outboxOf(await userIdOf(email))).toEqual([]);
+    });
+
+    test("sends an account no more than 3 emails an hour", async () => {
+      const email = uniqueEmail();
+      await signUp(email);
+
+      for (let count = 1; count <= 4; count++) {
+        expect((await requestReset(email)).status).toBe(200);
+      }
+
+      expect(await outboxOf(await userIdOf(email))).toHaveLength(3);
+    });
+
+    test("refuses the 4th request from one IP in a minute", async () => {
+      const ip = uniqueIp();
+
+      for (let count = 1; count <= 3; count++) {
+        expect((await requestReset(uniqueEmail(), { "x-real-ip": ip })).status).toBe(200);
+      }
+
+      expect((await requestReset(uniqueEmail(), { "x-real-ip": ip })).status).toBe(429);
+    });
+  });
+
+  describe("link", () => {
+    test("opens the reset page with the token", async () => {
+      const email = uniqueEmail();
+      await signUp(email);
+      await requestReset(email);
+      const token = await resetTokenOf(email);
+
+      const response = await auth.handler(
+        new Request(`${ORIGIN}/api/auth/reset-password/${token}?callbackURL=${RESET_PAGE}`),
+      );
+
+      expect(response.headers.get("location")).toBe(`${ORIGIN}${RESET_PAGE}?token=${token}`);
+    });
+
+    test("opens the reset page with an error for an unknown token", async () => {
+      const response = await auth.handler(
+        new Request(`${ORIGIN}/api/auth/reset-password/unknown?callbackURL=${RESET_PAGE}`),
+      );
+
+      expect(response.headers.get("location")).toBe(`${ORIGIN}${RESET_PAGE}?error=INVALID_TOKEN`);
+    });
+  });
+
+  describe("new password", () => {
+    test("replaces the old password and ends every session", async () => {
+      const email = uniqueEmail();
+      await signUp(email);
+      const cookie = (await signIn(email)).headers.get("set-cookie")?.split(";")[0] ?? "";
+      await requestReset(email);
+
+      const response = await resetPassword(await resetTokenOf(email));
+
+      expect(response.status).toBe(200);
+      expect((await signIn(email)).status).toBe(401);
+      expect((await signIn(email, NEW_PASSWORD)).status).toBe(200);
+      expect(await auth.api.getSession({ headers: new Headers({ cookie }) })).toBeNull();
+    });
+
+    test("refuses a token that was already used", async () => {
+      const email = uniqueEmail();
+      await signUp(email);
+      await requestReset(email);
+      const token = await resetTokenOf(email);
+      await resetPassword(token);
+
+      const response = await resetPassword(token, "yet another password");
+
+      expect(response.status).toBe(400);
+      expect(await response.json()).toMatchObject({ code: "INVALID_TOKEN" });
+      expect((await signIn(email, NEW_PASSWORD)).status).toBe(200);
+    });
+
+    test("refuses a password shorter than 8 characters and keeps the old one", async () => {
+      const email = uniqueEmail();
+      await signUp(email);
+      await requestReset(email);
+
+      const response = await resetPassword(await resetTokenOf(email), "1234567");
+
+      expect(response.status).toBe(400);
+      expect(await response.json()).toMatchObject({ code: "PASSWORD_TOO_SHORT" });
+      expect((await signIn(email)).status).toBe(200);
+    });
   });
 });

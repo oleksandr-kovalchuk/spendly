@@ -1,12 +1,13 @@
 // @vitest-environment jsdom
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
 import en from "@/i18n/messages/en.json";
 
-import { TransactionForm, type CategoryOption } from "./transaction-form";
+import type { CategoryOption } from "./category-option";
+import { TransactionForm } from "./transaction-form";
 import type { TransactionDto } from "./transactions.dal";
 
 const { addTransaction, updateTransaction } = vi.hoisted(() => ({
@@ -17,15 +18,47 @@ vi.mock("./add-transaction.action", () => ({ addTransaction }));
 vi.mock("./update-transaction.action", () => ({ updateTransaction }));
 
 const CATEGORIES: CategoryOption[] = [
-  { id: "0198a8c0-0000-7000-8000-000000000001", type: "expense", label: "Food" },
-  { id: "0198a8c0-0000-7000-8000-000000000002", type: "expense", label: "Transport" },
-  { id: "0198a8c0-0000-7000-8000-000000000003", type: "income", label: "Salary" },
+  {
+    id: "0198a8c0-0000-7000-8000-000000000001",
+    type: "expense",
+    defaultKey: "food",
+    icon: null,
+    label: "Food",
+  },
+  {
+    id: "0198a8c0-0000-7000-8000-000000000002",
+    type: "expense",
+    defaultKey: "transport",
+    icon: null,
+    label: "Transport",
+  },
+  {
+    id: "0198a8c0-0000-7000-8000-000000000003",
+    type: "income",
+    defaultKey: "salary",
+    icon: null,
+    label: "Salary",
+  },
 ];
 
 beforeEach(() => {
   addTransaction.mockReset();
   updateTransaction.mockReset();
 });
+
+function dateButton() {
+  return screen.getByRole("button", { name: /^Date: / });
+}
+
+function categoryGroup() {
+  return within(screen.getByRole("radiogroup", { name: "Category" }));
+}
+
+function categoryNames() {
+  return categoryGroup()
+    .getAllByRole("radio")
+    .map((radio) => radio.closest("label")?.textContent);
+}
 
 function renderForm(onSaved = vi.fn()) {
   render(
@@ -41,20 +74,53 @@ test("starts as an expense dated today, with the expense categories", () => {
   renderForm();
 
   expect(screen.getByLabelText("Expense")).toBeChecked();
-  expect(screen.getByLabelText("Date")).toHaveValue("2026-03-10");
-  expect(screen.getAllByRole("option").map((option) => option.textContent)).toEqual([
-    "Food",
-    "Transport",
-  ]);
+  expect(dateButton()).toHaveAccessibleName("Date: March 10, 2026");
+  expect(categoryNames()).toEqual(["Food", "Transport"]);
+  expect(categoryGroup().getByRole("radio", { name: "Food" })).toBeChecked();
 });
 
 test("switching to income shows the income categories and selects the first", async () => {
   const user = renderForm();
-  await user.selectOptions(screen.getByLabelText("Category"), "Transport");
+  await user.click(categoryGroup().getByRole("radio", { name: "Transport" }));
   await user.click(screen.getByLabelText("Income"));
 
-  expect(screen.getAllByRole("option").map((option) => option.textContent)).toEqual(["Salary"]);
-  expect(screen.getByLabelText("Category")).toHaveValue(CATEGORIES[2]?.id);
+  expect(categoryNames()).toEqual(["Salary"]);
+  expect(categoryGroup().getByRole("radio", { name: "Salary" })).toBeChecked();
+});
+
+test("a type without categories links to the Categories page and sends nothing", async () => {
+  render(
+    <NextIntlClientProvider locale="en" messages={en}>
+      <TransactionForm
+        categories={CATEGORIES.filter((category) => category.type === "expense")}
+        today="2026-03-10"
+        onSaved={vi.fn()}
+      />
+    </NextIntlClientProvider>,
+  );
+  const user = userEvent.setup();
+  await user.click(screen.getByLabelText("Income"));
+  await user.type(screen.getByLabelText(/^Amount/), "5");
+  await user.click(screen.getByRole("button", { name: "Add" }));
+
+  expect(screen.getByText("You have no categories of this type.")).toBeVisible();
+  expect(screen.getByRole("link", { name: "Add a category" })).toHaveAttribute(
+    "href",
+    "/en/categories",
+  );
+  expect(addTransaction).not.toHaveBeenCalled();
+});
+
+test("a tap on a tile picks its category", async () => {
+  addTransaction.mockResolvedValue({});
+  const user = renderForm();
+  await user.type(screen.getByLabelText(/^Amount/), "5");
+  await user.click(screen.getByText("Transport"));
+  await user.click(screen.getByRole("button", { name: "Add" }));
+
+  expect(addTransaction).toHaveBeenCalledWith(
+    expect.objectContaining({ categoryId: CATEGORIES[1]?.id }),
+  );
 });
 
 test("an empty amount shows its error and sends nothing", async () => {
@@ -86,7 +152,7 @@ test("a valid form sends the values and closes", async () => {
   });
 });
 
-test("submit stays disabled until the request ends", async () => {
+test("submit stays disabled, and focusable, until the request ends", async () => {
   const { promise, resolve } = Promise.withResolvers<object>();
   addTransaction.mockReturnValue(promise);
   const onSaved = vi.fn();
@@ -95,7 +161,7 @@ test("submit stays disabled until the request ends", async () => {
   await user.click(screen.getByRole("button", { name: "Add" }));
 
   await vi.waitFor(() => {
-    expect(screen.getByRole("button", { name: "Add" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Add" })).toHaveAttribute("aria-disabled", "true");
   });
   expect(onSaved).not.toHaveBeenCalled();
 
@@ -151,7 +217,7 @@ test("a new today from the server replaces the date default", () => {
 
   rerender(ui("2026-03-11"));
 
-  expect(screen.getByLabelText("Date")).toHaveValue("2026-03-11");
+  expect(dateButton()).toHaveAccessibleName("Date: March 11, 2026");
 });
 
 const STORED: TransactionDto = {
@@ -161,7 +227,7 @@ const STORED: TransactionDto = {
   occurredOn: "2026-03-05",
   note: "march",
   categoryId: CATEGORIES[2]?.id ?? "",
-  category: { defaultKey: "salary", name: null },
+  category: { defaultKey: "salary", name: null, icon: null },
 };
 
 function renderEditForm(onSaved = vi.fn()) {
@@ -180,8 +246,8 @@ describe("editing a transaction", () => {
 
     expect(screen.getByLabelText("Income")).toBeChecked();
     expect(screen.getByLabelText(/^Amount/)).toHaveValue("3000.50");
-    expect(screen.getByLabelText("Date")).toHaveValue("2026-03-05");
-    expect(screen.getByLabelText("Category")).toHaveValue(CATEGORIES[2]?.id);
+    expect(dateButton()).toHaveAccessibleName("Date: March 5, 2026");
+    expect(categoryGroup().getByRole("radio", { name: "Salary" })).toBeChecked();
     expect(screen.getByLabelText(/^Note/)).toHaveValue("march");
     expect(screen.queryByRole("button", { name: "Add" })).not.toBeInTheDocument();
   });
@@ -192,8 +258,13 @@ describe("editing a transaction", () => {
     const user = renderEditForm(onSaved);
     await user.clear(screen.getByLabelText(/^Amount/));
     await user.type(screen.getByLabelText(/^Amount/), "10,5");
-    await user.clear(screen.getByLabelText("Date"));
-    await user.type(screen.getByLabelText("Date"), "2026-03-07");
+    // The calendar opens on the transaction's month and closes on a pick; its code loads on the
+    // first open, which a cold test run can take longer than findBy's default second for
+    await user.click(dateButton());
+    await user.click(
+      await screen.findByRole("button", { name: "Saturday, March 7, 2026" }, { timeout: 5000 }),
+    );
+    expect(dateButton()).toHaveAccessibleName("Date: March 7, 2026");
     await user.click(screen.getByRole("button", { name: "Save" }));
 
     expect(updateTransaction).toHaveBeenCalledWith({

@@ -1,2 +1,8 @@
-// One category's expenses in the shown period, with its translated label
-export type SpendingItem = { id: string; label: string; amountKopecks: number };
+import type { CategoryColor } from "@/shared/categories/category-look";
+
+export type SpendingItem = {
+  id: string;
+  label: string;
+  amountKopecks: number;
+  color: CategoryColor;
+};

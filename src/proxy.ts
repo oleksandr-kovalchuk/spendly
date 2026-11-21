@@ -7,7 +7,7 @@ import { routing } from "@/i18n/routing";
 
 const handleI18n = createMiddleware(routing);
 // Paths after the locale; "" is the main page
-const PRIVATE_PATHS = new Set(["", "transactions", "categories"]);
+const PRIVATE_PATHS = new Set(["", "transactions", "categories", "settings"]);
 
 // Optimistic only: it checks that a session cookie exists, and the pages check the session itself
 export function proxy(request: NextRequest) {

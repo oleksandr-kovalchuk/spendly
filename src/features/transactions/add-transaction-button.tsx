@@ -11,19 +11,16 @@ import { useAddTransaction } from "./add-transaction-context";
 
 type Placement = "bar" | "sidebar" | "empty";
 
-// In the bottom navigation a raised round button in the middle slot, in the sidebar a full-width
-// one, in an empty list or chart one with its label
 const buttonVariants = cva("", {
   variants: {
     placement: {
-      bar: "size-12 rounded-full shadow-md [&_svg:not([class*='size-'])]:size-6",
-      sidebar: "w-full",
+      bar: "size-12 rounded-2xl shadow-aurora [&_svg:not([class*='size-'])]:size-6",
+      sidebar: "h-11 w-full rounded-xl",
       empty: "",
     },
   },
 });
 
-// Opens the one add form of the screen (AddTransactionProvider)
 export function AddTransactionButton({ placement }: { placement: Placement }) {
   const t = useTranslations("Transactions");
   const id = useId();

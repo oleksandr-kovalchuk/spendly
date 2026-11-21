@@ -4,8 +4,7 @@ import { useState, type ReactNode } from "react";
 
 import { AddTransactionContext, type AddFormOpener } from "./add-transaction-context";
 
-// One add form for every Add button: the navigation's and an empty list's or chart's. The form
-// stays open when the button that opened it goes away (an empty state, once the list has an item).
+// One add form for every Add button; it stays open when the button that opened it goes away
 export function AddTransactionProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
   const [opener, setOpener] = useState<AddFormOpener | null>(null);

@@ -18,7 +18,7 @@ const TRANSACTIONS: TransactionDto[] = [
     occurredOn: "2026-03-10",
     note: "lunch",
     categoryId: "0198a8c0-0000-7000-8000-000000000001",
-    category: { defaultKey: "food", name: null },
+    category: { defaultKey: "food", name: null, icon: null },
   },
   {
     id: "2",
@@ -27,7 +27,7 @@ const TRANSACTIONS: TransactionDto[] = [
     occurredOn: "2026-03-05",
     note: null,
     categoryId: "0198a8c0-0000-7000-8000-000000000001",
-    category: { defaultKey: "salary", name: null },
+    category: { defaultKey: "salary", name: null, icon: null },
   },
   {
     id: "3",
@@ -36,7 +36,7 @@ const TRANSACTIONS: TransactionDto[] = [
     occurredOn: "2026-03-05",
     note: null,
     categoryId: "0198a8c0-0000-7000-8000-000000000001",
-    category: { defaultKey: null, name: "Pets" },
+    category: { defaultKey: null, name: "Pets", icon: null },
   },
 ];
 

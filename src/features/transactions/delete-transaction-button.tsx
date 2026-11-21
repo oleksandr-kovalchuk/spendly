@@ -2,7 +2,7 @@
 
 import { useLocale, useTranslations } from "next-intl";
 import { useAction } from "next-safe-action/hooks";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import {
   AlertDialog,
@@ -17,6 +17,7 @@ import {
 } from "@/shared/ui/alert-dialog";
 import { Button } from "@/shared/ui/button";
 import { FieldError } from "@/shared/ui/field";
+import { toast } from "@/shared/ui/toast";
 
 import { deleteTransaction } from "./delete-transaction.action";
 
@@ -36,8 +37,28 @@ export function DeleteTransactionButton({
   const t = useTranslations("Transactions");
   const locale = useLocale();
   const [isOpen, setIsOpen] = useState(false);
-  const { execute, isPending, hasErrored, result, reset } = useAction(deleteTransaction);
+  const isDeletingRef = useRef(false);
+  const { execute, isPending, hasErrored, result, reset } = useAction(deleteTransaction, {
+    onError: () => {
+      isDeletingRef.current = false;
+    },
+  });
   const error = result.serverError === "transactionNotFound" ? "transactionNotFound" : "unknown";
+
+  // The redirect that ends a delete unmounts this button; the toast shows then. Shown as the list's
+  // view transition starts, a toast's synchronous first render would make React skip it, and React
+  // runs this cleanup only once that transition has finished
+  useEffect(
+    () => () => {
+      if (isDeletingRef.current) toast.add({ type: "success", title: t("toast.deleted") });
+    },
+    [t],
+  );
+
+  function handleDelete() {
+    isDeletingRef.current = true;
+    execute({ id: transactionId, locale, listQuery });
+  }
 
   function handleOpenChange(open: boolean) {
     // A request in flight can't be cancelled, so the dialog stays until it ends
@@ -64,7 +85,8 @@ export function DeleteTransactionButton({
           <AlertDialogAction
             variant="destructive"
             disabled={isPending}
-            onClick={() => execute({ id: transactionId, locale, listQuery })}
+            focusableWhenDisabled
+            onClick={handleDelete}
           >
             {t("delete.action")}
           </AlertDialogAction>

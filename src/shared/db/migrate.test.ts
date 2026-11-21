@@ -41,6 +41,7 @@ test("migrations build the whole schema on an empty database, and run again with
     expect(tables.rows.map((row) => row.table_name)).toEqual([
       "account",
       "categories",
+      "email_outbox",
       "rate_limit",
       "session",
       "transactions",

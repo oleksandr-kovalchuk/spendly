@@ -1,35 +1,29 @@
 import { expect, test } from "@playwright/test";
 
-import { expectNoViolations } from "./helpers";
+import { expectNoViolations, pickTheme } from "./helpers";
 
 const LOCALES = [
-  { locale: "en", other: "Українська", dark: "Dark", light: "Light", missing: "Page not found" },
-  {
-    locale: "uk",
-    other: "English",
-    dark: "Темна",
-    light: "Світла",
-    missing: "Сторінку не знайдено",
-  },
+  { locale: "en", other: "Українська", missing: "Page not found" },
+  { locale: "uk", other: "English", missing: "Сторінку не знайдено" },
 ] as const;
 
 const PAGES = [
   { name: "sign in", path: "/sign-in" },
   { name: "sign up", path: "/sign-up" },
+  { name: "forgot password", path: "/forgot-password" },
+  { name: "reset password with an expired link", path: "/reset-password?error=INVALID_TOKEN" },
+  { name: "privacy", path: "/privacy" },
   { name: "not found", path: "/no-such-page" },
 ] as const;
 
-for (const { locale, dark, light } of LOCALES) {
+for (const { locale } of LOCALES) {
   for (const { name, path } of PAGES) {
     for (const theme of ["light", "dark"] as const) {
       test(`${name} in ${locale}, ${theme} theme, has no accessibility violations`, async ({
         page,
       }) => {
         await page.goto(`/${locale}${path}`);
-        await page
-          .getByRole("button", { name: theme === "dark" ? dark : light, exact: true })
-          .click();
-        await expect(page.locator("html")).toHaveClass(theme === "dark" ? /dark/ : /^(?!.*dark)/);
+        await pickTheme(page, locale, theme);
 
         await expectNoViolations(page);
       });
@@ -43,13 +37,14 @@ for (const colorScheme of ["light", "dark"] as const) {
     await page.goto("/en/sign-in");
 
     await expect(page.locator("html")).toHaveClass(colorScheme === "dark" ? /dark/ : /^(?!.*dark)/);
+    await expect(page.getByRole("radio", { name: "System", exact: true })).toBeChecked();
     await expectNoViolations(page);
   });
 }
 
 test("remembers the dark theme from the first paint", async ({ page }) => {
   await page.goto("/en/sign-in");
-  await page.getByRole("button", { name: "Dark", exact: true }).click();
+  await pickTheme(page, "en", "dark");
   await page.addInitScript(() => {
     document.addEventListener("DOMContentLoaded", () => {
       Object.assign(window, { themeAtParse: document.documentElement.className });

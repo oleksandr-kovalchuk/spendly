@@ -52,6 +52,7 @@ describe("private pages", () => {
     ["/uk/transactions?period=week", "/uk/sign-in"],
     ["/en/categories", "/en/sign-in"],
     ["/uk/categories/", "/uk/sign-in"],
+    ["/en/settings", "/en/sign-in"],
   ])("%s without a session cookie goes to %s", (path, expected) => {
     expect(redirectTarget(path)).toBe(expected);
   });

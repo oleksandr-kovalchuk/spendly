@@ -14,6 +14,16 @@ export const TEXTS = {
     password: "Password",
     invalidEmail: "Enter a valid email address.",
     wrongCredentials: "The email or password is incorrect.",
+    continueWithGoogle: "Continue with Google",
+    privacy: "Privacy policy",
+    accountNotLinked:
+      "This email already has an account with a password. Sign in with your password.",
+    forgotPassword: "Forgot password?",
+    sendLink: "Send link",
+    newPassword: "New password",
+    savePassword: "Save password",
+    passwordChanged: "Your password has changed. Sign in with the new one.",
+    invalidLink: "This link is invalid or has expired.",
     overview: "Overview",
     transactions: "Transactions",
     categories: "Categories",
@@ -37,23 +47,45 @@ export const TEXTS = {
     editHeading: "Edit transaction",
     deleteTitle: "Delete this transaction?",
     week: "Week",
+    choosePeriod: "Choose period",
     previousWeek: "Previous week",
     nextWeek: "Next week",
     thisWeek: "This week",
-    previousMonth: "Previous month",
+    previousDay: "Previous day",
+    month: "Month",
     incomeTotal: "Income",
     expensesTotal: "Expenses",
     balance: "Balance",
     byCategory: "Spending by category",
     noExpenses: "No expenses in this period.",
-    light: "Light",
-    dark: "Dark",
+    theme: "Theme",
+    themes: { light: "Light", dark: "Dark", system: "System" },
+    settings: "Settings",
+    language: "Language",
+    dangerZone: "Danger zone",
     expenseCategories: "Expenses",
     incomeCategories: "Income",
     newExpense: "New expense category",
+    addExpense: "Add expense category",
+    categoryName: "Name",
     added: "Category added.",
+    notifications: "Notifications",
+    changesSaved: "Changes saved.",
+    transactionDeleted: "Transaction deleted.",
     rename: "Rename",
     nameTaken: "You already have a category with this name.",
+    account: "Account",
+    deleteAccount: "Delete account",
+    deleteAccountTitle: "Delete your account?",
+    passwordIncorrect: "The password is incorrect.",
+    accountDeleted: "Your account and all its data have been deleted.",
+    clearTransactions: "Clear transactions",
+    clearTransactionsTitle: "Clear all transactions?",
+    transactionsCleared: "Transactions cleared.",
+    resetData: "Reset all data",
+    resetDataTitle: "Reset all data?",
+    resetDataConfirm: "Reset data",
+    dataReset: "Data reset.",
   },
   uk: {
     signUp: "Зареєструватися",
@@ -63,6 +95,11 @@ export const TEXTS = {
     password: "Пароль",
     invalidEmail: "Введіть дійсну адресу електронної пошти.",
     wrongCredentials: "Електронна пошта або пароль неправильні.",
+    continueWithGoogle: "Продовжити з Google",
+    privacy: "Політика конфіденційності",
+    accountNotLinked: "Ця пошта вже має обліковий запис з паролем. Увійдіть за допомогою пароля.",
+    forgotPassword: "Забули пароль?",
+    sendLink: "Надіслати посилання",
     overview: "Огляд",
     transactions: "Транзакції",
     categories: "Категорії",
@@ -86,23 +123,45 @@ export const TEXTS = {
     editHeading: "Редагувати транзакцію",
     deleteTitle: "Видалити цю транзакцію?",
     week: "Тиждень",
+    choosePeriod: "Вибрати період",
     previousWeek: "Попередній тиждень",
     nextWeek: "Наступний тиждень",
     thisWeek: "Цей тиждень",
-    previousMonth: "Попередній місяць",
+    previousDay: "Попередній день",
+    month: "Місяць",
     incomeTotal: "Дохід",
     expensesTotal: "Витрати",
     balance: "Баланс",
     byCategory: "Витрати за категоріями",
     noExpenses: "У цьому періоді немає витрат.",
-    light: "Світла",
-    dark: "Темна",
+    theme: "Тема",
+    themes: { light: "Світла", dark: "Темна", system: "Як у системі" },
+    settings: "Налаштування",
+    language: "Мова",
+    dangerZone: "Небезпечна зона",
     expenseCategories: "Витрати",
     incomeCategories: "Доходи",
     newExpense: "Нова категорія витрат",
+    addExpense: "Додати категорію витрат",
+    categoryName: "Назва",
     added: "Категорію додано.",
+    notifications: "Сповіщення",
+    changesSaved: "Зміни збережено.",
+    transactionDeleted: "Транзакцію видалено.",
     rename: "Перейменувати",
     nameTaken: "У вас вже є категорія з такою назвою.",
+    account: "Обліковий запис",
+    deleteAccount: "Видалити обліковий запис",
+    deleteAccountTitle: "Видалити обліковий запис?",
+    passwordIncorrect: "Пароль неправильний.",
+    accountDeleted: "Ваш обліковий запис і всі його дані видалено.",
+    clearTransactions: "Очистити транзакції",
+    clearTransactionsTitle: "Очистити всі транзакції?",
+    transactionsCleared: "Транзакції очищено.",
+    resetData: "Скинути всі дані",
+    resetDataTitle: "Скинути всі дані?",
+    resetDataConfirm: "Скинути дані",
+    dataReset: "Дані скинуто.",
   },
 } as const;
 
@@ -117,9 +176,8 @@ export async function setRandomClientIp(context: BrowserContext) {
 export async function expectNoViolations(page: Page) {
   // After a client-side navigation or a period change the title streams in after the content
   await expect(page).toHaveTitle(/\S/);
-  // axe would read the colors of a running animation's frames (an opening dialog, a theme switch,
-  // a submit button fading back in); a skeleton's endless pulse never ends, and a removed
-  // element's animation is cancelled
+  // axe would read the colors of running animations; infinite ones (a skeleton's pulse) never
+  // finish, and a removed element's is cancelled, hence allSettled
   await page.evaluate(() =>
     Promise.allSettled(
       document
@@ -132,7 +190,111 @@ export async function expectNoViolations(page: Page) {
   expect(violations).toEqual([]);
 }
 
-// Next keeps the previous page hidden, and a label query would match its fields too
+// The radio is visually hidden: a user taps the tile (its label)
+export async function pickCategory(sheet: Locator, name: string) {
+  await sheet
+    .getByRole("radiogroup")
+    .locator("label")
+    .filter({ hasText: new RegExp(`^${name}$`) })
+    .click();
+  await expect(sheet.getByRole("radio", { name, exact: true })).toBeChecked();
+}
+
+export function dateButton(scope: Page | Locator, locale: Locale) {
+  return scope.getByRole("button", { name: new RegExp(`^${TEXTS[locale].date}: `) });
+}
+
+// How the date picker's button shows a day: "March 10, 2026"
+export function shownDay(locale: Locale, day: string) {
+  return new Intl.DateTimeFormat(locale, {
+    timeZone: "UTC",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(new Date(`${day}T00:00:00Z`));
+}
+
+// The calendar's own month buttons (react-day-picker's locales)
+const CALENDAR_STEPS = {
+  en: { previous: "Go to the Previous Month", next: "Go to the Next Month" },
+  uk: { previous: "Перейти до попереднього місяця", next: "Перейти до наступного місяця" },
+} as const;
+
+function monthIndexOf(day: string) {
+  return Number(day.slice(0, 4)) * 12 + Number(day.slice(5, 7));
+}
+
+// The calendar opens on the month of the shown day (`from`): it steps to the day's month and
+// picks the day by its full name, which the calendar renders portaled outside the sheet
+export async function pickDate(
+  page: Page,
+  sheet: Locator,
+  locale: Locale,
+  { day, from }: { day: string; from: string },
+) {
+  await dateButton(sheet, locale).click();
+  const steps = monthIndexOf(day) - monthIndexOf(from);
+  const step = page.getByRole("button", {
+    name: steps < 0 ? CALENDAR_STEPS[locale].previous : CALENDAR_STEPS[locale].next,
+  });
+  for (let index = 0; index < Math.abs(steps); index += 1) await step.click();
+  const fullDay = new Intl.DateTimeFormat(locale, { timeZone: "UTC", dateStyle: "full" }).format(
+    new Date(`${day}T00:00:00Z`),
+  );
+  await page.getByRole("button", { name: fullDay, exact: true }).click();
+  await expect(dateButton(sheet, locale)).toHaveAccessibleName(
+    `${TEXTS[locale].date}: ${shownDay(locale, day)}`,
+  );
+}
+
+export async function openPeriodMenu(page: Page, locale: Locale) {
+  await page
+    .getByRole("button", { name: new RegExp(`^${TEXTS[locale].choosePeriod}`) })
+    .filter({ visible: true })
+    .click();
+}
+
+// The radio is visually hidden: a user taps the segment (its label)
+export async function pickTheme(
+  page: Page,
+  locale: Locale,
+  theme: "light" | "dark",
+  scope: Page | Locator = page,
+) {
+  const name = TEXTS[locale].themes[theme];
+  const group = scope.getByRole("group", { name: TEXTS[locale].theme, exact: true });
+  await group
+    .locator("label")
+    .filter({ hasText: new RegExp(`^${name}$`) })
+    .click();
+  await expect(group.getByRole("radio", { name, exact: true })).toBeChecked();
+  await expect(page.locator("html")).toHaveClass(theme === "dark" ? /dark/ : /^(?!.*dark)/);
+}
+
+// A popover from the sidebar's "Account: <email>" button, a sheet from the phone's top bar
+export async function openAccountMenu(page: Page, locale: Locale) {
+  const button = page.getByRole("button", { name: new RegExp(`^${TEXTS[locale].account}`) });
+  const panel = page.getByRole("dialog", { name: TEXTS[locale].account, exact: true });
+  // A click before hydration opens nothing, so it's repeated until the panel is open
+  await expect(async () => {
+    await button.click();
+    await expect(panel).toBeVisible({ timeout: 1000 });
+  }).toPass();
+
+  return panel;
+}
+
+export async function pickAppTheme(page: Page, locale: Locale, theme: "light" | "dark") {
+  const panel = await openAccountMenu(page, locale);
+  await pickTheme(page, locale, theme, panel);
+  await page.keyboard.press("Escape");
+  await expect(panel).toHaveCount(0);
+}
+
+export function notifications(page: Page, locale: Locale) {
+  return page.getByRole("region", { name: TEXTS[locale].notifications });
+}
+
 export function field(scope: Page | Locator, name: string) {
   return scope.getByRole("textbox", { name, exact: true });
 }
@@ -141,15 +303,17 @@ export function newEmail(testInfo: TestInfo) {
   return `${testInfo.project.name}-${testInfo.workerIndex}-${crypto.randomUUID()}@example.com`;
 }
 
-// Signs up, signs in with the same account and ends on Overview
 export async function signUpAndIn(page: Page, locale: Locale, testInfo: TestInfo) {
   const text = TEXTS[locale];
+  const email = newEmail(testInfo);
   await page.goto(`/${locale}/sign-up`);
-  await field(page, text.email).fill(newEmail(testInfo));
+  await field(page, text.email).fill(email);
   await field(page, text.password).fill(PASSWORD);
   await page.getByRole("button", { name: text.signUp }).click();
   await expect(page).toHaveURL(new RegExp(`/${locale}/sign-in\\?`));
   await field(page, text.password).fill(PASSWORD);
   await page.getByRole("button", { name: text.signIn }).click();
   await expect(page).toHaveURL(new RegExp(`/${locale}$`));
+
+  return email;
 }

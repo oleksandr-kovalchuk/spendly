@@ -1,15 +1,16 @@
 // @vitest-environment jsdom
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
 import { beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
 
 import en from "@/i18n/messages/en.json";
+import { Toaster } from "@/shared/ui/toast";
 
 import { AddTransactionButton } from "./add-transaction-button";
 import { AddTransactionProvider } from "./add-transaction-provider";
 import { AddTransactionSheetHost } from "./add-transaction-sheet-host";
-import type { CategoryOption } from "./transaction-form";
+import type { CategoryOption } from "./category-option";
 
 const { addTransaction } = vi.hoisted(() => ({ addTransaction: vi.fn() }));
 vi.mock("./add-transaction.action", () => ({ addTransaction }));
@@ -18,7 +19,13 @@ vi.mock("./update-transaction.action", () => ({ updateTransaction: vi.fn() }));
 type Placement = "bar" | "sidebar" | "empty";
 
 const CATEGORIES: CategoryOption[] = [
-  { id: "0198a8c0-0000-7000-8000-000000000001", type: "expense", label: "Food" },
+  {
+    id: "0198a8c0-0000-7000-8000-000000000001",
+    type: "expense",
+    defaultKey: "food",
+    icon: null,
+    label: "Food",
+  },
 ];
 
 function stubScreen(isDesktop: boolean) {
@@ -53,8 +60,13 @@ function Screen({ placement, hasButton = true }: { placement: Placement; hasButt
         </main>
         <AddTransactionSheetHost today="2026-03-10" categories={CATEGORIES} />
       </AddTransactionProvider>
+      <Toaster regionLabel="Notifications" closeLabel="Close notification" />
     </NextIntlClientProvider>
   );
+}
+
+function notifications() {
+  return within(screen.getByRole("region", { name: "Notifications" }));
 }
 
 function renderButton(placement: Placement) {
@@ -87,6 +99,7 @@ describe.each([
     });
     expect(add).toHaveFocus();
     expect(addTransaction).not.toHaveBeenCalled();
+    expect(notifications().queryByText("Transaction added.")).not.toBeInTheDocument();
   });
 
   test("the close button closes the form", async () => {
@@ -100,17 +113,19 @@ describe.each([
     expect(screen.getByRole("button", { name: "Add transaction" })).toHaveFocus();
   });
 
-  test("saving closes the form, and it opens empty again", async () => {
+  test("saving closes the form with a toast, and it opens empty again", async () => {
     addTransaction.mockResolvedValue({});
     const { user } = renderButton(placement);
     await user.click(screen.getByRole("button", { name: "Add transaction" }));
     await user.type(await screen.findByLabelText(/^Amount/), "5");
     await user.click(screen.getByRole("button", { name: "Add" }));
 
+    // A toast is a dialog too
     await vi.waitFor(() => {
-      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(screen.queryByRole("dialog", { name: "Add transaction" })).not.toBeInTheDocument();
     });
     expect(addTransaction).toHaveBeenCalledOnce();
+    expect(await notifications().findByText("Transaction added.")).toBeVisible();
 
     await user.click(screen.getByRole("button", { name: "Add transaction" }));
     expect(await screen.findByLabelText(/^Amount/)).toHaveValue("");

@@ -1,17 +1,22 @@
 {
   "Layout": {
     "description": "Personal income and expense tracker",
-    "skipLink": "Skip to main content"
+    "skipLink": "Skip to main content",
+    "copyright": "© {year} {app}",
+    "rights": "All rights reserved"
   },
   "Header": {
-    "theme": {
-      "label": "Theme",
+    "language": "Language",
+    "theme": "Theme",
+    "themes": {
       "light": "Light",
       "dark": "Dark",
       "system": "System"
     },
     "signOut": "Sign out",
     "signOutFailed": "Sign out failed, try again",
+    "account": "Account",
+    "settings": "Settings",
     "nav": "Main",
     "screens": {
       "overview": "Overview",
@@ -22,7 +27,9 @@
   "Auth": {
     "fields": {
       "email": "Email",
-      "password": "Password"
+      "password": "Password",
+      "newPassword": "New password",
+      "showPassword": "Show password"
     },
     "signUp": {
       "title": "Sign up",
@@ -36,18 +43,93 @@
       "title": "Sign in",
       "heading": "Sign in to Spendly",
       "registered": "Your account is ready. Sign in to continue.",
+      "passwordReset": "Your password has changed. Sign in with the new one.",
+      "accountDeleted": "Your account and all its data have been deleted.",
       "submit": "Sign in",
+      "forgotPassword": "Forgot password?",
       "noAccount": "No account yet?",
       "signUpLink": "Sign up"
+    },
+    "forgotPassword": {
+      "title": "Forgot password",
+      "heading": "Reset your password",
+      "intro": "Enter your account’s email, and we’ll send you a link to choose a new password.",
+      "submit": "Send link",
+      "sent": "If {email} has an account with a password, we’ve sent a link to it. It works for one hour. No email? Check your spam folder or send it again.",
+      "backToSignIn": "Back to sign in"
+    },
+    "resetPassword": {
+      "title": "New password",
+      "heading": "Choose a new password",
+      "submit": "Save password",
+      "invalidLink": "This link is invalid or has expired.",
+      "requestNewLink": "Get a new link"
+    },
+    "google": {
+      "continue": "Continue with Google",
+      "or": "or"
+    },
+    "deleteAccount": {
+      "action": "Delete account",
+      "title": "Delete your account?",
+      "description": "Your account, transactions and categories will be deleted for good. This can’t be undone.",
+      "cancel": "Cancel"
     },
     "errors": {
       "emailInvalid": "Enter a valid email address.",
       "passwordTooShort": "The password must have at least 8 characters.",
       "passwordTooLong": "The password must have at most 128 characters.",
       "passwordRequired": "Enter your password.",
+      "passwordIncorrect": "The password is incorrect.",
       "invalidCredentials": "The email or password is incorrect.",
       "tooManyAttempts": "Too many attempts. Try again in a minute.",
+      "accountNotLinked": "This email already has an account with a password. Sign in with your password.",
+      "signInAgain": "For your safety, sign out and sign in again, then delete the account.",
       "unknown": "Something went wrong. Try again."
+    },
+    "brand": {
+      "tagline": "Money under control.",
+      "text": "Income, expenses and balance in one place.",
+      "balance": "Balance"
+    }
+  },
+  "Privacy": {
+    "title": "Privacy policy",
+    "updated": "Updated on {date}",
+    "intro": "Spendly is an expense tracker. This page explains what personal data it stores, why, for how long, who processes it and how to have it deleted.",
+    "data": {
+      "heading": "What Spendly stores",
+      "email": "Your email address.",
+      "google": "If you sign in with Google: your Google account ID, name and profile picture link, and the access and ID tokens Google returns.",
+      "password": "If you sign up with a password: a hash of it. The password itself is never stored or logged.",
+      "sessions": "For each signed-in device: a session token, its expiry, the IP address and the browser's user agent.",
+      "passwordReset": "If you ask to reset your password: a one-time code for the emailed link, and a record of each reset email with its language and whether it was sent.",
+      "attempts": "Counts of sign-in, sign-up and password reset attempts per IP address, to slow down password guessing and email abuse.",
+      "money": "Your transactions (amount, date, category and an optional note) and your categories.",
+      "browser": "In your browser: a cookie with your time zone, to know your current day, and your theme choice."
+    },
+    "purpose": {
+      "heading": "Why",
+      "text": "Only to run Spendly: to sign you in, keep your data private to you and show your money. Spendly has no ads or tracking, and it doesn't sell your data or share it for marketing."
+    },
+    "retention": {
+      "heading": "How long",
+      "account": "Your account, transactions and categories: until the account is deleted.",
+      "sessions": "Sessions: until you sign out, or 7 days after you last used Spendly on that device.",
+      "passwordReset": "Password reset: the link code for one hour or until it’s used; the email records for one day.",
+      "attempts": "Attempt counts: one record per IP address, reset a minute after the last attempt.",
+      "browser": "The time zone cookie: one year; the theme choice: until you clear your browser's data."
+    },
+    "processors": {
+      "heading": "Who processes it",
+      "vercel": "Vercel hosts Spendly and keeps its request logs.",
+      "neon": "Neon hosts the database.",
+      "resend": "Resend delivers password reset emails to your address.",
+      "google": "Google, if you sign in with it: it confirms your account and shares your email, name and picture with Spendly."
+    },
+    "contact": {
+      "heading": "Your data and your account",
+      "text": "To delete your account with all its data, sign in and press Delete account: everything is deleted at once. To get a copy of your data, or with any question, write to <link>{email}</link>."
     }
   },
   "Home": {
@@ -83,24 +165,110 @@
       "expenseHeading": "Expenses",
       "incomeHeading": "Income",
       "rename": "Rename {category}",
-      "renameAction": "Rename"
+      "edit": "Edit {category}",
+      "empty": "No categories yet.",
+      "expenseAdd": "Add expense category",
+      "incomeAdd": "Add income category"
     },
     "form": {
-      "expenseLabel": "New expense category",
-      "incomeLabel": "New income category",
+      "expenseHeading": "New expense category",
+      "incomeHeading": "New income category",
       "add": "Add",
-      "added": "Category added.",
-      "renameLabel": "New name for {category}",
+      "nameLabel": "Name",
       "save": "Save",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "icon": "Icon"
     },
     "errors": {
       "nameRequired": "Enter a name.",
       "nameTooLong": "The name must have at most 40 characters.",
       "nameTaken": "You already have a category with this name.",
       "categoryNotFound": "This category is not available. Reload the page and try again.",
-      "unknown": "Something went wrong. Try again."
+      "unknown": "Something went wrong. Try again.",
+      "otherHasTransactions": "This category has transactions now. Move them to other categories or delete them first."
+    },
+    "toast": {
+      "added": "Category added.",
+      "renamed": "Category renamed.",
+      "updated": "Category saved.",
+      "deleted": "Category deleted."
+    },
+    "icons": {
+      "tag": "Tag",
+      "coffee": "Coffee",
+      "utensils": "Cutlery",
+      "pizza": "Pizza",
+      "beer": "Beer",
+      "shirt": "Clothes",
+      "car": "Car",
+      "fuel": "Fuel",
+      "plane": "Plane",
+      "bike": "Bike",
+      "baby": "Baby",
+      "pawPrint": "Pets",
+      "graduationCap": "Education",
+      "bookOpen": "Books",
+      "dumbbell": "Sport",
+      "pill": "Medicine",
+      "scissors": "Beauty",
+      "smartphone": "Phone",
+      "wifi": "Internet",
+      "gamepad": "Games",
+      "music": "Music",
+      "wrench": "Repairs",
+      "sofa": "Furniture",
+      "piggyBank": "Savings",
+      "wallet": "Wallet",
+      "creditCard": "Card",
+      "receipt": "Bills",
+      "trendingUp": "Investments",
+      "handCoins": "Cashback",
+      "laptop": "Work",
+      "heart": "Charity",
+      "gift": "Gift"
+    },
+    "delete": {
+      "action": "Delete {category}",
+      "title": "Delete “{category}”?",
+      "emptyDescription": "This can't be undone.",
+      "moveDescription": "{count, plural, one {Its # transaction moves} other {Its # transactions move}} to “{other}”. This can't be undone.",
+      "blockedTitle": "“{category}” can't be deleted",
+      "blockedDescription": "It has {count, plural, one {# transaction} other {# transactions}}. Move them to other categories or delete them first.",
+      "confirm": "Delete",
+      "close": "Close"
     }
+  },
+  "Settings": {
+    "title": "Settings",
+    "heading": "Settings",
+    "theme": "Theme",
+    "themeHint": "System follows your device’s theme.",
+    "language": "Language",
+    "languageHint": "Dates and amounts follow it too.",
+    "account": "Account",
+    "dangerZone": "Danger zone",
+    "dangerHint": "These actions can’t be undone.",
+    "clearTransactionsHint": "Deletes every transaction, so the balance becomes zero. Categories stay.",
+    "resetDataHint": "Deletes every transaction and your own categories, and gives the default categories their default names back.",
+    "deleteHint": "Deletes your account, transactions and categories for good."
+  },
+  "DataReset": {
+    "transactions": {
+      "action": "Clear transactions",
+      "title": "Clear all transactions?",
+      "description": "Every transaction will be deleted and the balance will become zero. Categories stay. This can’t be undone.",
+      "confirm": "Clear transactions",
+      "toast": "Transactions cleared."
+    },
+    "all": {
+      "action": "Reset all data",
+      "title": "Reset all data?",
+      "description": "Every transaction and your own categories will be deleted, and only the default categories will stay, with their default names. This can’t be undone.",
+      "confirm": "Reset data",
+      "toast": "Data reset."
+    },
+    "cancel": "Cancel",
+    "error": "Something went wrong. Try again."
   },
   "Transactions": {
     "title": "Transactions",
@@ -113,13 +281,13 @@
       "amount": "Amount (UAH)",
       "category": "Category",
       "date": "Date",
+      "dateValue": "Date: {date}",
       "note": "Note (optional)",
       "submit": "Add",
       "editHeading": "Edit transaction",
-      "save": "Save"
-    },
-    "sheet": {
-      "close": "Close"
+      "save": "Save",
+      "noCategories": "You have no categories of this type.",
+      "addCategory": "Add a category"
     },
     "errors": {
       "amountRequired": "Enter an amount.",
@@ -142,6 +310,16 @@
       "description": "This {category} transaction will be deleted for good.",
       "action": "Delete",
       "cancel": "Cancel"
+    },
+    "latest": {
+      "heading": "Latest transactions",
+      "all": "All transactions",
+      "noteAndDay": "{note} · {day}"
+    },
+    "toast": {
+      "added": "Transaction added.",
+      "updated": "Changes saved.",
+      "deleted": "Transaction deleted."
     }
   },
   "Periods": {
@@ -154,7 +332,8 @@
     },
     "previous": "Previous {type, select, day {day} week {week} month {month} other {year}}",
     "next": "Next {type, select, day {day} week {week} month {month} other {year}}",
-    "current": "{type, select, day {Today} week {This week} month {This month} other {This year}}"
+    "current": "{type, select, day {Today} week {This week} month {This month} other {This year}}",
+    "menu": "Choose period: {period}"
   },
   "Stats": {
     "income": "Income",
@@ -168,6 +347,24 @@
       "category": "Category",
       "amount": "Amount",
       "share": "Share"
+    },
+    "spentShare": "{share} of income spent"
+  },
+  "Emails": {
+    "passwordReset": {
+      "subject": "Reset your Spendly password",
+      "preview": "Choose a new password. The link works for one hour.",
+      "heading": "Reset your password",
+      "body": "We got a request to reset the password of your Spendly account. Open the link to choose a new password. It works for one hour.",
+      "action": "Choose a new password",
+      "ignore": "If it wasn’t you, ignore this email: your password stays the same."
     }
+  },
+  "Toast": {
+    "region": "Notifications",
+    "close": "Close notification"
+  },
+  "Sheet": {
+    "close": "Close"
   }
 }

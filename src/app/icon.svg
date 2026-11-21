@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- The brand mark: the Overview's spending bars; colors are the theme's primary tokens -->
+  <style>
+    .tile { fill: #655dc6; }
+    .bars { fill: #fafafa; }
+    @media (prefers-color-scheme: dark) {
+      .tile { fill: #9a99f3; }
+      .bars { fill: #0a0a0a; }
+    }
+  </style>
+  <rect class="tile" width="32" height="32" rx="9"/>
+  <g class="bars">
+    <rect x="8" y="9" width="16" height="3.5" rx="1.75"/>
+    <rect x="8" y="14.25" width="11" height="3.5" rx="1.75"/>
+    <rect x="8" y="19.5" width="6.5" height="3.5" rx="1.75"/>
+  </g>
+</svg>

@@ -96,8 +96,8 @@ describe("stepPeriod", () => {
 });
 
 describe("parsePeriod", () => {
-  it("is the current month without a period", () => {
-    expect(parsePeriod({}, TODAY)).toEqual(periodOf("month", TODAY));
+  it("is today without a period", () => {
+    expect(parsePeriod({}, TODAY)).toEqual(periodOf("day", TODAY));
   });
 
   it("is the current period of a type without a date", () => {
@@ -112,7 +112,7 @@ describe("parsePeriod", () => {
     expect(parsePeriod({ period: "week", date: "2026-11-11" }, TODAY)).toEqual(
       periodOf("week", "2026-11-09"),
     );
-    expect(parsePeriod({ date: "2026-10-01" }, TODAY)).toEqual(periodOf("month", "2026-10-01"));
+    expect(parsePeriod({ date: "2026-10-01" }, TODAY)).toEqual(periodOf("day", "2026-10-01"));
   });
 
   it.each([
@@ -123,14 +123,14 @@ describe("parsePeriod", () => {
     { period: "week", date: "yesterday" },
     { period: "year", date: "" },
     { date: ["2026-10-01", "2026-09-01"] },
-  ])("falls back to the current month for %j", (search) => {
-    expect(parsePeriod(search, TODAY)).toEqual(periodOf("month", TODAY));
+  ])("falls back to today for %j", (search) => {
+    expect(parsePeriod(search, TODAY)).toEqual(periodOf("day", TODAY));
   });
 });
 
 describe("toPeriodSearch", () => {
-  it("writes nothing for the current month", () => {
-    expect(toPeriodSearch(periodOf("month", TODAY), TODAY)).toEqual({ period: null, date: null });
+  it("writes nothing for today", () => {
+    expect(toPeriodSearch(periodOf("day", TODAY), TODAY)).toEqual({ period: null, date: null });
   });
 
   it("writes only the type for the current period of another type", () => {
@@ -142,14 +142,14 @@ describe("toPeriodSearch", () => {
       period: "week",
       date: "2026-11-09",
     });
-    expect(toPeriodSearch(periodOf("month", "2026-10-15"), TODAY)).toEqual({
+    expect(toPeriodSearch(periodOf("day", "2026-10-15"), TODAY)).toEqual({
       period: null,
-      date: "2026-10-01",
+      date: "2026-10-15",
     });
   });
 
   it("round-trips through parsePeriod", () => {
-    const period = periodOf("day", "2025-07-04");
+    const period = periodOf("month", "2025-07-04");
     const search = toPeriodSearch(period, TODAY);
     expect(parsePeriod(search, TODAY)).toEqual(period);
   });
@@ -157,7 +157,8 @@ describe("toPeriodSearch", () => {
 
 describe("toPeriodQuery", () => {
   it("leaves out the defaults", () => {
-    expect(toPeriodQuery(periodOf("month", TODAY), TODAY)).toEqual({});
+    expect(toPeriodQuery(periodOf("day", TODAY), TODAY)).toEqual({});
+    expect(toPeriodQuery(periodOf("month", TODAY), TODAY)).toEqual({ period: "month" });
     expect(toPeriodQuery(periodOf("week", TODAY), TODAY)).toEqual({ period: "week" });
     expect(toPeriodQuery(periodOf("year", "2025-03-01"), TODAY)).toEqual({
       period: "year",

@@ -8,11 +8,10 @@ import { categoryLabel } from "@/shared/categories/category-label";
 import { listCategories } from "@/shared/categories/categories.dal";
 import { Skeleton } from "@/shared/ui/skeleton";
 
-import { getCurrentUserOrSignIn, getToday } from "./screen-data";
+import { getToday } from "./screen-data";
 
 type Placement = "bar" | "sidebar" | "empty";
 
-// The size of each placement's button
 const skeletonVariants = cva("", {
   variants: {
     placement: { bar: "size-12 rounded-full", sidebar: "h-9 w-full", empty: "h-9 w-40" },
@@ -21,18 +20,19 @@ const skeletonVariants = cva("", {
 
 // The form and every Add button render from one query
 const getAddFormData = cache(async () => {
-  const [user, today, tCategories] = await Promise.all([
-    getCurrentUserOrSignIn(),
+  const [today, tCategories, categories] = await Promise.all([
     getToday(),
     getTranslations("Categories"),
+    listCategories(),
   ]);
-  const categories = await listCategories(user.id);
 
   return {
     today,
     categories: categories.map((category) => ({
       id: category.id,
       type: category.type,
+      defaultKey: category.defaultKey,
+      icon: category.icon,
       label: categoryLabel(category, tCategories),
     })),
   };
@@ -61,7 +61,6 @@ export function AddTransactionControl({ placement }: { placement: Placement }) {
   );
 }
 
-// The one add form every Add button opens (AddTransactionProvider)
 export function AddTransactionSheetSection() {
   return (
     <Suspense fallback={null}>

@@ -17,12 +17,7 @@ import { PageHeading } from "@/shared/ui/page-heading";
 import { AddTransactionControl } from "@/views/app-shell/add-transaction-control";
 import { PageTransition } from "@/views/app-shell/page-transition";
 import { PeriodSkeleton } from "@/views/app-shell/period-skeleton";
-import {
-  getCurrentUserOrSignIn,
-  getShownPeriod,
-  getToday,
-  type ScreenSearchParams,
-} from "@/views/app-shell/screen-data";
+import { getShownPeriod, getToday, type ScreenSearchParams } from "@/views/app-shell/screen-data";
 
 // An invalid, repeated or unknown id is the same as a missing transaction
 async function getEditingId(searchParams: ScreenSearchParams) {
@@ -34,19 +29,15 @@ async function getEditingId(searchParams: ScreenSearchParams) {
   return parsed.data;
 }
 
-// The edit sheet opens over the list when the URL names a transaction
 async function EditSheetSection({ searchParams }: { searchParams: ScreenSearchParams }) {
   const editingId = await getEditingId(searchParams);
   if (editingId === undefined) return null;
 
-  const [user, { today, period }, tCategories] = await Promise.all([
-    getCurrentUserOrSignIn(),
+  const [{ today, period }, tCategories, categories, transaction] = await Promise.all([
     getShownPeriod(searchParams),
     getTranslations("Categories"),
-  ]);
-  const [categories, transaction] = await Promise.all([
-    listCategories(user.id),
-    findTransaction(user.id, editingId),
+    listCategories(),
+    findTransaction(editingId),
   ]);
   if (!transaction) notFound();
 
@@ -56,6 +47,8 @@ async function EditSheetSection({ searchParams }: { searchParams: ScreenSearchPa
       categories={categories.map((category) => ({
         id: category.id,
         type: category.type,
+        defaultKey: category.defaultKey,
+        icon: category.icon,
         label: categoryLabel(category, tCategories),
       }))}
       transaction={transaction}
@@ -69,13 +62,9 @@ async function PeriodSection() {
 }
 
 async function PeriodTransactions({ searchParams }: { searchParams: ScreenSearchParams }) {
-  const [user, { today, period }] = await Promise.all([
-    getCurrentUserOrSignIn(),
-    getShownPeriod(searchParams),
-  ]);
-  const transactions = await listTransactions(user.id, period);
+  const { today, period } = await getShownPeriod(searchParams);
+  const transactions = await listTransactions(period);
 
-  // Edit links keep the period, so the list stays where the user is
   return (
     <TransactionList
       groups={groupByDay(transactions)}
@@ -85,12 +74,11 @@ async function PeriodTransactions({ searchParams }: { searchParams: ScreenSearch
   );
 }
 
-// A day heading and a card of two items
 function ListSkeleton() {
   return (
     <div className="grid gap-2">
       <Skeleton className="h-5 w-1/3" />
-      <Skeleton className="h-36 w-full rounded-xl" />
+      <Skeleton className="h-36 w-full rounded-2xl" />
     </div>
   );
 }
@@ -100,14 +88,16 @@ export async function TransactionsPage({ searchParams }: PageProps<"/[locale]/tr
 
   return (
     <PageTransition>
-      <div className="grid gap-6">
-        <PageHeading>{t("heading")}</PageHeading>
+      <div className="grid stagger gap-6">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <PageHeading>{t("heading")}</PageHeading>
+          <Suspense fallback={<PeriodSkeleton />}>
+            <PeriodSection />
+          </Suspense>
+        </div>
         {/* Nothing shows until the sheet's data is there: it opens over a ready list */}
         <Suspense fallback={null}>
           <EditSheetSection searchParams={searchParams} />
-        </Suspense>
-        <Suspense fallback={<PeriodSkeleton />}>
-          <PeriodSection />
         </Suspense>
         <TransactionListBoundary>
           <Suspense fallback={<ListSkeleton />}>

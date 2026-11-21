@@ -18,14 +18,14 @@ const MISSING_ID = "0198a8c0-0000-7000-8000-000000000000";
 async function signedIn() {
   const { id, cookie } = await createUser();
   requestHeaders.current = new Headers({ cookie });
-  const categories = await listCategories(id);
+  const categories = await listCategories();
   const food = categories.find((c) => c.defaultKey === "food" && c.type === "expense");
   const salary = categories.find((c) => c.defaultKey === "salary" && c.type === "income");
   if (!food || !salary) throw new Error("Default categories are missing");
   await addTransaction({ amount: "10", categoryId: food.id, date: "2026-03-10", note: "lunch" });
-  const [stored] = await listTransactions(id, RANGE);
+  const [stored] = await listTransactions(RANGE);
   if (!stored) throw new Error("The transaction was not stored");
-  return { id, food, salary, stored };
+  return { id, cookie, food, salary, stored };
 }
 
 beforeEach(() => {
@@ -34,7 +34,7 @@ beforeEach(() => {
 
 describe("updateTransaction", () => {
   test("changes the amount and the date, so the transaction moves to the new day", async () => {
-    const { id, food, stored } = await signedIn();
+    const { food, stored } = await signedIn();
 
     const result = await updateTransaction({
       id: stored.id,
@@ -46,13 +46,13 @@ describe("updateTransaction", () => {
 
     expect(result.serverError).toBeUndefined();
     expect(result.validationErrors).toBeUndefined();
-    expect(await listTransactions(id, RANGE)).toEqual([
+    expect(await listTransactions(RANGE)).toEqual([
       { ...stored, amountKopecks: 9_990, occurredOn: "2026-03-20", note: null },
     ]);
   });
 
   test("changing the category changes the type", async () => {
-    const { id, salary, stored } = await signedIn();
+    const { salary, stored } = await signedIn();
 
     await updateTransaction({
       id: stored.id,
@@ -62,11 +62,11 @@ describe("updateTransaction", () => {
       note: "",
     });
 
-    expect((await listTransactions(id, RANGE))[0]).toMatchObject({ type: "income" });
+    expect((await listTransactions(RANGE))[0]).toMatchObject({ type: "income" });
   });
 
   test("rejects an invalid amount and changes nothing", async () => {
-    const { id, food, stored } = await signedIn();
+    const { food, stored } = await signedIn();
 
     const result = await updateTransaction({
       id: stored.id,
@@ -77,7 +77,7 @@ describe("updateTransaction", () => {
     });
 
     expect(result.validationErrors?.amount?._errors).toEqual(["amountInvalid"]);
-    expect(await listTransactions(id, RANGE)).toEqual([stored]);
+    expect(await listTransactions(RANGE)).toEqual([stored]);
   });
 
   test("another user's transaction is rejected and not changed", async () => {
@@ -93,7 +93,8 @@ describe("updateTransaction", () => {
     });
 
     expect(result.serverError).toBe("transactionNotFound");
-    expect(await listTransactions(owner.id, RANGE)).toEqual([owner.stored]);
+    requestHeaders.current = new Headers({ cookie: owner.cookie });
+    expect(await listTransactions(RANGE)).toEqual([owner.stored]);
   });
 
   test("another user's category is rejected and nothing changes", async () => {
@@ -109,7 +110,8 @@ describe("updateTransaction", () => {
     });
 
     expect(result.serverError).toBe("categoryNotFound");
-    expect(await listTransactions(other.id, RANGE)).toEqual([other.stored]);
+    requestHeaders.current = new Headers({ cookie: other.cookie });
+    expect(await listTransactions(RANGE)).toEqual([other.stored]);
   });
 
   test("a missing transaction is rejected", async () => {

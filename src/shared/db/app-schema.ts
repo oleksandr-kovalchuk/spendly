@@ -14,6 +14,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 import {
+  CATEGORY_ICON_KEYS,
   CATEGORY_TYPES,
   DEFAULT_CATEGORY_KEYS,
   MAX_AMOUNT_KOPECKS,
@@ -34,8 +35,10 @@ const updatedAt = () =>
     .notNull();
 
 export const CATEGORY_NAME_UNIQUE_INDEX = "categories_user_type_name_unique";
+export const TRANSACTION_CATEGORY_FOREIGN_KEY = "transactions_category_owner_fkey";
 
-// A default category has a `defaultKey` and no name until the user renames it
+// A default category has a `defaultKey` and no name until the user renames it; its icon comes
+// from the key, so only the user's own categories store one
 export const categories = pgTable(
   "categories",
   {
@@ -46,6 +49,7 @@ export const categories = pgTable(
     type: text({ enum: CATEGORY_TYPES }).notNull(),
     defaultKey: text({ enum: DEFAULT_CATEGORY_KEYS }),
     name: text(),
+    icon: text({ enum: CATEGORY_ICON_KEYS }),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
@@ -64,6 +68,10 @@ export const categories = pgTable(
     check(
       "categories_default_key_check",
       sql`${table.defaultKey} is null or ${table.defaultKey} in (${sql.raw(DEFAULT_CATEGORY_KEYS.map((key) => `'${key}'`).join(", "))})`,
+    ),
+    check(
+      "categories_icon_check",
+      sql`${table.icon} is null or (${table.defaultKey} is null and ${table.icon} in (${sql.raw(CATEGORY_ICON_KEYS.map((key) => `'${key}'`).join(", "))}))`,
     ),
     check(
       "categories_name_check",
@@ -91,9 +99,11 @@ export const transactions = pgTable(
     foreignKey({
       columns: [table.categoryId, table.userId],
       foreignColumns: [categories.id, categories.userId],
-      name: "transactions_category_owner_fkey",
+      name: TRANSACTION_CATEGORY_FOREIGN_KEY,
     }),
     index("transactions_user_occurred_on_idx").on(table.userId, table.occurredOn.desc()),
+    // Serves the category's foreign key check, its delete and the per-category counts
+    index("transactions_user_category_idx").on(table.userId, table.categoryId),
     check(
       "transactions_amount_check",
       sql`${table.amountKopecks} between 1 and ${sql.raw(String(MAX_AMOUNT_KOPECKS))}`,
@@ -101,6 +111,39 @@ export const transactions = pgTable(
     check(
       "transactions_note_check",
       sql`${table.note} is null or char_length(${table.note}) <= ${sql.raw(String(MAX_NOTE_LENGTH))}`,
+    ),
+  ],
+);
+
+const EMAIL_KINDS = ["password_reset"] as const;
+const EMAIL_STATUSES = ["pending", "sent", "failed"] as const;
+
+// One row per email: it limits emails per user and keeps the delivery status, never the link
+export const emailOutbox = pgTable(
+  "email_outbox",
+  {
+    id: id(),
+    userId: text()
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    kind: text({ enum: EMAIL_KINDS }).notNull(),
+    locale: text().notNull(),
+    status: text({ enum: EMAIL_STATUSES }).notNull().default("pending"),
+    // Resend's error name when the send failed
+    error: text(),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (table) => [
+    index("email_outbox_user_created_at_idx").on(table.userId, table.createdAt.desc()),
+    index("email_outbox_created_at_idx").on(table.createdAt),
+    check(
+      "email_outbox_kind_check",
+      sql`${table.kind} in (${sql.raw(EMAIL_KINDS.map((kind) => `'${kind}'`).join(", "))})`,
+    ),
+    check(
+      "email_outbox_status_check",
+      sql`${table.status} in (${sql.raw(EMAIL_STATUSES.map((status) => `'${status}'`).join(", "))})`,
     ),
   ],
 );

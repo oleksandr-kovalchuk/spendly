@@ -8,9 +8,8 @@ import { authedAction } from "@/shared/auth/authed-action";
 import { deleteTransactionSchema } from "./transaction-schema";
 import { deleteTransaction as removeTransaction } from "./transactions.dal";
 
-// Deleting happens in the transaction's edit form, whose URL names it: a refresh of that URL
-// would find no transaction and show the 404 page, so the flow returns to the list instead.
-// It replaces the edit URL (a Server Action's redirect pushes by default), or Back reopens it
+// Refreshing the edit URL would show the 404 page, so the flow returns to the list, replacing
+// the URL (a redirect pushes by default) so Back doesn't reopen it
 export const deleteTransaction = authedAction
   .inputSchema(deleteTransactionSchema)
   .action(async ({ parsedInput, ctx }) => {

@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 
 import { createUser } from "@/shared/auth/test-user";
 import { listCategories } from "@/shared/categories/categories.dal";
@@ -14,25 +14,37 @@ import {
   updateTransaction,
 } from "./transactions.dal";
 
+const { requestHeaders } = vi.hoisted(() => ({ requestHeaders: { current: new Headers() } }));
+vi.mock("next/headers", () => ({ headers: () => Promise.resolve(requestHeaders.current) }));
+
 const MONTH = { from: "2026-03-01", to: "2026-03-31" };
 
+// The reads return the signed-in user's data
+function signIn(cookie: string) {
+  requestHeaders.current = new Headers({ cookie });
+}
+
+// Signs the new user in
 async function setup() {
-  const { id } = await createUser();
-  const categories = await listCategories(id);
+  const { id, cookie } = await createUser();
+  signIn(cookie);
+  const categories = await listCategories();
   const expense = categories.find((c) => c.type === "expense" && c.defaultKey === "food");
   const income = categories.find((c) => c.type === "income" && c.defaultKey === "salary");
   if (!expense || !income) throw new Error("Default categories are missing");
-  return { id, expense, income };
+  return { id, cookie, expense, income };
 }
 
-async function addOne(userId: string, categoryId: string) {
-  await insertTransaction(userId, {
+// Leaves the user signed in
+async function addOne(user: { id: string; cookie: string }, categoryId: string) {
+  await insertTransaction(user.id, {
     categoryId,
     amountKopecks: 12_550,
     occurredOn: "2026-03-10",
     note: "lunch",
   });
-  const [stored] = await listTransactions(userId, MONTH);
+  signIn(user.cookie);
+  const [stored] = await listTransactions(MONTH);
   if (!stored) throw new Error("The transaction was not stored");
   return stored;
 }
@@ -48,7 +60,7 @@ describe("transactions", () => {
     });
 
     expect(result).toEqual({ isAdded: true });
-    expect(await listTransactions(id, MONTH)).toEqual([
+    expect(await listTransactions(MONTH)).toEqual([
       {
         id: expect.any(String),
         type: "expense",
@@ -56,7 +68,7 @@ describe("transactions", () => {
         occurredOn: "2026-03-10",
         note: "lunch",
         categoryId: expense.id,
-        category: { defaultKey: "food", name: null },
+        category: { defaultKey: "food", name: null, icon: null },
       },
     ]);
   });
@@ -69,13 +81,26 @@ describe("transactions", () => {
     await add(income.id, "2026-03-20", 200);
     await add(expense.id, "2026-03-20", 300);
 
-    const listed = await listTransactions(id, MONTH);
+    const listed = await listTransactions(MONTH);
 
     expect(listed.map((t) => [t.occurredOn, t.amountKopecks])).toEqual([
       ["2026-03-20", 300],
       ["2026-03-20", 200],
       ["2026-03-05", 100],
     ]);
+  });
+
+  test("lists only the newest transactions up to the limit", async () => {
+    const { id, expense } = await setup();
+    const add = (occurredOn: string, amountKopecks: number) =>
+      insertTransaction(id, { categoryId: expense.id, occurredOn, amountKopecks, note: null });
+    await add("2026-03-05", 100);
+    await add("2026-03-20", 200);
+    await add("2026-03-12", 300);
+
+    const listed = await listTransactions(MONTH, 2);
+
+    expect(listed.map((t) => t.amountKopecks)).toEqual([200, 300]);
   });
 
   test("includes the first and the last day of the range and nothing outside", async () => {
@@ -89,7 +114,7 @@ describe("transactions", () => {
       });
     }
 
-    const listed = await listTransactions(id, MONTH);
+    const listed = await listTransactions(MONTH);
 
     expect(listed.map((t) => t.occurredOn)).toEqual(["2026-03-31", "2026-03-01"]);
   });
@@ -104,7 +129,8 @@ describe("transactions", () => {
       note: null,
     });
 
-    expect(await listTransactions(other.id, MONTH)).toEqual([]);
+    signIn(other.cookie);
+    expect(await listTransactions(MONTH)).toEqual([]);
   });
 
   test("another user's category is refused and nothing is stored", async () => {
@@ -166,23 +192,26 @@ describe("transactions", () => {
   });
 
   test("finds a transaction of the user", async () => {
-    const { id, expense } = await setup();
-    const stored = await addOne(id, expense.id);
+    const user = await setup();
+    const { expense } = user;
+    const stored = await addOne(user, expense.id);
 
-    expect(await findTransaction(id, stored.id)).toEqual(stored);
+    expect(await findTransaction(stored.id)).toEqual(stored);
   });
 
   test("another user's transaction is not found", async () => {
     const owner = await setup();
     const other = await setup();
-    const stored = await addOne(owner.id, owner.expense.id);
+    const stored = await addOne(owner, owner.expense.id);
 
-    expect(await findTransaction(other.id, stored.id)).toBeUndefined();
+    signIn(other.cookie);
+    expect(await findTransaction(stored.id)).toBeUndefined();
   });
 
   test("updates every field, and the type follows the category", async () => {
-    const { id, expense, income } = await setup();
-    const stored = await addOne(id, expense.id);
+    const user = await setup();
+    const { id, expense, income } = user;
+    const stored = await addOne(user, expense.id);
 
     const result = await updateTransaction(id, stored.id, {
       categoryId: income.id,
@@ -192,7 +221,7 @@ describe("transactions", () => {
     });
 
     expect(result).toEqual({ isUpdated: true });
-    expect(await listTransactions(id, MONTH)).toEqual([
+    expect(await listTransactions(MONTH)).toEqual([
       {
         id: stored.id,
         type: "income",
@@ -200,7 +229,7 @@ describe("transactions", () => {
         occurredOn: "2026-03-20",
         note: null,
         categoryId: income.id,
-        category: { defaultKey: "salary", name: null },
+        category: { defaultKey: "salary", name: null, icon: null },
       },
     ]);
   });
@@ -208,7 +237,7 @@ describe("transactions", () => {
   test("another user's transaction is not updated", async () => {
     const owner = await setup();
     const other = await setup();
-    const stored = await addOne(owner.id, owner.expense.id);
+    const stored = await addOne(owner, owner.expense.id);
 
     const result = await updateTransaction(other.id, stored.id, {
       categoryId: other.expense.id,
@@ -218,14 +247,16 @@ describe("transactions", () => {
     });
 
     expect(result).toEqual({ isUpdated: false, error: "transactionNotFound" });
-    expect(await listTransactions(owner.id, MONTH)).toEqual([stored]);
-    expect(await listTransactions(other.id, MONTH)).toEqual([]);
+    signIn(owner.cookie);
+    expect(await listTransactions(MONTH)).toEqual([stored]);
+    signIn(other.cookie);
+    expect(await listTransactions(MONTH)).toEqual([]);
   });
 
   test("another user's category is refused and nothing changes", async () => {
     const owner = await setup();
     const other = await setup();
-    const stored = await addOne(other.id, other.expense.id);
+    const stored = await addOne(other, other.expense.id);
 
     const result = await updateTransaction(other.id, stored.id, {
       categoryId: owner.expense.id,
@@ -235,24 +266,27 @@ describe("transactions", () => {
     });
 
     expect(result).toEqual({ isUpdated: false, error: "categoryNotFound" });
-    expect(await listTransactions(other.id, MONTH)).toEqual([stored]);
+    signIn(other.cookie);
+    expect(await listTransactions(MONTH)).toEqual([stored]);
   });
 
   test("deletes a transaction of the user", async () => {
-    const { id, expense } = await setup();
-    const stored = await addOne(id, expense.id);
+    const user = await setup();
+    const { id, expense } = user;
+    const stored = await addOne(user, expense.id);
 
     expect(await deleteTransaction(id, stored.id)).toEqual({ isDeleted: true });
-    expect(await listTransactions(id, MONTH)).toEqual([]);
+    expect(await listTransactions(MONTH)).toEqual([]);
     expect(await deleteTransaction(id, stored.id)).toEqual({ isDeleted: false });
   });
 
   test("another user's transaction is not deleted", async () => {
     const owner = await setup();
     const other = await setup();
-    const stored = await addOne(owner.id, owner.expense.id);
+    const stored = await addOne(owner, owner.expense.id);
 
     expect(await deleteTransaction(other.id, stored.id)).toEqual({ isDeleted: false });
-    expect(await listTransactions(owner.id, MONTH)).toEqual([stored]);
+    signIn(owner.cookie);
+    expect(await listTransactions(MONTH)).toEqual([stored]);
   });
 });

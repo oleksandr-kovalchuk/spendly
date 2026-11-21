@@ -11,7 +11,7 @@ test("shows an empty state with its action instead of the chart without expenses
   render(
     <NextIntlClientProvider locale="en" messages={en}>
       <PeriodStats
-        totals={{ incomeKopecks: 100_000, expenseKopecks: 0 }}
+        totals={{ incomeKopecks: 100_000, expenseKopecks: 0, balanceKopecks: 100_000 }}
         spending={[]}
         emptyAction={<button type="button">Add transaction</button>}
       />

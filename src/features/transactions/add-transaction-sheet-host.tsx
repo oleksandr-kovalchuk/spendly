@@ -3,10 +3,9 @@
 import dynamic from "next/dynamic";
 
 import { useAddTransaction } from "./add-transaction-context";
-import type { CategoryOption } from "./transaction-form";
+import type { CategoryOption } from "./category-option";
 
-// The sheet and its form aren't needed for the first paint: they load after it, and a tap
-// before that opens the sheet once it's there
+// Loads on the first open: the budget check counts every script the page loads, even after paint
 const AddTransactionSheet = dynamic(
   () => import("./add-transaction-sheet").then((mod) => mod.AddTransactionSheet),
   { ssr: false },
@@ -25,6 +24,8 @@ export function AddTransactionSheetHost({ today, categories }: AddTransactionShe
     document.querySelector("main")?.focus({ preventScroll: true });
     return null;
   }
+
+  if (opener === null) return null;
 
   return (
     <AddTransactionSheet

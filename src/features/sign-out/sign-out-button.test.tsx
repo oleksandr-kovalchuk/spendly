@@ -37,6 +37,24 @@ test("signing out ends with a full page load of the sign-in page", async () => {
   expect(assign).toHaveBeenCalledWith("/en/sign-in");
 });
 
+test("the button stays disabled, and focusable, until the request ends", async () => {
+  const { promise, resolve } = Promise.withResolvers<object>();
+  signOut.mockReturnValue(promise);
+  const user = renderButton();
+  await user.click(screen.getByRole("button", { name: "Sign out" }));
+
+  await vi.waitFor(() => {
+    expect(screen.getByRole("button", { name: "Sign out" })).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
+  });
+  resolve({ error: null });
+  await vi.waitFor(() => {
+    expect(assign).toHaveBeenCalledWith("/en/sign-in");
+  });
+});
+
 test("a failed sign out stays on the page and says so", async () => {
   signOut.mockResolvedValue({ error: { status: 500 } });
   const user = renderButton();

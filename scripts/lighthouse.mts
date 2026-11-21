@@ -16,14 +16,13 @@ import { z } from "zod";
 // oxlint-disable-next-line node/no-process-env
 const PORT = z.coerce.number().int().positive().default(3210).parse(process.env.PORT);
 const BASE_URL = `http://localhost:${PORT}`;
-const PUBLIC_PATHS = ["/en/sign-in", "/en/sign-up"];
+const PUBLIC_PATHS = ["/en/sign-in", "/en/sign-up", "/en/forgot-password", "/en/reset-password"];
 const SIGNED_IN_PATHS = ["/en", "/en/transactions", "/en/categories"];
 const PASSWORD = "correct horse battery";
 const SERVER_START_TIMEOUT_MS = 60_000;
 const REQUEST_TIMEOUT_MS = 10_000;
 const DEBUGGING_PORT_TIMEOUT_MS = 10_000;
 const POLL_INTERVAL_MS = 500;
-// Where `lhci collect` saves its reports
 const REPORTS_DIR = ".lighthouseci";
 
 function run(command: string, args: string[]) {

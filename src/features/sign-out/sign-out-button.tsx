@@ -37,6 +37,7 @@ export function SignOutButton({ isIconOnly = false }: { isIconOnly?: boolean }) 
       size={isLabelHidden ? "icon-lg" : "lg"}
       aria-label={isLabelHidden ? label : undefined}
       disabled={status === "pending"}
+      focusableWhenDisabled
       onClick={handleSignOut}
     >
       <LogOutIcon aria-hidden className="rtl:rotate-180" />
