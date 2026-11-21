@@ -1,54 +1,10 @@
-import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
-const PASSWORD = "correct horse battery";
+import { expectNoViolations, field, setRandomClientIp, signUpAndIn } from "./helpers";
 
 test.use({ timezoneId: "UTC" });
 
-test.beforeEach(async ({ context }) => {
-  const [a = 0, b = 0, c = 0] = crypto.getRandomValues(new Uint8Array(3));
-  await context.setExtraHTTPHeaders({ "x-real-ip": `10.${a}.${b}.${c}` });
-});
-
-async function expectNoViolations(page: Page) {
-  // axe would read the colors of a running transition (a theme switch)
-  // (a skeleton's endless pulse never ends, and a removed element's animation is cancelled)
-  await page.evaluate(() =>
-    Promise.allSettled(
-      document
-        .getAnimations()
-        .filter((a) => a.effect?.getComputedTiming().endTime !== Infinity)
-        .map((a) => a.finished),
-    ),
-  );
-  const { violations } = await new AxeBuilder({ page }).analyze();
-  expect(violations).toEqual([]);
-}
-
-function field(page: Page, name: string) {
-  return page.getByRole("textbox", { name, exact: true });
-}
-
-async function signUpAndIn(
-  page: Page,
-  locale: "en" | "uk",
-  testInfo: { project: { name: string }; workerIndex: number },
-) {
-  const [email, password, signUp, signIn] =
-    locale === "en"
-      ? ["Email", "Password", "Sign up", "Sign in"]
-      : ["Електронна пошта", "Пароль", "Зареєструватися", "Увійти"];
-  await page.goto(`/${locale}/sign-up`);
-  await field(page, email).fill(
-    `${testInfo.project.name}-${testInfo.workerIndex}-${crypto.randomUUID()}@example.com`,
-  );
-  await field(page, password).fill(PASSWORD);
-  await page.getByRole("button", { name: signUp }).click();
-  await expect(page).toHaveURL(new RegExp(`/${locale}/sign-in\\?`));
-  await field(page, password).fill(PASSWORD);
-  await page.getByRole("button", { name: signIn }).click();
-  await expect(page).toHaveURL(new RegExp(`/${locale}$`));
-}
+test.beforeEach(({ context }) => setRandomClientIp(context));
 
 const isPhone = (page: Page) => (page.viewportSize()?.width ?? 0) < 1024;
 

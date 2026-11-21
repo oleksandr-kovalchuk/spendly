@@ -1,5 +1,6 @@
-import AxeBuilder from "@axe-core/playwright";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
+
+import { expectNoViolations } from "./helpers";
 
 const LOCALES = [
   { locale: "en", other: "Українська", dark: "Dark", light: "Light", missing: "Page not found" },
@@ -17,11 +18,6 @@ const PAGES = [
   { name: "sign up", path: "/sign-up" },
   { name: "not found", path: "/no-such-page" },
 ] as const;
-
-async function expectNoViolations(page: Page) {
-  const { violations } = await new AxeBuilder({ page }).analyze();
-  expect(violations).toEqual([]);
-}
 
 for (const { locale, dark, light } of LOCALES) {
   for (const { name, path } of PAGES) {
@@ -94,6 +90,7 @@ test("switches the language and keeps the page", async ({ page }) => {
 test("shows the 404 page in the current language with a link home", async ({ page }) => {
   await page.goto("/uk/no-such-page");
 
+  // Only checkable here: a bare Playwright script (headless user agent) never sees this title
   await expect(page).toHaveTitle("Сторінку не знайдено | Spendly");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Сторінку не знайдено");
   await page.getByRole("link", { name: "На головну" }).click();

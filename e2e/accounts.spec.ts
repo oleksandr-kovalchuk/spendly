@@ -1,62 +1,16 @@
-import AxeBuilder from "@axe-core/playwright";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
-const PASSWORD = "correct horse battery";
+import {
+  expectNoViolations,
+  field,
+  newEmail,
+  PASSWORD,
+  setRandomClientIp,
+  signUpAndIn,
+  TEXTS,
+} from "./helpers";
 
-const TEXTS = {
-  en: {
-    signUp: "Sign up",
-    signIn: "Sign in",
-    signOut: "Sign out",
-    email: "Email",
-    password: "Password",
-    heading: "Overview",
-    signInHeading: "Sign in to Spendly",
-    invalidEmail: "Enter a valid email address.",
-    wrongCredentials: "The email or password is incorrect.",
-  },
-  uk: {
-    signUp: "Зареєструватися",
-    signIn: "Увійти",
-    signOut: "Вийти",
-    email: "Електронна пошта",
-    password: "Пароль",
-    heading: "Огляд",
-    signInHeading: "Вхід до Spendly",
-    invalidEmail: "Введіть дійсну адресу електронної пошти.",
-    wrongCredentials: "Електронна пошта або пароль неправильні.",
-  },
-} as const;
-
-async function expectNoViolations(page: Page) {
-  // axe would read the colors of a running transition (the submit button fading back in)
-  // (a skeleton's endless pulse never ends, and a removed element's animation is cancelled)
-  await page.evaluate(() =>
-    Promise.allSettled(
-      document
-        .getAnimations()
-        .filter((a) => a.effect?.getComputedTiming().endTime !== Infinity)
-        .map((a) => a.finished),
-    ),
-  );
-  const { violations } = await new AxeBuilder({ page }).analyze();
-  expect(violations).toEqual([]);
-}
-
-// Next keeps the previous page hidden, and a label query would match its fields too
-function field(page: Page, name: string) {
-  return page.getByRole("textbox", { name, exact: true });
-}
-
-function newEmail(testInfo: { project: { name: string }; workerIndex: number }) {
-  return `${testInfo.project.name}-${testInfo.workerIndex}-${crypto.randomUUID()}@example.com`;
-}
-
-// Every test would otherwise share one IP and hit the sign-in rate limit; the server reads x-real-ip
-test.beforeEach(async ({ context }) => {
-  const [a = 0, b = 0, c = 0] = crypto.getRandomValues(new Uint8Array(3));
-  await context.setExtraHTTPHeaders({ "x-real-ip": `10.${a}.${b}.${c}` });
-});
+test.beforeEach(({ context }) => setRandomClientIp(context));
 
 for (const locale of ["en", "uk"] as const) {
   const text = TEXTS[locale];
@@ -81,12 +35,12 @@ for (const locale of ["en", "uk"] as const) {
     await page.getByRole("button", { name: text.signIn }).click();
 
     await expect(page).toHaveURL(new RegExp(`/${locale}$`));
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText(text.heading);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(text.overview);
     await expect(page.getByRole("button", { name: text.signOut })).toBeVisible();
     await expectNoViolations(page);
 
     await page.reload();
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText(text.heading);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(text.overview);
 
     await page.getByRole("button", { name: text.signOut }).click();
     await expect(page).toHaveURL(new RegExp(`/${locale}/sign-in$`));
@@ -99,15 +53,7 @@ for (const locale of ["en", "uk"] as const) {
   test(`a signed-in user is sent from the sign-in page to the main page in ${locale}`, async ({
     page,
   }, testInfo) => {
-    const email = newEmail(testInfo);
-    await page.goto(`/${locale}/sign-up`);
-    await field(page, text.email).fill(email);
-    await field(page, text.password).fill(PASSWORD);
-    await page.getByRole("button", { name: text.signUp }).click();
-    await expect(page).toHaveURL(new RegExp(`/${locale}/sign-in\\?`));
-    await field(page, text.password).fill(PASSWORD);
-    await page.getByRole("button", { name: text.signIn }).click();
-    await expect(page).toHaveURL(new RegExp(`/${locale}$`));
+    await signUpAndIn(page, locale, testInfo);
 
     await page.goto(`/${locale}/sign-in`);
 
@@ -133,13 +79,7 @@ for (const locale of ["en", "uk"] as const) {
 }
 
 test("the signed-in main page fits a small screen", async ({ page }, testInfo) => {
-  await page.goto("/uk/sign-up");
-  await field(page, TEXTS.uk.email).fill(newEmail(testInfo));
-  await field(page, TEXTS.uk.password).fill(PASSWORD);
-  await page.getByRole("button", { name: TEXTS.uk.signUp }).click();
-  await expect(page).toHaveURL(/\/uk\/sign-in\?/);
-  await field(page, TEXTS.uk.password).fill(PASSWORD);
-  await page.getByRole("button", { name: TEXTS.uk.signIn }).click();
+  await signUpAndIn(page, "uk", testInfo);
   await expect(page.getByRole("button", { name: TEXTS.uk.signOut })).toBeVisible();
 
   const overflow = await page.evaluate(
