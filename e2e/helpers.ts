@@ -173,12 +173,9 @@ export async function setRandomClientIp(context: BrowserContext) {
   await context.setExtraHTTPHeaders({ "x-real-ip": `10.${a}.${b}.${c}` });
 }
 
-export async function expectNoViolations(page: Page) {
-  // After a client-side navigation or a period change the title streams in after the content
-  await expect(page).toHaveTitle(/\S/);
-  // axe would read the colors of running animations; infinite ones (a skeleton's pulse) never
-  // finish, nor do scroll-driven ones while their element is out of view, and a removed element's
-  // is cancelled, hence allSettled
+// Infinite animations (a skeleton's pulse) never finish, nor do scroll-driven ones while their
+// element is out of view, and a removed element's is cancelled, hence allSettled
+export async function waitForAnimations(page: Page) {
   await page.evaluate(() =>
     Promise.allSettled(
       document
@@ -190,6 +187,13 @@ export async function expectNoViolations(page: Page) {
         .map((a) => a.finished),
     ),
   );
+}
+
+export async function expectNoViolations(page: Page) {
+  // After a client-side navigation or a period change the title streams in after the content
+  await expect(page).toHaveTitle(/\S/);
+  // axe would read the colors of running animations
+  await waitForAnimations(page);
   const { violations } = await new AxeBuilder({ page }).analyze();
   expect(violations).toEqual([]);
 }

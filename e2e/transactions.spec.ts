@@ -16,6 +16,7 @@ import {
   signUpAndIn,
   TEXTS,
   viewTransitions,
+  waitForAnimations,
   type Locale,
 } from "./helpers";
 import { TODAY } from "./today";
@@ -546,10 +547,12 @@ for (const reducedMotion of ["no-preference", "reduce"] as const) {
     const sheet = await openEditSheet(page, "en", "animated");
     await transitions.clear();
     await sheet.getByRole("button", { name: TEXTS.en.del, exact: true }).click();
-    await page
-      .getByRole("alertdialog", { name: TEXTS.en.deleteTitle })
-      .getByRole("button", { name: TEXTS.en.del, exact: true })
-      .click();
+    const confirm = page.getByRole("alertdialog", { name: TEXTS.en.deleteTitle });
+    await expect(confirm).toBeVisible();
+    // Base UI ends a dialog's opening animation with flushSync, which makes React skip a view
+    // transition it lands in; a user doesn't confirm before the dialog has finished opening
+    await waitForAnimations(page);
+    await confirm.getByRole("button", { name: TEXTS.en.del, exact: true }).click();
     await expect(item(page, "animated")).toHaveCount(0);
     await transitions.expectAnimation("item-out");
   });
