@@ -147,10 +147,15 @@ type NewTransaction = {
   date?: string;
 };
 
-// The Add button of the bottom navigation on a phone, of the sidebar on a desktop
+// The Add button of the bottom navigation on a phone, of the sidebar on a desktop; an empty list
+// or chart has one too
+function navAddButton(page: Page, locale: "en" | "uk") {
+  return page.locator("header, nav").getByRole("button", { name: TEXTS[locale].addTransaction });
+}
+
 async function openAddSheet(page: Page, locale: "en" | "uk") {
   const text = TEXTS[locale];
-  await page.getByRole("button", { name: text.addTransaction }).click();
+  await navAddButton(page, locale).click();
   const sheet = page.getByRole("dialog", { name: text.addTransaction });
   await expect(sheet).toBeVisible();
   return sheet;
@@ -200,6 +205,14 @@ function money(locale: "en" | "uk", hryvnias: number) {
     currency: "UAH",
     currencyDisplay: "narrowSymbol",
   }).format(hryvnias);
+}
+
+// A total's value on Overview; toHaveText collapses every kind of space, so Node's and Chromium's
+// Intl output compare equal
+function total(page: Page, term: string) {
+  return page
+    .locator("dt", { hasText: new RegExp(`^${term}$`) })
+    .locator("xpath=following-sibling::dd");
 }
 
 // Another day of the same month, on the 1st or the 2nd
@@ -285,7 +298,7 @@ test("Add opens the form over the screen, and Escape returns focus to Add", asyn
   page,
 }, testInfo) => {
   await signUpAndIn(page, "en", testInfo);
-  const add = page.getByRole("button", { name: TEXTS.en.addTransaction });
+  const add = navAddButton(page, "en");
 
   const sheet = await openAddSheet(page, "en");
   await field(page, TEXTS.en.amount).fill("5");
@@ -466,19 +479,12 @@ for (const locale of ["en", "uk"] as const) {
   test(`totals and the chart follow add, edit and delete in ${locale}`, async ({
     page,
   }, testInfo) => {
-    // toHaveText collapses every kind of space, so Node's and Chromium's Intl output compare equal
-    const total = (term: string) =>
-      page
-        .locator("dt", { hasText: new RegExp(`^${term}$`) })
-        .locator("xpath=following-sibling::dd");
     const expectTotals = async (income: number, expenses: number) => {
-      await expect(total(text.incomeTotal)).toHaveText(money(locale, income));
-      await expect(total(text.expensesTotal)).toHaveText(money(locale, expenses));
-      await expect(total(text.balance)).toHaveText(money(locale, income - expenses));
+      await expect(total(page, text.incomeTotal)).toHaveText(money(locale, income));
+      await expect(total(page, text.expensesTotal)).toHaveText(money(locale, expenses));
+      await expect(total(page, text.balance)).toHaveText(money(locale, income - expenses));
     };
-    const byCategory = page
-      .getByRole("heading", { level: 2, name: text.byCategory })
-      .locator("xpath=..");
+    const byCategory = page.getByRole("region", { name: text.byCategory });
     const legend = page.getByRole("table", { name: text.byCategory }).locator("tbody tr");
 
     await signUpAndIn(page, locale, testInfo);
@@ -618,6 +624,31 @@ function recordViewTransitions() {
   };
 }
 
+// Reads what recordViewTransitions recorded, and checks that an animation ran, or that nothing
+// moved with reduced motion
+function viewTransitions(page: Page, reducedMotion: "no-preference" | "reduce") {
+  const recorded = () =>
+    page.evaluate((): RecordedAnimation[] => Reflect.get(window, "viewTransitionAnimations"));
+
+  return {
+    // The recorder keeps writing to its array, so it's emptied in place
+    clear: () =>
+      page.evaluate(() => {
+        const animations: RecordedAnimation[] = Reflect.get(window, "viewTransitionAnimations");
+        animations.length = 0;
+      }),
+    expectAnimation: async (name: string) => {
+      if (reducedMotion === "reduce") {
+        // The browser may still create zero-length animations: nothing moves
+        await expect.poll(async () => (await recorded()).map((a) => a.name)).not.toContain(name);
+        expect((await recorded()).every(({ duration }) => duration === 0)).toBe(true);
+      } else {
+        await expect.poll(async () => (await recorded()).map((a) => a.name)).toContain(name);
+      }
+    },
+  };
+}
+
 for (const reducedMotion of ["no-preference", "reduce"] as const) {
   test(`list items animate in and out with reduced motion ${reducedMotion}`, async ({
     page,
@@ -626,37 +657,47 @@ for (const reducedMotion of ["no-preference", "reduce"] as const) {
     await page.addInitScript(recordViewTransitions);
     await signUpAndIn(page, "en", testInfo);
     await openScreen(page, "en", "transactions");
-    const recorded = () =>
-      page.evaluate((): RecordedAnimation[] => Reflect.get(window, "viewTransitionAnimations"));
-    // The recorder keeps writing to its array, so it's emptied in place
-    const clearRecorded = () =>
-      page.evaluate(() => {
-        const animations: RecordedAnimation[] = Reflect.get(window, "viewTransitionAnimations");
-        animations.length = 0;
-      });
-    const expectAnimation = async (name: string) => {
-      if (reducedMotion === "reduce") {
-        // The browser may still create zero-length animations: nothing moves
-        await expect.poll(async () => (await recorded()).map((a) => a.name)).not.toContain(name);
-        expect((await recorded()).every(({ duration }) => duration === 0)).toBe(true);
-      } else {
-        await expect.poll(async () => (await recorded()).map((a) => a.name)).toContain(name);
-      }
-    };
+    const transitions = viewTransitions(page, reducedMotion);
 
-    await clearRecorded();
+    await transitions.clear();
     await addTransaction(page, "en", { amount: "4", note: "animated" });
     await expect(item(page, "animated")).toBeVisible();
-    await expectAnimation("item-in");
+    await transitions.expectAnimation("item-in");
 
     const sheet = await openEditSheet(page, "en", "animated");
-    await clearRecorded();
+    await transitions.clear();
     await sheet.getByRole("button", { name: TEXTS.en.del, exact: true }).click();
     await page
       .getByRole("alertdialog", { name: TEXTS.en.deleteTitle })
       .getByRole("button", { name: TEXTS.en.del, exact: true })
       .click();
     await expect(item(page, "animated")).toHaveCount(0);
-    await expectAnimation("item-out");
+    await transitions.expectAnimation("item-out");
+  });
+
+  test(`the empty chart's Add changes the totals with reduced motion ${reducedMotion}`, async ({
+    page,
+  }, testInfo) => {
+    await page.emulateMedia({ reducedMotion });
+    await page.addInitScript(recordViewTransitions);
+    await signUpAndIn(page, "en", testInfo);
+    const transitions = viewTransitions(page, reducedMotion);
+    const spending = page.getByRole("region", { name: TEXTS.en.byCategory });
+    await expect(spending.getByText(TEXTS.en.noExpenses)).toBeVisible();
+    await expect(total(page, TEXTS.en.expensesTotal)).toHaveText(money("en", 0));
+
+    await transitions.clear();
+    await spending.getByRole("button", { name: TEXTS.en.addTransaction }).click();
+    const sheet = page.getByRole("dialog", { name: TEXTS.en.addTransaction });
+    await field(page, TEXTS.en.amount).fill("300");
+    await sheet.getByRole("button", { name: TEXTS.en.add, exact: true }).click();
+    await expect(sheet).toHaveCount(0);
+
+    await expect(total(page, TEXTS.en.expensesTotal)).toHaveText(money("en", 300));
+    await expect(total(page, TEXTS.en.balance)).toHaveText(money("en", -300));
+    await transitions.expectAnimation("total-in");
+    await expect(spending.getByRole("table")).toBeVisible();
+    // The empty chart and its button are gone: focus moves to the screen
+    await expect(page.getByRole("main")).toBeFocused();
   });
 }

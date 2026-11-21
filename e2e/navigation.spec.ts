@@ -11,6 +11,16 @@ test.beforeEach(async ({ context }) => {
 });
 
 async function expectNoViolations(page: Page) {
+  // axe would read the colors of a running transition (a theme switch)
+  // (a skeleton's endless pulse never ends, and a removed element's animation is cancelled)
+  await page.evaluate(() =>
+    Promise.allSettled(
+      document
+        .getAnimations()
+        .filter((a) => a.effect?.getComputedTiming().endTime !== Infinity)
+        .map((a) => a.finished),
+    ),
+  );
   const { violations } = await new AxeBuilder({ page }).analyze();
   expect(violations).toEqual([]);
 }
@@ -100,6 +110,56 @@ for (const { locale, overview, transactions, categories, dark } of [
   });
 }
 
+for (const { locale, screens, empty, food, theme } of [
+  {
+    locale: "en",
+    screens: ["Overview", "Transactions", "Categories"],
+    empty: ["No expenses in this period.", "No transactions in this period."],
+    food: "Food",
+    theme: { light: "Light", dark: "Dark" },
+  },
+  {
+    locale: "uk",
+    screens: ["Огляд", "Транзакції", "Категорії"],
+    empty: ["У цьому періоді немає витрат.", "У цьому періоді немає транзакцій."],
+    food: "Їжа",
+    theme: { light: "Світла", dark: "Темна" },
+  },
+] as const) {
+  test(`every screen with its empty states has no accessibility violations in ${locale}`, async ({
+    page,
+  }, testInfo) => {
+    await signUpAndIn(page, locale, testInfo);
+    // Next keeps a visited screen mounted but hidden, so a text query is filtered to the shown one
+    const [overview, transactions, categories] = screens;
+    const nav = page.getByRole("navigation");
+
+    for (const name of ["light", "dark"] as const) {
+      await page.getByRole("button", { name: theme[name], exact: true }).click();
+      await expect(page.locator("html")).toHaveClass(name === "dark" ? /dark/ : /^(?!.*dark)/);
+
+      await nav.getByRole("link", { name: overview }).click();
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText(overview);
+      await expect(page.getByText(empty[0]).filter({ visible: true })).toBeVisible();
+      await expect(page).toHaveTitle(`${overview} | Spendly`);
+      await expectNoViolations(page);
+
+      await nav.getByRole("link", { name: transactions }).click();
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText(transactions);
+      await expect(page.getByText(empty[1]).filter({ visible: true })).toBeVisible();
+      await expect(page).toHaveTitle(`${transactions} | Spendly`);
+      await expectNoViolations(page);
+
+      await nav.getByRole("link", { name: categories }).click();
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText(categories);
+      // The navigation's items are list items too: wait for a category
+      await expect(page.getByRole("listitem").filter({ hasText: food })).toBeVisible();
+      await expect(page).toHaveTitle(`${categories} | Spendly`);
+      await expectNoViolations(page);
+    }
+  });
+}
+
 test("Tab reaches every control, and the bottom navigation covers none", async ({
   page,
 }, testInfo) => {
@@ -107,7 +167,8 @@ test("Tab reaches every control, and the bottom navigation covers none", async (
   await page.getByRole("link", { name: "Transactions", exact: true }).click();
   await expect(page).toHaveURL(/\/en\/transactions$/);
   for (const note of ["first", "second", "third"]) {
-    await page.getByRole("button", { name: "Add transaction" }).click();
+    // The navigation's Add: the empty list has one too
+    await page.locator("header, nav").getByRole("button", { name: "Add transaction" }).click();
     const sheet = page.getByRole("dialog", { name: "Add transaction" });
     await field(page, "Amount (UAH)").fill("10");
     await field(page, "Note (optional)").fill(note);

@@ -14,6 +14,7 @@ const LOCALES = [
 
 const PAGES = [
   { name: "sign in", path: "/sign-in" },
+  { name: "sign up", path: "/sign-up" },
   { name: "not found", path: "/no-such-page" },
 ] as const;
 

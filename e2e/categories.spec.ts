@@ -95,7 +95,8 @@ for (const locale of ["en", "uk"] as const) {
     // An expense in Food before the rename
     await page.getByRole("link", { name: text.transactions, exact: true }).click();
     await expect(page).toHaveURL(new RegExp(`/${locale}/transactions$`));
-    await page.getByRole("button", { name: text.openAdd }).click();
+    // The navigation's Add: the empty list has one too
+    await page.locator("header, nav").getByRole("button", { name: text.openAdd }).click();
     const sheet = page.getByRole("dialog", { name: text.openAdd });
     await field(page, text.amount).fill("42");
     await sheet.getByLabel(text.category, { exact: true }).selectOption({ label: text.food });
@@ -145,7 +146,8 @@ for (const locale of ["en", "uk"] as const) {
     await expect(expenses.getByRole("listitem").filter({ hasText: text.food })).toHaveCount(0);
 
     // The add form, opened on this screen, offers the new names
-    await page.getByRole("button", { name: text.openAdd }).click();
+    // The navigation's Add: the empty list has one too
+    await page.locator("header, nav").getByRole("button", { name: text.openAdd }).click();
     const addSheet = page.getByRole("dialog", { name: text.openAdd });
     const picker = addSheet.getByLabel(text.category, { exact: true });
     await expect(picker.getByRole("option", { name: "Coffee" })).toHaveCount(1);

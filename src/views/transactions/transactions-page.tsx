@@ -13,6 +13,8 @@ import { findTransaction, listTransactions } from "@/features/transactions/trans
 import { categoryLabel } from "@/shared/categories/category-label";
 import { listCategories } from "@/shared/categories/categories.dal";
 import { Skeleton } from "@/shared/ui/skeleton";
+import { PageHeading } from "@/shared/ui/page-heading";
+import { AddTransactionControl } from "@/views/app-shell/add-transaction-control";
 import { PageTransition } from "@/views/app-shell/page-transition";
 import { PeriodSkeleton } from "@/views/app-shell/period-skeleton";
 import {
@@ -75,16 +77,20 @@ async function PeriodTransactions({ searchParams }: { searchParams: ScreenSearch
 
   // Edit links keep the period, so the list stays where the user is
   return (
-    <TransactionList groups={groupByDay(transactions)} periodQuery={toPeriodQuery(period, today)} />
+    <TransactionList
+      groups={groupByDay(transactions)}
+      periodQuery={toPeriodQuery(period, today)}
+      emptyAction={<AddTransactionControl placement="empty" />}
+    />
   );
 }
 
+// A day heading and a card of two items
 function ListSkeleton() {
   return (
     <div className="grid gap-2">
       <Skeleton className="h-5 w-1/3" />
-      <Skeleton className="h-14 w-full" />
-      <Skeleton className="h-14 w-full" />
+      <Skeleton className="h-36 w-full rounded-xl" />
     </div>
   );
 }
@@ -94,22 +100,20 @@ export async function TransactionsPage({ searchParams }: PageProps<"/[locale]/tr
 
   return (
     <PageTransition>
-      <div className="grid gap-8">
-        <h1 className="text-3xl font-semibold tracking-tight text-balance">{t("heading")}</h1>
+      <div className="grid gap-6">
+        <PageHeading>{t("heading")}</PageHeading>
         {/* Nothing shows until the sheet's data is there: it opens over a ready list */}
         <Suspense fallback={null}>
           <EditSheetSection searchParams={searchParams} />
         </Suspense>
-        <div className="grid gap-4">
-          <Suspense fallback={<PeriodSkeleton />}>
-            <PeriodSection />
+        <Suspense fallback={<PeriodSkeleton />}>
+          <PeriodSection />
+        </Suspense>
+        <TransactionListBoundary>
+          <Suspense fallback={<ListSkeleton />}>
+            <PeriodTransactions searchParams={searchParams} />
           </Suspense>
-          <TransactionListBoundary>
-            <Suspense fallback={<ListSkeleton />}>
-              <PeriodTransactions searchParams={searchParams} />
-            </Suspense>
-          </TransactionListBoundary>
-        </div>
+        </TransactionListBoundary>
       </div>
     </PageTransition>
   );

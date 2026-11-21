@@ -2,7 +2,7 @@
 
 import { XIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
-import type { ReactNode, RefObject } from "react";
+import type { ReactNode } from "react";
 
 import { Button } from "@/shared/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle } from "@/shared/ui/dialog";
@@ -16,8 +16,8 @@ type TransactionSheetProps = {
   // Called once the open or close animation has ended
   onOpenChangeComplete?: (open: boolean) => void;
   title: string;
-  // Where focus returns when the sheet closes; without it, to the element focused before it opened
-  finalFocus?: RefObject<HTMLElement | null>;
+  // Where focus goes when the sheet closes; without it, to the element focused before it opened
+  finalFocus?: () => HTMLElement | null;
   children: ReactNode;
 };
 

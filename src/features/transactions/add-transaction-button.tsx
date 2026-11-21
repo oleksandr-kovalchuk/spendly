@@ -3,65 +3,59 @@
 import { cva } from "class-variance-authority";
 import { PlusIcon } from "lucide-react";
 import { useTranslations } from "next-intl";
-import dynamic from "next/dynamic";
-import { useRef, useState } from "react";
+import { useId, useLayoutEffect, useRef } from "react";
 
 import { Button } from "@/shared/ui/button";
 
-import type { CategoryOption } from "./transaction-form";
+import { useAddTransaction } from "./add-transaction-context";
 
-// The sheet and its form aren't needed for the first paint: they load after it, and a tap
-// before that opens the sheet once it's there
-const AddTransactionSheet = dynamic(
-  () => import("./add-transaction-sheet").then((mod) => mod.AddTransactionSheet),
-  { ssr: false },
-);
+type Placement = "bar" | "sidebar" | "empty";
 
-type Placement = "bar" | "sidebar";
-type AddTransactionButtonProps = {
-  placement: Placement;
-  today: string;
-  categories: CategoryOption[];
-};
-
-// In the bottom navigation a raised round button in the middle slot, in the sidebar a full-width one
+// In the bottom navigation a raised round button in the middle slot, in the sidebar a full-width
+// one, in an empty list or chart one with its label
 const buttonVariants = cva("", {
   variants: {
     placement: {
       bar: "size-12 rounded-full shadow-md [&_svg:not([class*='size-'])]:size-6",
       sidebar: "w-full",
+      empty: "",
     },
   },
 });
 
-export function AddTransactionButton({ placement, today, categories }: AddTransactionButtonProps) {
+// Opens the one add form of the screen (AddTransactionProvider)
+export function AddTransactionButton({ placement }: { placement: Placement }) {
   const t = useTranslations("Transactions");
-  const [isOpen, setIsOpen] = useState(false);
-  // Closing returns focus here, also where a tap doesn't focus the button (Safari)
+  const id = useId();
+  const { isOpen, opener, open } = useAddTransaction();
   const buttonRef = useRef<HTMLButtonElement>(null);
   const label = t("form.heading");
+  const isIconOnly = placement === "bar";
+
+  // An empty state's button goes away once the list has an item, often right after the closing
+  // form has returned focus to it: focus moves to the screen instead of the page's start. A layout
+  // effect's cleanup runs while the button is still in the document.
+  useLayoutEffect(() => {
+    const button = buttonRef.current;
+    return () => {
+      if (button !== null && button === document.activeElement) {
+        document.querySelector("main")?.focus({ preventScroll: true });
+      }
+    };
+  }, []);
 
   return (
-    <>
-      <Button
-        ref={buttonRef}
-        size="lg"
-        className={buttonVariants({ placement })}
-        aria-label={placement === "bar" ? label : undefined}
-        aria-haspopup="dialog"
-        aria-expanded={isOpen}
-        onClick={() => setIsOpen(true)}
-      >
-        <PlusIcon aria-hidden />
-        {placement === "sidebar" ? label : null}
-      </Button>
-      <AddTransactionSheet
-        open={isOpen}
-        onOpenChange={setIsOpen}
-        finalFocus={buttonRef}
-        today={today}
-        categories={categories}
-      />
-    </>
+    <Button
+      ref={buttonRef}
+      size="lg"
+      className={buttonVariants({ placement })}
+      aria-label={isIconOnly ? label : undefined}
+      aria-haspopup="dialog"
+      aria-expanded={isOpen && opener?.id === id}
+      onClick={(event) => open({ id, element: event.currentTarget })}
+    >
+      <PlusIcon aria-hidden />
+      {isIconOnly ? null : label}
+    </Button>
   );
 }

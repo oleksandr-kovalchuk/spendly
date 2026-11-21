@@ -5,6 +5,8 @@ import { Suspense } from "react";
 import { SignUpForm } from "@/features/auth/sign-up-form";
 import { getCurrentUser } from "@/shared/auth/session";
 import { Skeleton } from "@/shared/ui/skeleton";
+import { Card, CardContent, CardHeader } from "@/shared/ui/card";
+import { PageHeading } from "@/shared/ui/page-heading";
 
 async function SignUpContent() {
   const user = await getCurrentUser();
@@ -27,11 +29,15 @@ export async function SignUpPage() {
   const t = await getTranslations("Auth.signUp");
 
   return (
-    <div className="mx-auto grid w-full max-w-sm gap-6">
-      <h1 className="text-3xl font-semibold tracking-tight text-balance">{t("heading")}</h1>
-      <Suspense fallback={<FormSkeleton />}>
-        <SignUpContent />
-      </Suspense>
-    </div>
+    <Card className="mx-auto w-full max-w-sm">
+      <CardHeader>
+        <PageHeading>{t("heading")}</PageHeading>
+      </CardHeader>
+      <CardContent>
+        <Suspense fallback={<FormSkeleton />}>
+          <SignUpContent />
+        </Suspense>
+      </CardContent>
+    </Card>
   );
 }
