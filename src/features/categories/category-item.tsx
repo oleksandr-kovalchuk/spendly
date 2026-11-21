@@ -35,6 +35,7 @@ export function CategoryItem({
 }: CategoryItemProps) {
   const t = useTranslations("Categories");
   const [isEditing, setIsEditing] = useState(false);
+  const [hasEdited, setHasEdited] = useState(false);
   // The name the sheet opened with: a save's refresh brings the new one while the sheet closes
   const [editedLabel, setEditedLabel] = useState(label);
   const editButtonRef = useRef<HTMLButtonElement>(null);
@@ -43,6 +44,7 @@ export function CategoryItem({
 
   function handleEdit() {
     setEditedLabel(label);
+    setHasEdited(true);
     setIsEditing(true);
   }
 
@@ -71,15 +73,17 @@ export function CategoryItem({
         />
       </div>
       {/* Closing returns focus to Rename or Edit, also where a tap doesn't focus it (Safari) */}
-      <EditCategorySheet
-        id={id}
-        label={editedLabel}
-        defaultKey={defaultKey}
-        icon={icon}
-        open={isEditing}
-        onOpenChange={setIsEditing}
-        finalFocus={() => editButtonRef.current}
-      />
+      {hasEdited ? (
+        <EditCategorySheet
+          id={id}
+          label={editedLabel}
+          defaultKey={defaultKey}
+          icon={icon}
+          open={isEditing}
+          onOpenChange={setIsEditing}
+          finalFocus={() => editButtonRef.current}
+        />
+      ) : null}
     </li>
   );
 }

@@ -17,7 +17,13 @@ const AddCategorySheet = dynamic(
 export function AddCategoryButton({ type }: { type: CategoryType }) {
   const t = useTranslations("Categories");
   const [isOpen, setIsOpen] = useState(false);
+  const [hasOpened, setHasOpened] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
+
+  function handleOpen() {
+    setHasOpened(true);
+    setIsOpen(true);
+  }
 
   return (
     <>
@@ -26,18 +32,20 @@ export function AddCategoryButton({ type }: { type: CategoryType }) {
         type="button"
         variant="outline"
         aria-label={t(`list.${type}Add`)}
-        onClick={() => setIsOpen(true)}
+        onClick={handleOpen}
       >
         <PlusIcon aria-hidden />
         {t("form.add")}
       </Button>
       {/* Closing returns focus to this button, also where a tap doesn't focus it (Safari) */}
-      <AddCategorySheet
-        type={type}
-        open={isOpen}
-        onOpenChange={setIsOpen}
-        finalFocus={() => buttonRef.current}
-      />
+      {hasOpened ? (
+        <AddCategorySheet
+          type={type}
+          open={isOpen}
+          onOpenChange={setIsOpen}
+          finalFocus={() => buttonRef.current}
+        />
+      ) : null}
     </>
   );
 }
