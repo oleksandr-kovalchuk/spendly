@@ -8,11 +8,11 @@ The period the main page shows: a day, week, month or year the user picks and st
 
 ### Requirement: Period type
 
-The user SHALL pick a day, week, month or year period; the current month SHALL be the default, by today in the user's time zone.
+The user SHALL pick a day, week, month or year period on the Overview and Transactions screens; the current month SHALL be the default, by today in the user's time zone.
 
 #### Scenario: Default
 
-- **WHEN** the main page opens without a chosen period
+- **WHEN** the Overview or Transactions screen opens without a chosen period
 - **THEN** it shows the current month
 
 #### Scenario: Switch type
@@ -46,12 +46,17 @@ The transaction list and stats SHALL include only transactions dated within the 
 
 ### Requirement: Linkable period
 
-The shown period SHALL be kept in the URL, without the default; an invalid period in the URL SHALL fall back to the default.
+The shown period SHALL be kept in the URL, without the default, and SHALL stay when the user moves between the Overview and Transactions screens; an invalid period in the URL SHALL fall back to the default.
 
 #### Scenario: Shared link
 
 - **WHEN** the user opens the URL of a shown week in a new tab
 - **THEN** the same week is shown
+
+#### Scenario: Switch screen
+
+- **WHEN** October 2026 is shown on Overview and the user opens Transactions from the navigation
+- **THEN** Transactions shows October 2026
 
 #### Scenario: Invalid value
 
