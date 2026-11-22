@@ -4,7 +4,7 @@ import { donutSegments } from "./donut-segments";
 import type { SpendingItem } from "./spending-item";
 
 function item(id: string, amountKopecks: number): SpendingItem {
-  return { id, label: id, amountKopecks, color: "cat1" };
+  return { id, label: id, amountKopecks, color: "cat1", transactionsQuery: {} };
 }
 
 test("gives each category an arc in its share, in order, with the gap split around it", () => {

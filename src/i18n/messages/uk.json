@@ -273,13 +273,19 @@
   "Transactions": {
     "title": "Транзакції",
     "heading": "Транзакції",
+    "swipe": {
+      "edit": "Редагувати"
+    },
+    "filter": {
+      "clear": "Прибрати фільтр «{category}»"
+    },
     "form": {
       "heading": "Додати транзакцію",
       "type": "Тип",
       "expense": "Витрата",
       "income": "Дохід",
       "amount": "Сума (грн)",
-      "amountPlaceholder": "0.00",
+      "amountPlaceholder": "0",
       "category": "Категорія",
       "date": "Дата",
       "dateValue": "Дата: {date}",
@@ -302,6 +308,8 @@
       "transactionNotFound": "Цієї транзакції вже немає. Оновіть сторінку."
     },
     "list": {
+      "dayIncome": "Доходи за день:",
+      "dayExpenses": "Витрати за день:",
       "empty": "У цьому періоді немає транзакцій.",
       "loadFailed": "Не вдалося завантажити ваші транзакції.",
       "retry": "Спробувати ще раз"
@@ -349,7 +357,14 @@
       "amount": "Сума",
       "share": "Частка"
     },
-    "spentShare": "Витрачено {share} доходу"
+    "spentShare": "Витрачено {share} доходу",
+    "calendar": {
+      "heading": "Витрати по днях",
+      "day": "{date}: {amount}",
+      "noSpending": "{date}: без витрат",
+      "less": "Менше",
+      "more": "Більше"
+    }
   },
   "Emails": {
     "passwordReset": {

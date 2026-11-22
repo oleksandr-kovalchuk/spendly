@@ -1,6 +1,13 @@
 import { expect, test, type Page } from "@playwright/test";
 
-import { expectNoViolations, field, pickAppTheme, setRandomClientIp, signUpAndIn } from "./helpers";
+import {
+  expectNoViolations,
+  field,
+  openAddSheet,
+  pickAppTheme,
+  setRandomClientIp,
+  signUpAndIn,
+} from "./helpers";
 
 test.use({ timezoneId: "UTC" });
 
@@ -31,7 +38,6 @@ for (const { locale, overview, transactions, categories } of [
 ] as const) {
   test(`the navigation marks the current screen in ${locale}`, async ({ page }, testInfo) => {
     await signUpAndIn(page, locale, testInfo);
-    // One navigation is displayed: the bottom bar on a phone, the sidebar on a desktop
     const nav = page.getByRole("navigation");
     await expect(nav).toHaveCount(1);
     const box = await nav.boundingBox();
@@ -48,7 +54,6 @@ for (const { locale, overview, transactions, categories } of [
     await expect(current).toHaveText(transactions);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(transactions);
     await expect(page.getByRole("main")).toBeFocused();
-    // The title streams in after a client-side navigation
     await expect(page).toHaveTitle(`${transactions} | Spendly`);
     await expectNoViolations(page);
 
@@ -78,7 +83,6 @@ for (const { locale, screens, empty, food } of [
     page,
   }, testInfo) => {
     await signUpAndIn(page, locale, testInfo);
-    // Next keeps a visited screen mounted but hidden, so a text query is filtered to the shown one
     const [overview, transactions, categories] = screens;
     const nav = page.getByRole("navigation");
 
@@ -99,7 +103,6 @@ for (const { locale, screens, empty, food } of [
 
       await nav.getByRole("link", { name: categories }).click();
       await expect(page.getByRole("heading", { level: 1 })).toHaveText(categories);
-      // The navigation's items are list items too: wait for a category
       await expect(page.getByRole("listitem").filter({ hasText: food })).toBeVisible();
       await expect(page).toHaveTitle(`${categories} | Spendly`);
       await expectNoViolations(page);
@@ -114,9 +117,7 @@ test("Tab reaches every control, and the bottom navigation covers none", async (
   await page.getByRole("link", { name: "Transactions", exact: true }).click();
   await expect(page).toHaveURL(/\/en\/transactions$/);
   for (const note of ["first", "second", "third"]) {
-    // The empty list has an Add button too
-    await page.locator("header, nav").getByRole("button", { name: "Add transaction" }).click();
-    const sheet = page.getByRole("dialog", { name: "Add transaction" });
+    const sheet = await openAddSheet(page, "en");
     await field(page, "Amount (UAH)").fill("10");
     await field(page, "Note (optional)").fill(note);
     await sheet.getByRole("button", { name: "Add", exact: true }).click();
@@ -124,7 +125,6 @@ test("Tab reaches every control, and the bottom navigation covers none", async (
     await expect(page.getByRole("listitem").filter({ hasText: note })).toBeVisible();
   }
   await page.reload();
-  // The page streams in after the shell: wait for the list and the Add button, not the navigation's items
   await expect(page.getByRole("listitem").filter({ hasText: "third" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Add transaction" })).toBeVisible();
 
@@ -132,7 +132,6 @@ test("Tab reaches every control, and the bottom navigation covers none", async (
     ? ((await page.getByRole("navigation").boundingBox())?.y ?? 0)
     : Number.POSITIVE_INFINITY;
   const reached: string[] = [];
-  // Until focus leaves the page after its last control
   for (;;) {
     expect(reached.length, `Tab stops: ${reached.join(", ")}`).toBeLessThan(60);
     await page.keyboard.press("Tab");
@@ -161,12 +160,10 @@ test("Tab reaches every control, and the bottom navigation covers none", async (
       "Overview",
       "Transactions",
       "Categories",
-      // The account's actions open from one button: "Account" on phones, with the email on desktops
       expect.stringContaining("Account"),
       "Add transaction",
     ]),
   );
-  // Each list item is one Tab stop, its link
   expect(reached.filter((name) => /^Food\s?(first|second|third)/.test(name))).toHaveLength(3);
 
   const overview = page.getByRole("link", { name: "Overview", exact: true });
@@ -175,7 +172,6 @@ test("Tab reaches every control, and the bottom navigation covers none", async (
   await expect(page).toHaveURL(/\/en$/);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Overview");
   await expect(page.getByRole("main")).toBeFocused();
-  // The period control streams in after the heading; its first control steps back
   const previous = page.getByRole("button", { name: "Previous day", exact: true });
   await expect(previous).toBeVisible();
   await page.keyboard.press("Tab");
@@ -203,7 +199,6 @@ function recordViewTransitions() {
           }));
         Object.assign(window, { viewTransitionAnimations: animations });
       },
-      // A skipped transition has no animations to record
       () => Object.assign(window, { viewTransitionAnimations: [] }),
     );
     return transition;
@@ -230,7 +225,6 @@ for (const reducedMotion of ["no-preference", "reduce"] as const) {
     );
 
     if (reducedMotion === "reduce") {
-      // The browser may still create zero-length animations: nothing moves
       expect(animations.map(({ name }) => name)).not.toContain("page-rise-in");
       expect(animations.every(({ duration }) => duration === 0)).toBe(true);
     } else {

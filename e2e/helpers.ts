@@ -57,6 +57,7 @@ export const TEXTS = {
     expensesTotal: "Expenses",
     balance: "Balance",
     byCategory: "Spending by category",
+    spendingByDay: "Spending by day",
     noExpenses: "No expenses in this period.",
     theme: "Theme",
     themes: { light: "Light", dark: "Dark", system: "System" },
@@ -133,6 +134,7 @@ export const TEXTS = {
     expensesTotal: "Витрати",
     balance: "Баланс",
     byCategory: "Витрати за категоріями",
+    spendingByDay: "Витрати по днях",
     noExpenses: "У цьому періоді немає витрат.",
     theme: "Тема",
     themes: { light: "Світла", dark: "Темна", system: "Як у системі" },
@@ -167,14 +169,13 @@ export const TEXTS = {
 
 type TestInfo = { project: { name: string }; workerIndex: number };
 
-// Every test would otherwise share one IP and hit the sign-in rate limit; the server reads x-real-ip
+// One IP for every test would hit the sign-in rate limit
 export async function setRandomClientIp(context: BrowserContext) {
   const [a = 0, b = 0, c = 0] = crypto.getRandomValues(new Uint8Array(3));
   await context.setExtraHTTPHeaders({ "x-real-ip": `10.${a}.${b}.${c}` });
 }
 
-// Infinite animations (a skeleton's pulse) never finish, nor do scroll-driven ones while their
-// element is out of view, and a removed element's is cancelled, hence allSettled
+// allSettled: infinite, off-screen scroll-driven and cancelled animations never fulfil
 export async function waitForAnimations(page: Page) {
   await page.evaluate(() =>
     Promise.allSettled(
@@ -190,7 +191,6 @@ export async function waitForAnimations(page: Page) {
 }
 
 export async function expectNoViolations(page: Page) {
-  // After a client-side navigation or a period change the title streams in after the content
   await expect(page).toHaveTitle(/\S/);
   // axe would read the colors of running animations
   await waitForAnimations(page);
@@ -198,7 +198,6 @@ export async function expectNoViolations(page: Page) {
   expect(violations).toEqual([]);
 }
 
-// The radio is visually hidden: a user taps the tile (its label)
 export async function pickCategory(sheet: Locator, name: string) {
   await sheet
     .getByRole("radiogroup")
@@ -221,7 +220,6 @@ export function shownDay(locale: Locale, day: string) {
   }).format(new Date(`${day}T00:00:00Z`));
 }
 
-// The calendar's own month buttons (react-day-picker's locales)
 const CALENDAR_STEPS = {
   en: { previous: "Go to the Previous Month", next: "Go to the Next Month" },
   uk: { previous: "Перейти до попереднього місяця", next: "Перейти до наступного місяця" },
@@ -231,8 +229,6 @@ function monthIndexOf(day: string) {
   return Number(day.slice(0, 4)) * 12 + Number(day.slice(5, 7));
 }
 
-// The calendar opens on the month of the shown day (`from`): it steps to the day's month and
-// picks the day by its full name, which the calendar renders portaled outside the sheet
 export async function pickDate(
   page: Page,
   sheet: Locator,
@@ -261,7 +257,6 @@ export async function openPeriodMenu(page: Page, locale: Locale) {
     .click();
 }
 
-// The radio is visually hidden: a user taps the segment (its label)
 export async function pickTheme(
   page: Page,
   locale: Locale,
@@ -278,17 +273,35 @@ export async function pickTheme(
   await expect(page.locator("html")).toHaveClass(theme === "dark" ? /dark/ : /^(?!.*dark)/);
 }
 
-// A popover from the sidebar's "Account: <email>" button, a sheet from the phone's top bar
 export async function openAccountMenu(page: Page, locale: Locale) {
   const button = page.getByRole("button", { name: new RegExp(`^${TEXTS[locale].account}`) });
   const panel = page.getByRole("dialog", { name: TEXTS[locale].account, exact: true });
-  // A click before hydration opens nothing, so it's repeated until the panel is open
+  // Retries a click lost before hydration
   await expect(async () => {
     await button.click();
     await expect(panel).toBeVisible({ timeout: 1000 });
   }).toPass();
 
   return panel;
+}
+
+export function navAddButton(page: Page, locale: Locale) {
+  return page.locator("header, nav").getByRole("button", { name: TEXTS[locale].addTransaction });
+}
+
+// Retries a click lost before hydration
+export async function openAddSheet(
+  page: Page,
+  locale: Locale,
+  button = navAddButton(page, locale),
+) {
+  const sheet = page.getByRole("dialog", { name: TEXTS[locale].addTransaction });
+  await expect(async () => {
+    if (!(await sheet.isVisible())) await button.click({ timeout: 1000 });
+    await expect(sheet).toBeVisible({ timeout: 1000 });
+  }).toPass();
+
+  return sheet;
 }
 
 export async function pickAppTheme(page: Page, locale: Locale, theme: "light" | "dark") {
@@ -310,6 +323,17 @@ export function newEmail(testInfo: TestInfo) {
   return `${testInfo.project.name}-${testInfo.workerIndex}-${crypto.randomUUID()}@example.com`;
 }
 
+// React adds `__reactProps$` keys to hydrated elements; clicks before that are lost
+async function waitForHydration(page: Page) {
+  await expect
+    .poll(() =>
+      page
+        .getByRole("main")
+        .evaluate((main) => Object.keys(main).some((key) => key.startsWith("__reactProps$"))),
+    )
+    .toBe(true);
+}
+
 export async function signUpAndIn(page: Page, locale: Locale, testInfo: TestInfo) {
   const text = TEXTS[locale];
   const email = newEmail(testInfo);
@@ -321,6 +345,7 @@ export async function signUpAndIn(page: Page, locale: Locale, testInfo: TestInfo
   await field(page, text.password).fill(PASSWORD);
   await page.getByRole("button", { name: text.signIn }).click();
   await expect(page).toHaveURL(new RegExp(`/${locale}$`));
+  await waitForHydration(page);
 
   return email;
 }
@@ -348,7 +373,6 @@ export function recordViewTransitions() {
           }
         }
       },
-      // A skipped transition has no animations; its reason shows in a failure message
       (error: unknown) => recorded.push({ name: `skipped: ${String(error)}`, duration: 0 }),
     );
     return transition;
@@ -360,7 +384,7 @@ export function viewTransitions(page: Page, reducedMotion: "no-preference" | "re
     page.evaluate((): RecordedAnimation[] => Reflect.get(window, "viewTransitionAnimations"));
 
   return {
-    // The recorder keeps writing to its array, so it's emptied in place
+    // Emptied in place: the recorder keeps writing to this array
     clear: () =>
       page.evaluate(() => {
         const animations: RecordedAnimation[] = Reflect.get(window, "viewTransitionAnimations");
@@ -368,7 +392,6 @@ export function viewTransitions(page: Page, reducedMotion: "no-preference" | "re
       }),
     expectAnimation: async (name: string) => {
       if (reducedMotion === "reduce") {
-        // The browser may still create zero-length animations: nothing moves
         await expect.poll(async () => (await recorded()).map((a) => a.name)).not.toContain(name);
         expect((await recorded()).every(({ duration }) => duration === 0)).toBe(true);
       } else {

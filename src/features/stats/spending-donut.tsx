@@ -1,6 +1,7 @@
 import { cva } from "class-variance-authority";
 import { cn } from "cn";
-import { useFormatter, useTranslations } from "next-intl";
+import { useFormatter, useLocale, useTranslations } from "next-intl";
+import { useRouter } from "next/navigation";
 import { useId } from "react";
 
 import { categoryStrokeVariants } from "@/shared/categories/category-look";
@@ -11,12 +12,11 @@ import type { SpendingItem } from "./spending-item";
 
 const RADIUS = 40;
 const STROKE = 10;
-// A round cap reaches past an arc's end by half the stroke (in path units): the gap leaves room for
-// both caps and a visible sliver between them
+// Room for both round caps and a visible gap between them
 const CAP = (STROKE / 2 / (2 * Math.PI * RADIUS)) * RING_LENGTH;
 const GAP = CAP * 2 + 1.5;
 
-const segmentVariants = cva("fill-none transition-opacity duration-200", {
+const segmentVariants = cva("cursor-pointer fill-none transition-opacity duration-200", {
   variants: { isMuted: { true: "opacity-30", false: "" } },
 });
 
@@ -26,16 +26,15 @@ type SpendingDonutProps = {
   onActiveChange: (id: string | null) => void;
 };
 
-// The legend carries the same data as a table, so the chart stays out of the accessibility tree.
-// Its middle shows the hovered category, or the total
+// aria-hidden and mouse-only clicks: the legend's table has the same data and links
 export function SpendingDonut({ items, activeId, onActiveChange }: SpendingDonutProps) {
   const t = useTranslations("Stats");
   const format = useFormatter();
+  const locale = useLocale();
+  const router = useRouter();
   const maskId = useId();
   const total = items.reduce((sum, item) => sum + item.amountKopecks, 0);
   const active = items.find((item) => item.id === activeId);
-  // Other data draws the ring again from empty: arcs morphing into their new places would crawl
-  // around it, and a shrinking one would end up a wandering dot
   const drawKey = items.map((item) => `${item.id}:${item.amountKopecks}`).join();
 
   return (
@@ -44,7 +43,6 @@ export function SpendingDonut({ items, activeId, onActiveChange }: SpendingDonut
       className="relative grid size-44 shrink-0 place-items-center justify-self-center @[26rem]:size-36"
     >
       <svg key={drawKey} viewBox="0 0 100 100" className="absolute inset-0 size-full">
-        {/* In a mask, white shows what's under it */}
         <mask id={maskId} maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100">
           <circle
             cx="50"
@@ -75,6 +73,11 @@ export function SpendingDonut({ items, activeId, onActiveChange }: SpendingDonut
               )}
               onPointerEnter={() => onActiveChange(item.id)}
               onPointerLeave={() => onActiveChange(null)}
+              onClick={() =>
+                router.push(
+                  `/${locale}/transactions?${new URLSearchParams(item.transactionsQuery).toString()}`,
+                )
+              }
             />
           ))}
         </g>

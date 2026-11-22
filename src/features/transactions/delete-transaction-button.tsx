@@ -1,5 +1,7 @@
 "use client";
 
+import { cva } from "class-variance-authority";
+import { Trash2Icon } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useAction } from "next-safe-action/hooks";
 import { useEffect, useRef, useState } from "react";
@@ -21,17 +23,26 @@ import { toast } from "@/shared/ui/toast";
 
 import { deleteTransaction } from "./delete-transaction.action";
 
+type Placement = "sheet" | "row";
+
 type DeleteTransactionButtonProps = {
   transactionId: string;
   label: string;
   listQuery: Record<string, string>;
+  placement?: Placement;
 };
 
-// A delete ends on the list without the edit form, so the success is a navigation
+const TRIGGER_VARIANT = { sheet: "outline", row: "destructive" } as const;
+
+const triggerVariants = cva("", {
+  variants: { placement: { sheet: "", row: "size-full flex-col gap-1 rounded-none text-xs" } },
+});
+
 export function DeleteTransactionButton({
   transactionId,
   label,
   listQuery,
+  placement = "sheet",
 }: DeleteTransactionButtonProps) {
   const t = useTranslations("Transactions");
   const locale = useLocale();
@@ -44,9 +55,7 @@ export function DeleteTransactionButton({
   });
   const error = result.serverError === "transactionNotFound" ? "transactionNotFound" : "unknown";
 
-  // The redirect that ends a delete unmounts this button; the toast shows then. Shown as the list's
-  // view transition starts, a toast's synchronous first render would make React skip it, and React
-  // runs this cleanup only once that transition has finished
+  // On unmount, once the redirect's view transition ends: a toast during it makes React skip it
   useEffect(
     () => () => {
       if (isDeletingRef.current) toast.add({ type: "success", title: t("toast.deleted") });
@@ -60,7 +69,6 @@ export function DeleteTransactionButton({
   }
 
   function handleOpenChange(open: boolean) {
-    // A request in flight can't be cancelled, so the dialog stays until it ends
     if (isPending) return;
     setIsOpen(open);
     reset();
@@ -68,7 +76,16 @@ export function DeleteTransactionButton({
 
   return (
     <AlertDialog open={isOpen} onOpenChange={handleOpenChange}>
-      <AlertDialogTrigger render={<Button variant="outline" size="lg" />}>
+      <AlertDialogTrigger
+        render={
+          <Button
+            variant={TRIGGER_VARIANT[placement]}
+            size="lg"
+            className={triggerVariants({ placement })}
+          />
+        }
+      >
+        {placement === "row" ? <Trash2Icon aria-hidden className="size-5" /> : null}
         {t("delete.action")}
       </AlertDialogTrigger>
       <AlertDialogContent>

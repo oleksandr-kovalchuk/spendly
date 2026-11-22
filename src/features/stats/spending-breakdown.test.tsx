@@ -2,16 +2,31 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { NextIntlClientProvider } from "next-intl";
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 
 import en from "@/i18n/messages/en.json";
 
 import { SpendingBreakdown } from "./spending-breakdown";
 import type { SpendingItem } from "./spending-item";
 
+const { push } = vi.hoisted(() => ({ push: vi.fn() }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
+
 const ITEMS: SpendingItem[] = [
-  { id: "food", label: "Food", amountKopecks: 30_000, color: "cat3" },
-  { id: "transport", label: "Transport", amountKopecks: 20_000, color: "cat2" },
+  {
+    id: "food",
+    label: "Food",
+    amountKopecks: 30_000,
+    color: "cat3",
+    transactionsQuery: { category: "food" },
+  },
+  {
+    id: "transport",
+    label: "Transport",
+    amountKopecks: 20_000,
+    color: "cat2",
+    transactionsQuery: { category: "transport" },
+  },
 ];
 
 function renderBreakdown() {
@@ -24,7 +39,6 @@ function renderBreakdown() {
   return userEvent.setup();
 }
 
-// The chart is hidden from screen readers; its middle is the text outside the table
 function chartMiddle() {
   const table = screen.getByRole("table", { name: "Spending" });
   return [...document.querySelectorAll('[aria-hidden="true"] span')]
@@ -46,4 +60,15 @@ test("hovering a category in the legend shows it in the chart's middle until the
 
   await user.unhover(screen.getByRole("row", { name: /Transport/ }));
   expect(chartMiddle()).toEqual([en.Stats.expenses, "₴500.00"]);
+});
+
+test("a segment of the chart opens its category's transactions", async () => {
+  const user = renderBreakdown();
+  // The chart is aria-hidden: no role query reaches it
+  const [food] = document.querySelectorAll("svg g circle");
+  if (!food) throw new Error("The chart has no segments");
+
+  await user.click(food);
+
+  expect(push).toHaveBeenCalledWith("/en/transactions?category=food");
 });

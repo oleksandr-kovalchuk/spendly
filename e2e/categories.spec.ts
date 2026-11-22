@@ -4,6 +4,7 @@ import {
   expectNoViolations,
   field,
   notifications,
+  openAddSheet,
   pickCategory,
   setRandomClientIp,
   signUpAndIn,
@@ -22,9 +23,7 @@ for (const locale of ["en", "uk"] as const) {
 
     await page.getByRole("link", { name: text.transactions, exact: true }).click();
     await expect(page).toHaveURL(new RegExp(`/${locale}/transactions$`));
-    // The empty list has an Add button too
-    await page.locator("header, nav").getByRole("button", { name: text.addTransaction }).click();
-    const sheet = page.getByRole("dialog", { name: text.addTransaction });
+    const sheet = await openAddSheet(page, locale);
     await field(page, text.amount).fill("42");
     await pickCategory(sheet, text.food);
     await sheet.getByRole("button", { name: text.add, exact: true }).click();
@@ -82,9 +81,7 @@ for (const locale of ["en", "uk"] as const) {
     await expect(expenses.getByRole("button", { name: `${text.rename} Groceries` })).toBeFocused();
     await expect(expenses.getByRole("listitem").filter({ hasText: text.food })).toHaveCount(0);
 
-    // The empty list has an Add button too
-    await page.locator("header, nav").getByRole("button", { name: text.addTransaction }).click();
-    const addSheet = page.getByRole("dialog", { name: text.addTransaction });
+    const addSheet = await openAddSheet(page, locale);
     const picker = addSheet.getByRole("radiogroup", { name: text.category, exact: true });
     await expect(picker.getByRole("radio", { name: "Coffee", exact: true })).toHaveCount(1);
     await expect(picker.getByRole("radio", { name: "Groceries", exact: true })).toHaveCount(1);
@@ -125,7 +122,6 @@ test("an own category gets an icon, and deleting a category moves its transactio
   await expenses.getByRole("button", { name: text.addExpense }).click();
   const addCategorySheet = page.getByRole("dialog", { name: text.newExpense });
   await field(addCategorySheet, text.categoryName).fill("Latte");
-  // The radio is visually hidden: a user taps the tile
   await addCategorySheet
     .locator("label")
     .filter({ has: page.getByRole("radio", { name: "Coffee", exact: true }) })
@@ -140,8 +136,7 @@ test("an own category gets an icon, and deleting a category moves its transactio
   await page.keyboard.press("Escape");
   await expect(editSheet).toHaveCount(0);
 
-  await page.locator("header, nav").getByRole("button", { name: text.addTransaction }).click();
-  const sheet = page.getByRole("dialog", { name: text.addTransaction });
+  const sheet = await openAddSheet(page, "en");
   await field(page, text.amount).fill("42");
   await pickCategory(sheet, "Latte");
   await sheet.getByRole("button", { name: text.add, exact: true }).click();
@@ -158,7 +153,6 @@ test("an own category gets an icon, and deleting a category moves its transactio
   await expect(expenses.getByRole("listitem").filter({ hasText: "Latte" })).toHaveCount(0);
   await expect(expenses.getByRole("heading", { name: text.expenseCategories })).toBeFocused();
 
-  // Other now holds the transaction, so it can't be deleted
   await expenses.getByRole("button", { name: "Delete Other" }).click();
   const blocked = page.getByRole("alertdialog", { name: "“Other” can't be deleted" });
   await expect(blocked.getByRole("button", { name: text.del })).toHaveCount(0);

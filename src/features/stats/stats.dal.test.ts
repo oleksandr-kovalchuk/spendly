@@ -5,7 +5,7 @@ import { listCategories } from "@/shared/categories/categories.dal";
 import { transactions } from "@/shared/db/app-schema";
 import { db } from "@/shared/db/client";
 
-import { getPeriodTotals, listSpendingByCategory } from "./stats.dal";
+import { getPeriodTotals, listSpendingByCategory, listSpendingByDay } from "./stats.dal";
 
 const { requestHeaders } = vi.hoisted(() => ({ requestHeaders: { current: new Headers() } }));
 vi.mock("next/headers", () => ({ headers: () => Promise.resolve(requestHeaders.current) }));
@@ -148,5 +148,31 @@ describe("spending by category", () => {
     await add(salary.id, 100_000);
 
     expect(await listSpendingByCategory(MONTH)).toEqual([]);
+  });
+});
+
+describe("spending by day", () => {
+  test("sums each day's expenses, earliest first, without income or empty days", async () => {
+    const { food, transport, salary, add } = await setup();
+    await add(food.id, 300, "2026-03-12");
+    await add(transport.id, 200, "2026-03-12");
+    await add(food.id, 100, "2026-03-02");
+    await add(salary.id, 100_000, "2026-03-05");
+
+    expect(await listSpendingByDay(MONTH)).toEqual([
+      { day: "2026-03-02", amountKopecks: 100 },
+      { day: "2026-03-12", amountKopecks: 500 },
+    ]);
+  });
+
+  test("leaves out other periods and another user's transactions", async () => {
+    const { signIn, food, add } = await setup();
+    const other = await setup();
+    await add(food.id, 100, "2026-03-31");
+    await add(food.id, 400, "2026-04-01");
+    await other.add(other.food.id, 5_000, "2026-03-31");
+    signIn();
+
+    expect(await listSpendingByDay(MONTH)).toEqual([{ day: "2026-03-31", amountKopecks: 100 }]);
   });
 });

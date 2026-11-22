@@ -12,7 +12,7 @@ export function PeriodSlide({ children }: { children: ReactNode }) {
       }}
       default="none"
     >
-      {children}
+      <div className="grid gap-6">{children}</div>
     </ViewTransition>
   );
 }

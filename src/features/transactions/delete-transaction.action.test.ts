@@ -15,7 +15,6 @@ vi.mock("next/cache", () => ({ refresh: vi.fn() }));
 const RANGE = { from: "2026-03-01", to: "2026-03-31" };
 const MISSING_ID = "0198a8c0-0000-7000-8000-000000000000";
 
-// Next's redirect() throws an error whose digest holds the target
 function redirectTo(url: string) {
   return { digest: expect.stringContaining(`;${url};`) };
 }
@@ -48,6 +47,33 @@ describe("deleteTransaction", () => {
       }),
     ).rejects.toMatchObject(redirectTo("/uk/transactions?period=week&date=2026-03-09"));
     expect(await listTransactions(RANGE)).toEqual([]);
+  });
+
+  test("returns to the list's category too", async () => {
+    const { stored } = await signedIn();
+
+    await expect(
+      deleteTransaction({
+        id: stored.id,
+        locale: "en",
+        listQuery: { period: "month", category: stored.categoryId },
+      }),
+    ).rejects.toMatchObject(
+      redirectTo(`/en/transactions?period=month&category=${stored.categoryId}`),
+    );
+  });
+
+  test("a category that is not a UUID is rejected", async () => {
+    const { stored } = await signedIn();
+
+    const result = await deleteTransaction({
+      id: stored.id,
+      locale: "uk",
+      listQuery: { category: "not-an-id" },
+    });
+
+    expect(result.validationErrors).toBeDefined();
+    expect(await listTransactions(RANGE)).toEqual([stored]);
   });
 
   test("without a period it returns to the list's default", async () => {

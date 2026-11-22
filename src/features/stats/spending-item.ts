@@ -5,4 +5,5 @@ export type SpendingItem = {
   label: string;
   amountKopecks: number;
   color: CategoryColor;
+  transactionsQuery: Record<string, string>;
 };

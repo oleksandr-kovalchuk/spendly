@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { render, screen, within } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 
 import en from "@/i18n/messages/en.json";
 import uk from "@/i18n/messages/uk.json";
@@ -9,6 +9,9 @@ import uk from "@/i18n/messages/uk.json";
 import { groupByDay } from "./group-by-day";
 import { TransactionList } from "./transaction-list";
 import type { TransactionDto } from "./transactions.dal";
+
+vi.mock("./delete-transaction.action", () => ({ deleteTransaction: vi.fn() }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
 
 const TRANSACTIONS: TransactionDto[] = [
   {
@@ -43,13 +46,13 @@ const TRANSACTIONS: TransactionDto[] = [
 function renderList(
   locale: "en" | "uk",
   transactions: TransactionDto[],
-  periodQuery?: Record<string, string>,
+  listQuery?: Record<string, string>,
 ) {
   render(
     <NextIntlClientProvider locale={locale} messages={locale === "en" ? en : uk}>
       <TransactionList
         groups={groupByDay(transactions)}
-        periodQuery={periodQuery}
+        listQuery={listQuery}
         emptyAction={<button type="button">Add transaction</button>}
       />
     </NextIntlClientProvider>,
@@ -78,8 +81,19 @@ test("translates the dates, amounts and default categories to Ukrainian", () => 
   expect(days.map((day) => day.textContent)).toEqual(["вівторок, 10 березня", "четвер, 5 березня"]);
   expect(screen.getByText(uk.Categories.defaults.food)).toBeVisible();
   expect(screen.getByText(uk.Categories.defaults.salary)).toBeVisible();
-  expect(screen.getByText(/125,50/)).toHaveTextContent(/^−|^-/);
-  expect(screen.getByText(/50\s?000,00/)).toHaveTextContent(/^\+/);
+  const [first, second] = screen.getAllByRole("list");
+  expect(first && within(first).getByText(/125,50/)).toHaveTextContent(/^−|^-/);
+  expect(second && within(second).getByText(/50\s?000,00/)).toHaveTextContent(/^\+/);
+});
+
+test("each day shows its income and expenses next to its date", () => {
+  renderList("en", TRANSACTIONS);
+
+  const totals = screen.getAllByRole("heading", { level: 2 }).map((day) => day.nextElementSibling);
+  expect(totals.map((day) => day?.textContent)).toEqual([
+    `${en.Transactions.list.dayExpenses} -₴125.50`,
+    `${en.Transactions.list.dayIncome} +₴50,000.00${en.Transactions.list.dayExpenses} -₴1.00`,
+  ]);
 });
 
 test("a day heading carries its date", () => {

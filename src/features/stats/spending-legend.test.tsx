@@ -10,8 +10,20 @@ import type { SpendingItem } from "./spending-item";
 import { SpendingLegend } from "./spending-legend";
 
 const ITEMS: SpendingItem[] = [
-  { id: "food", label: "Food", amountKopecks: 30_000, color: "cat3" },
-  { id: "transport", label: "Transport", amountKopecks: 20_000, color: "cat2" },
+  {
+    id: "food",
+    label: "Food",
+    amountKopecks: 30_000,
+    color: "cat3",
+    transactionsQuery: { category: "food" },
+  },
+  {
+    id: "transport",
+    label: "Transport",
+    amountKopecks: 20_000,
+    color: "cat2",
+    transactionsQuery: { category: "transport" },
+  },
 ];
 
 function renderLegend(locale: "en" | "uk", items: SpendingItem[]) {
@@ -41,6 +53,23 @@ test("shows each category's name, amount and share in the given order", () => {
   ]);
 });
 
+test("each category's name opens its transactions in the shown period", () => {
+  renderLegend("en", [
+    {
+      id: "food",
+      label: "Food",
+      amountKopecks: 100,
+      color: "cat3",
+      transactionsQuery: { period: "month", category: "food" },
+    },
+  ]);
+
+  expect(screen.getByRole("link", { name: "Food" })).toHaveAttribute(
+    "href",
+    "/en/transactions?period=month&category=food",
+  );
+});
+
 test("names the columns for screen readers", () => {
   renderLegend("en", ITEMS);
 
@@ -53,8 +82,20 @@ test("names the columns for screen readers", () => {
 
 test("formats amounts and shares in Ukrainian", () => {
   const [food] = renderLegend("uk", [
-    { id: "food", label: "Їжа", amountKopecks: 100_000, color: "cat3" },
-    { id: "transport", label: "Транспорт", amountKopecks: 200_000, color: "cat2" },
+    {
+      id: "food",
+      label: "Їжа",
+      amountKopecks: 100_000,
+      color: "cat3",
+      transactionsQuery: { category: "food" },
+    },
+    {
+      id: "transport",
+      label: "Транспорт",
+      amountKopecks: 200_000,
+      color: "cat2",
+      transactionsQuery: { category: "transport" },
+    },
   ]);
 
   expect(food).toHaveTextContent(/^Їжа1\s000,00\s₴33,3\s?%$/);
@@ -62,8 +103,8 @@ test("formats amounts and shares in Ukrainian", () => {
 
 test("rounds shares to one decimal", () => {
   const items = renderLegend("en", [
-    { id: "a", label: "A", amountKopecks: 1, color: "cat1" },
-    { id: "b", label: "B", amountKopecks: 2, color: "cat2" },
+    { id: "a", label: "A", amountKopecks: 1, color: "cat1", transactionsQuery: { category: "a" } },
+    { id: "b", label: "B", amountKopecks: 2, color: "cat2", transactionsQuery: { category: "b" } },
   ]);
 
   expect(items.map((item) => within(item).getByText(/%$/).textContent)).toEqual(["33.3%", "66.7%"]);

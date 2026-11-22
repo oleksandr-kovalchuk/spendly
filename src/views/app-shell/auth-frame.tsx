@@ -2,14 +2,12 @@ import { getFormatter, getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 
 import { CategoryIcon } from "@/shared/categories/category-icon";
-import { hryvniasOf, MONEY_FORMAT } from "@/shared/lib/money";
+import { hryvniasOf, MONEY_FORMAT, SIGNED_MONEY_FORMAT } from "@/shared/lib/money";
 
-// Sample figures for the decorative cards; they aren't anyone's data
 const SAMPLE_BALANCE_KOPECKS = 3_668_000;
 const SAMPLE_SALARY_KOPECKS = 4_200_000;
 const SAMPLE_SPENT_SHARE = 0.13;
 
-// Everything here is decoration or repeats the brand: the form's heading is the page's h1
 async function BrandPanel() {
   const [t, tCategories, format] = await Promise.all([
     getTranslations("Auth.brand"),
@@ -30,7 +28,7 @@ async function BrandPanel() {
       <div aria-hidden="true" className="absolute inset-x-10 top-12 hidden lg:block">
         <div className="ms-auto grid w-72 -rotate-6 animate-drift gap-3 rounded-3xl glass-on-aurora p-5 shadow-aurora">
           <span className="text-sm font-medium">{t("balance")}</span>
-          <span className="text-3xl font-semibold tracking-tighter tabular-nums">
+          <span className="font-display text-3xl font-semibold tracking-tight tabular-nums">
             {format.number(hryvniasOf(SAMPLE_BALANCE_KOPECKS), MONEY_FORMAT)}
           </span>
           <span className="h-1.5 overflow-hidden rounded-full bg-aurora-foreground/25">
@@ -45,10 +43,7 @@ async function BrandPanel() {
           <span className="grid text-sm">
             {tCategories("defaults.salary")}
             <span className="font-semibold text-income tabular-nums">
-              {format.number(hryvniasOf(SAMPLE_SALARY_KOPECKS), {
-                ...MONEY_FORMAT,
-                signDisplay: "always",
-              })}
+              {format.number(hryvniasOf(SAMPLE_SALARY_KOPECKS), SIGNED_MONEY_FORMAT)}
             </span>
           </span>
         </div>
