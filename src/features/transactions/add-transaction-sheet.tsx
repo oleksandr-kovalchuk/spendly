@@ -7,7 +7,9 @@ import { ResponsiveSheet } from "@/shared/sheet/responsive-sheet";
 import { toast } from "@/shared/ui/toast";
 
 import type { CategoryOption } from "./category-option";
+import { flyToTotal } from "./fly-to-total";
 import { TransactionForm } from "./transaction-form";
+import type { TransactionValues } from "./transaction-schema";
 
 type AddTransactionSheetProps = {
   open: boolean;
@@ -17,9 +19,6 @@ type AddTransactionSheetProps = {
   categories: CategoryOption[];
 };
 
-// The saved transaction shows through the action's refresh; the screen stays as it was.
-// The toast waits until the sheet has closed: a toast's first render and measuring are
-// synchronous, and landing as the refreshed screen's view transition starts, they make React skip it
 export function AddTransactionSheet({
   open,
   onOpenChange,
@@ -29,10 +28,16 @@ export function AddTransactionSheet({
 }: AddTransactionSheetProps) {
   const t = useTranslations("Transactions");
   const isSavedRef = useRef(false);
+  const amountRef = useRef<HTMLDivElement>(null);
 
-  function handleSaved() {
+  function handleSaved({ type }: TransactionValues) {
     isSavedRef.current = true;
+    if (amountRef.current) flyToTotal(amountRef.current, type);
     onOpenChange(false);
+  }
+
+  function handleInitialFocus() {
+    return amountRef.current?.querySelector("input") ?? null;
   }
 
   function handleOpenChangeComplete(isOpen: boolean) {
@@ -46,10 +51,16 @@ export function AddTransactionSheet({
       open={open}
       onOpenChange={onOpenChange}
       onOpenChangeComplete={handleOpenChangeComplete}
+      initialFocus={handleInitialFocus}
       finalFocus={finalFocus}
       title={t("form.heading")}
     >
-      <TransactionForm today={today} categories={categories} onSaved={handleSaved} />
+      <TransactionForm
+        today={today}
+        categories={categories}
+        onSaved={handleSaved}
+        amountRef={amountRef}
+      />
     </ResponsiveSheet>
   );
 }

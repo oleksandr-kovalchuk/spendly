@@ -88,15 +88,16 @@ function toDto({
 
 // Both ends are days (`YYYY-MM-DD`) and are included; a limit keeps only the newest ones
 export async function listTransactions(
-  range: { from: string; to: string },
+  filter: { from: string; to: string; categoryId?: string },
   limit?: number,
 ): Promise<TransactionDto[]> {
   const { id: userId } = await requireUser();
   const query = selectTransactions(
     and(
       eq(transactions.userId, userId),
-      gte(transactions.occurredOn, range.from),
-      lte(transactions.occurredOn, range.to),
+      gte(transactions.occurredOn, filter.from),
+      lte(transactions.occurredOn, filter.to),
+      filter.categoryId === undefined ? undefined : eq(transactions.categoryId, filter.categoryId),
     ),
   );
   const rows = limit === undefined ? await query : await query.limit(limit);
@@ -104,7 +105,6 @@ export async function listTransactions(
   return rows.map(toDto);
 }
 
-// Another user's transaction is the same as a missing one
 export async function findTransaction(transactionId: string): Promise<TransactionDto | undefined> {
   const { id: userId } = await requireUser();
   const [row] = await selectTransactions(

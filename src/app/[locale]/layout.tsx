@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { getMessages, getTranslations } from "next-intl/server";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Unbounded } from "next/font/google";
 import { notFound } from "next/navigation";
 import { locale } from "next/root-params";
 import "../globals.css";
@@ -23,6 +23,11 @@ const geistMono = Geist_Mono({
   subsets: ["latin", "cyrillic"],
 });
 
+const unbounded = Unbounded({
+  variable: "--font-unbounded",
+  subsets: ["latin", "cyrillic"],
+});
+
 export function generateStaticParams() {
   return routing.locales.map((value) => ({ locale: value }));
 }
@@ -34,7 +39,6 @@ export async function generateMetadata(): Promise<Metadata> {
     metadataBase: new URL(SITE_URL),
     title: APP_NAME,
     description: t("description"),
-    // The home screen name on iPhone, which otherwise suggests the page's title
     appleWebApp: { title: APP_NAME },
   };
 }
@@ -57,11 +61,9 @@ export default async function RootLayout({ children }: LayoutProps<"/[locale]">)
   );
 
   return (
-    // The theme script of next-themes sets the class before hydration;
-    // the scroll padding keeps a focused control above the phone's bottom navigation
     <html
       lang={current}
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased max-lg:scroll-pb-24`}
+      className={`${geistSans.variable} ${geistMono.variable} ${unbounded.variable} h-full antialiased max-lg:scroll-pb-24`}
       suppressHydrationWarning
     >
       <body className="flex min-h-full flex-col">
@@ -73,7 +75,6 @@ export default async function RootLayout({ children }: LayoutProps<"/[locale]">)
             >
               {t("skipLink")}
             </a>
-            {/* The route groups' layouts hold the top bar or navigation and the main landmark */}
             {children}
           </AppProviders>
         </NextIntlClientProvider>

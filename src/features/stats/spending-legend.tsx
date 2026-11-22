@@ -1,6 +1,7 @@
 import { cva } from "class-variance-authority";
 import { cn } from "cn";
-import { useFormatter, useTranslations } from "next-intl";
+import { useFormatter, useLocale, useTranslations } from "next-intl";
+import Link from "next/link";
 
 import { categorySwatchVariants } from "@/shared/categories/category-look";
 import { hryvniasOf, MONEY_FORMAT } from "@/shared/lib/money";
@@ -18,7 +19,14 @@ const swatchVariants = cva("size-2.5 shrink-0 rounded-full transition-transform 
   variants: { isActive: { true: "scale-150", false: "" } },
 });
 
-// A table, so screen readers get the chart's data with its column names
+const rowVariants = cva("relative", {
+  variants: { isActive: { true: "text-primary", false: "" } },
+});
+
+const shareVariants = cva("w-16 py-1 ps-3 text-end whitespace-nowrap transition-colors", {
+  variants: { isActive: { true: "text-primary", false: "text-muted-foreground" } },
+});
+
 export function SpendingLegend({
   items,
   labelledBy,
@@ -27,6 +35,7 @@ export function SpendingLegend({
 }: SpendingLegendProps) {
   const t = useTranslations("Stats");
   const format = useFormatter();
+  const locale = useLocale();
   const total = items.reduce((sum, item) => sum + item.amountKopecks, 0);
 
   return (
@@ -42,11 +51,15 @@ export function SpendingLegend({
         {items.map((item) => (
           <tr
             key={item.id}
+            className={rowVariants({ isActive: item.id === activeId })}
             onPointerEnter={() => onActiveChange?.(item.id)}
             onPointerLeave={() => onActiveChange?.(null)}
           >
             <th scope="row" className="py-1.5 text-start font-normal break-words">
-              <span className="flex items-center gap-2.5">
+              <Link
+                href={{ pathname: `/${locale}/transactions`, query: item.transactionsQuery }}
+                className="flex items-center gap-2.5 transition-colors outline-none after:absolute after:inset-0 after:rounded-lg focus-visible:after:ring-3 focus-visible:after:ring-ring"
+              >
                 <span
                   aria-hidden="true"
                   className={cn(
@@ -55,12 +68,12 @@ export function SpendingLegend({
                   )}
                 />
                 {item.label}
-              </span>
+              </Link>
             </th>
-            <td className="py-1 ps-4 text-end font-medium whitespace-nowrap">
+            <td className="py-1 ps-4 text-end font-medium whitespace-nowrap transition-colors">
               {format.number(hryvniasOf(item.amountKopecks), MONEY_FORMAT)}
             </td>
-            <td className="w-16 py-1 ps-3 text-end whitespace-nowrap text-muted-foreground">
+            <td className={shareVariants({ isActive: item.id === activeId })}>
               {format.number(item.amountKopecks / total, {
                 style: "percent",
                 maximumFractionDigits: 1,

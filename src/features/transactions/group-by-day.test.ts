@@ -3,11 +3,16 @@ import { describe, expect, test } from "vitest";
 import { groupByDay } from "./group-by-day";
 import type { TransactionDto } from "./transactions.dal";
 
-function transaction(id: string, occurredOn: string): TransactionDto {
+function transaction(
+  id: string,
+  occurredOn: string,
+  type: TransactionDto["type"] = "expense",
+  amountKopecks = 100,
+): TransactionDto {
   return {
     id,
-    type: "expense",
-    amountKopecks: 100,
+    type,
+    amountKopecks,
     occurredOn,
     note: null,
     categoryId: "0198a8c0-0000-7000-8000-000000000001",
@@ -41,6 +46,26 @@ describe("groupByDay", () => {
     ]);
 
     expect(groups.map((g) => g.date)).toEqual(["2026-03-31", "2026-03-15", "2026-03-01"]);
+  });
+
+  test("sums each day's income and expenses apart", () => {
+    const groups = groupByDay([
+      transaction("a", "2026-03-10", "expense", 12_550),
+      transaction("b", "2026-03-10", "income", 4_200_000),
+      transaction("c", "2026-03-10", "expense", 450),
+      transaction("d", "2026-03-09", "expense", 300),
+    ]);
+
+    expect(
+      groups.map(({ date, incomeKopecks, expenseKopecks }) => [
+        date,
+        incomeKopecks,
+        expenseKopecks,
+      ]),
+    ).toEqual([
+      ["2026-03-10", 4_200_000, 13_000],
+      ["2026-03-09", 0, 300],
+    ]);
   });
 
   test("does not change its input", () => {

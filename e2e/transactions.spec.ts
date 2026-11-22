@@ -4,8 +4,10 @@ import {
   dateButton,
   expectNoViolations,
   field,
+  navAddButton,
   notifications,
   openAccountMenu,
+  openAddSheet,
   openPeriodMenu,
   pickAppTheme,
   pickCategory,
@@ -15,13 +17,12 @@ import {
   shownDay,
   signUpAndIn,
   TEXTS,
+  type Locale,
   viewTransitions,
   waitForAnimations,
-  type Locale,
 } from "./helpers";
 import { TODAY } from "./today";
 
-// The browser time zone decides "today", so the test fixes it and computes dates in it
 test.use({ timezoneId: "UTC" });
 
 test.beforeEach(({ context }) => setRandomClientIp(context));
@@ -46,23 +47,9 @@ type NewTransaction = {
   date?: string;
 };
 
-// The empty list or chart has an Add button too
-function navAddButton(page: Page, locale: Locale) {
-  return page.locator("header, nav").getByRole("button", { name: TEXTS[locale].addTransaction });
-}
-
-async function openAddSheet(page: Page, locale: Locale) {
-  const text = TEXTS[locale];
-  await navAddButton(page, locale).click();
-  const sheet = page.getByRole("dialog", { name: text.addTransaction });
-  await expect(sheet).toBeVisible();
-  return sheet;
-}
-
 async function addTransaction(page: Page, locale: Locale, values: NewTransaction) {
   const text = TEXTS[locale];
   const sheet = await openAddSheet(page, locale);
-  // The radio is visually hidden: a user taps its label
   if (values.isIncome) {
     await sheet.locator("label").filter({ hasText: text.income }).click();
     await expect(sheet.getByLabel(text.income, { exact: true })).toBeChecked();
@@ -78,7 +65,6 @@ async function addTransaction(page: Page, locale: Locale, values: NewTransaction
   await expect(sheet).toHaveCount(0);
 }
 
-// Today is the default period, so a list of several days needs the month
 async function showMonth(page: Page, locale: Locale) {
   await openPeriodMenu(page, locale);
   await page.getByRole("button", { name: TEXTS[locale].month, exact: true }).click();
@@ -111,14 +97,12 @@ function money(locale: Locale, hryvnias: number) {
   }).format(hryvnias);
 }
 
-// toHaveText collapses every kind of space, so Node's and Chromium's Intl output compare equal
 function total(page: Page, term: string) {
   return page
     .locator("dt", { hasText: new RegExp(`^${term}$`) })
     .locator("xpath=following-sibling::dd");
 }
 
-// Earlier in the same month as the app's today, so the month period shows it
 const OTHER_DAY = `${TODAY.slice(0, 8)}01`;
 const YEAR = TODAY.slice(0, 4);
 
@@ -151,7 +135,6 @@ for (const locale of ["en", "uk"] as const) {
     });
 
     await showMonth(page, locale);
-    // Day headings hold their date; the chart's heading above the list doesn't
     const days = page.getByRole("heading", { level: 2 }).filter({ has: page.locator("time") });
     await expect(days).toHaveCount(2);
     const times = await page
@@ -193,14 +176,16 @@ test("the Transactions screen with a long note fits a small screen", async ({ pa
   expect(overflow).toBeLessThanOrEqual(0);
 });
 
-test("Add opens the form over the screen, and Escape returns focus to Add", async ({
+test("Add opens the form over the screen ready to type the amount, and Escape returns focus to Add", async ({
   page,
 }, testInfo) => {
   await signUpAndIn(page, "en", testInfo);
   const add = navAddButton(page, "en");
 
   const sheet = await openAddSheet(page, "en");
-  await field(page, TEXTS.en.amount).fill("5");
+  await expect(field(page, TEXTS.en.amount)).toBeFocused();
+  await page.keyboard.type("5");
+  await expect(field(page, TEXTS.en.amount)).toHaveValue("5");
   await page.keyboard.press("Escape");
 
   await expect(sheet).toHaveCount(0);
@@ -278,6 +263,7 @@ test("closing the edit form keeps the period and returns focus to the item", asy
   await page.getByRole("button", { name: "Year", exact: true }).click();
   await expect(page).toHaveURL(/\/en\/transactions\?period=year$/);
   await expect(page.locator('[aria-live="polite"]').filter({ visible: true })).toHaveText(YEAR);
+  await expect(item(page, "kept").getByRole("link")).toHaveAttribute("href", /period=year/);
 
   const sheet = await openEditSheet(page, "en", "kept");
   await expect(page).toHaveURL(/\?period=year&edit=/);
@@ -301,7 +287,6 @@ test("another user's transaction opens the 404 page", async ({ page, browser }, 
   await signUpAndIn(otherPage, "en", testInfo);
   await otherPage.goto(editUrl);
 
-  // The shell streams first with a 200, so the 404 page and its noindex are checked, not the status
   await expect(otherPage.getByRole("heading", { level: 1, name: "Page not found" })).toBeVisible();
   await expect(otherPage.locator('head meta[name="robots"]')).toHaveAttribute("content", /noindex/);
   await expect(otherPage.getByRole("dialog")).toHaveCount(0);
@@ -433,7 +418,6 @@ for (const locale of ["en", "uk"] as const) {
       .click();
     await expect(item(page, "pay")).toHaveCount(0);
     await openScreen(page, locale, "overview");
-    // The expected balance is formatted from -800, with the locale's minus sign
     await expectTotals(0, 800);
   });
 }
@@ -447,7 +431,6 @@ test("an old edit link on the home page opens the Transactions screen with its p
   await openEditSheet(page, "en", "old-link");
   const id = new URL(page.url()).searchParams.get("edit") ?? "";
 
-  // The redirect itself answers, before any page renders
   const response = await page.request.get(`/en?period=year&edit=${id}`, { maxRedirects: 0 });
   expect(response.status()).toBe(307);
   expect(response.headers().location).toBe(`/en/transactions?period=year&edit=${id}`);
@@ -483,6 +466,74 @@ for (const locale of ["en", "uk"] as const) {
   });
 }
 
+test("a category in the chart's legend opens its transactions until the filter is removed", async ({
+  page,
+}, testInfo) => {
+  await signUpAndIn(page, "en", testInfo);
+  await addTransaction(page, "en", { amount: "30", note: "lunch", category: TEXTS.en.food });
+  await addTransaction(page, "en", { amount: "20", note: "bus", category: TEXTS.en.transport });
+
+  await page
+    .getByRole("region", { name: TEXTS.en.byCategory })
+    .getByRole("link", { name: TEXTS.en.transport, exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/en\/transactions\?category=[^&]+$/);
+  await expect(item(page, "bus")).toBeVisible();
+  await expect(item(page, "lunch")).toHaveCount(0);
+
+  const sheet = await openEditSheet(page, "en", "bus");
+  await sheet.getByRole("button", { name: "Close" }).click();
+  await expect(sheet).toHaveCount(0);
+  await expect(page).toHaveURL(/\/en\/transactions\?category=[^&]+$/);
+  await expect(item(page, "lunch")).toHaveCount(0);
+  await expectNoViolations(page);
+
+  await page.getByRole("link", { name: `Remove the ${TEXTS.en.transport} filter` }).click();
+  await expect(page).toHaveURL(/\/en\/transactions$/);
+  await expect(item(page, "lunch")).toBeVisible();
+});
+
+function calendarDay(day: string) {
+  return new Intl.DateTimeFormat("en", {
+    timeZone: "UTC",
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  }).format(new Date(`${day}T00:00:00Z`));
+}
+
+test("the calendar opens on its button, shows each day's spending and opens a day", async ({
+  page,
+}, testInfo) => {
+  await signUpAndIn(page, "en", testInfo);
+  await addTransaction(page, "en", { amount: "300", note: "today's" });
+  await addTransaction(page, "en", { amount: "20", note: "earlier", date: OTHER_DAY });
+  const calendar = page.getByRole("region", { name: TEXTS.en.spendingByDay });
+  const day = (date: string) =>
+    calendar.getByRole("link", { name: new RegExp(`^${calendarDay(date)}:`) });
+  const toggle = calendar.getByRole("button", { name: new RegExp(`^${TEXTS.en.spendingByDay}`) });
+
+  await expect(toggle).toHaveAttribute("aria-expanded", "false");
+  await expect(day(TODAY)).toBeHidden();
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+  await expect(day(TODAY)).toHaveAccessibleName(`${calendarDay(TODAY)}: ${money("en", 300)}`);
+  await expect(day(TODAY)).toHaveAttribute("aria-current", "date");
+  await expect(day(addDays(TODAY, 1))).toHaveAccessibleName(
+    `${calendarDay(addDays(TODAY, 1))}: no expenses`,
+  );
+
+  await day(OTHER_DAY).click();
+  await expect(page).toHaveURL(new RegExp(`/en\\?date=${OTHER_DAY}$`));
+  await expect(total(page, TEXTS.en.expensesTotal)).toHaveText(money("en", 20));
+  await expect(day(OTHER_DAY)).toHaveAttribute("aria-current", "date");
+  await expect(day(TODAY)).not.toHaveAttribute("aria-current");
+  await expectNoViolations(page);
+
+  await toggle.click();
+  await expect(day(OTHER_DAY)).toBeHidden();
+});
+
 for (const reducedMotion of ["no-preference", "reduce"] as const) {
   test(`the arrows slide the period's content with reduced motion ${reducedMotion}`, async ({
     page,
@@ -516,7 +567,6 @@ for (const reducedMotion of ["no-preference", "reduce"] as const) {
     const days = page.getByRole("heading", { level: 2 }).filter({ has: page.locator("time") });
     await expect(days).toHaveCount(2);
 
-    // The day's block runs an animation that follows the scroll, not the clock
     const followsScroll = await days
       .last()
       .evaluate((heading) =>
@@ -549,8 +599,7 @@ for (const reducedMotion of ["no-preference", "reduce"] as const) {
     await sheet.getByRole("button", { name: TEXTS.en.del, exact: true }).click();
     const confirm = page.getByRole("alertdialog", { name: TEXTS.en.deleteTitle });
     await expect(confirm).toBeVisible();
-    // Base UI ends a dialog's opening animation with flushSync, which makes React skip a view
-    // transition it lands in; a user doesn't confirm before the dialog has finished opening
+    // Base UI's opening animation would make React skip the delete's view transition
     await waitForAnimations(page);
     await confirm.getByRole("button", { name: TEXTS.en.del, exact: true }).click();
     await expect(item(page, "animated")).toHaveCount(0);
@@ -569,8 +618,11 @@ for (const reducedMotion of ["no-preference", "reduce"] as const) {
     await expect(total(page, TEXTS.en.expensesTotal)).toHaveText(money("en", 0));
 
     await transitions.clear();
-    await spending.getByRole("button", { name: TEXTS.en.addTransaction }).click();
-    const sheet = page.getByRole("dialog", { name: TEXTS.en.addTransaction });
+    const sheet = await openAddSheet(
+      page,
+      "en",
+      spending.getByRole("button", { name: TEXTS.en.addTransaction }),
+    );
     await field(page, TEXTS.en.amount).fill("300");
     await sheet.getByRole("button", { name: TEXTS.en.add, exact: true }).click();
     await expect(sheet).toHaveCount(0);
@@ -579,7 +631,6 @@ for (const reducedMotion of ["no-preference", "reduce"] as const) {
     await expect(total(page, TEXTS.en.balance)).toHaveText(money("en", -300));
     await transitions.expectAnimation("total-in");
     await expect(spending.getByRole("table")).toBeVisible();
-    // The empty chart and its button are gone: focus moves to the screen
     await expect(page.getByRole("main")).toBeFocused();
   });
 }

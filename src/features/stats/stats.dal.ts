@@ -20,6 +20,8 @@ export type CategorySpending = {
   amountKopecks: number;
 };
 
+export type DaySpending = { day: string; amountKopecks: number };
+
 // Both ends are days (`YYYY-MM-DD`) and are included
 type Range = { from: string; to: string };
 
@@ -31,12 +33,10 @@ function inRange(userId: string, range: Range) {
   );
 }
 
-// `sum` of a bigint is a numeric, which `pg` returns as a string; a number
-// stays exact up to Number.MAX_SAFE_INTEGER kopecks, about 90 trillion hryvnias
+// pg returns the `sum` of a bigint as a string
 const sumOf = (condition: SQL) =>
   sql`coalesce(sum(${transactions.amountKopecks}) filter (where ${condition}), 0)`.mapWith(Number);
 
-// One scan up to the period's end: the period's totals filter it further by its first day
 export async function getPeriodTotals(range: Range): Promise<PeriodTotals> {
   const { id: userId } = await requireUser();
   const isIncome = sql`${categories.type} = 'income'`;
@@ -69,8 +69,20 @@ export async function listSpendingByCategory(range: Range): Promise<CategorySpen
     .innerJoin(categories, eq(transactions.categoryId, categories.id))
     .where(and(inRange(userId, range), eq(categories.type, "expense")))
     .groupBy(categories.id)
-    // The id keeps equal amounts in a stable order
     .orderBy(desc(amountKopecks), categories.id);
 
   return rows.map(({ defaultKey, name, ...row }) => ({ ...row, category: { defaultKey, name } }));
+}
+
+export async function listSpendingByDay(range: Range): Promise<DaySpending[]> {
+  const { id: userId } = await requireUser();
+  const amountKopecks = sql`sum(${transactions.amountKopecks})`.mapWith(Number);
+
+  return db
+    .select({ day: transactions.occurredOn, amountKopecks })
+    .from(transactions)
+    .innerJoin(categories, eq(transactions.categoryId, categories.id))
+    .where(and(inRange(userId, range), eq(categories.type, "expense")))
+    .groupBy(transactions.occurredOn)
+    .orderBy(transactions.occurredOn);
 }

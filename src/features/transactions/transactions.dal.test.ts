@@ -33,7 +33,6 @@ async function setup() {
   return { id, cookie, expense, income };
 }
 
-// Leaves the user signed in
 async function addOne(user: { id: string; cookie: string }, categoryId: string) {
   await insertTransaction(user.id, {
     categoryId,
@@ -99,6 +98,18 @@ describe("transactions", () => {
     const listed = await listTransactions(MONTH, 2);
 
     expect(listed.map((t) => t.amountKopecks)).toEqual([200, 300]);
+  });
+
+  test("a category narrows the list to its transactions", async () => {
+    const { id, expense, income } = await setup();
+    const add = (categoryId: string, amountKopecks: number) =>
+      insertTransaction(id, { categoryId, occurredOn: "2026-03-10", amountKopecks, note: null });
+    await add(expense.id, 100);
+    await add(income.id, 200);
+
+    const listed = await listTransactions({ ...MONTH, categoryId: expense.id });
+
+    expect(listed.map((t) => t.amountKopecks)).toEqual([100]);
   });
 
   test("includes the first and the last day of the range and nothing outside", async () => {

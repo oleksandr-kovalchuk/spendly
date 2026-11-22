@@ -6,21 +6,18 @@ import { useLocale, useTranslations } from "next-intl";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { parseAsString, useQueryStates } from "nuqs";
-import { Fragment, Suspense, type ReactNode } from "react";
+import { Fragment, Suspense, ViewTransition, type ReactNode } from "react";
 
-// `segment` is the path after the locale; screens with a period keep it between each other
 const SCREENS = [
   { name: "overview", segment: "", icon: LayoutDashboardIcon, hasPeriod: true },
   { name: "transactions", segment: "transactions", icon: ReceiptTextIcon, hasPeriod: true },
   { name: "categories", segment: "categories", icon: TagsIcon, hasPeriod: false },
 ] as const;
-// Raw strings, copied as they are: the screen validates them and falls back to today
 const periodParsers = { period: parseAsString, date: parseAsString };
 
 type Layout = "bar" | "sidebar";
 type NavListProps = {
   layout: Layout;
-  // A control in the middle slot of the bar, within thumb reach (the Add button)
   action?: ReactNode;
   currentSegment?: string;
   periodQuery?: Record<string, string>;
@@ -34,19 +31,27 @@ const listVariants = cva("", {
   },
 });
 
-// The current screen is bold and has an indicator bar, so it isn't marked by color alone
 const linkVariants = cva(
-  "relative flex items-center outline-none transition-colors before:absolute before:rounded-full focus-visible:ring-3 focus-visible:ring-ring aria-[current=page]:font-semibold [&_svg]:size-5 [&_svg]:shrink-0",
+  "relative flex items-center outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring aria-[current=page]:font-semibold [&_svg]:size-5 [&_svg]:shrink-0",
   {
     variants: {
       layout: {
-        bar: "h-16 flex-col justify-center gap-1 rounded-3xl text-xs text-muted-foreground before:inset-x-0 before:top-1.5 before:mx-auto before:h-1 before:w-6 hover:text-foreground focus-visible:ring-inset aria-[current=page]:text-primary aria-[current=page]:before:bg-primary",
+        bar: "h-16 flex-col justify-center gap-1 rounded-3xl text-xs text-muted-foreground hover:text-foreground focus-visible:ring-inset aria-[current=page]:text-primary",
         sidebar:
-          "h-11 gap-3 rounded-xl px-3 text-sm before:inset-y-2.5 before:start-0 before:w-1 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground aria-[current=page]:bg-sidebar-accent aria-[current=page]:text-sidebar-accent-foreground aria-[current=page]:before:bg-sidebar-primary",
+          "h-11 gap-3 rounded-xl px-3 text-sm hover:bg-sidebar-accent hover:text-sidebar-accent-foreground aria-[current=page]:bg-sidebar-accent aria-[current=page]:text-sidebar-accent-foreground",
       },
     },
   },
 );
+
+const indicatorVariants = cva("absolute rounded-full", {
+  variants: {
+    layout: {
+      bar: "inset-x-0 top-1.5 mx-auto h-1 w-6 bg-primary",
+      sidebar: "inset-y-2.5 start-0 w-1 bg-sidebar-primary",
+    },
+  },
+});
 
 function NavList({ layout, action, currentSegment, periodQuery }: NavListProps) {
   const t = useTranslations("Header.screens");
@@ -70,6 +75,11 @@ function NavList({ layout, action, currentSegment, periodQuery }: NavListProps) 
             >
               <Icon aria-hidden />
               {t(name)}
+              {segment === currentSegment ? (
+                <ViewTransition name={`nav-indicator-${layout}`} share="nav-slide" default="none">
+                  <span aria-hidden="true" className={indicatorVariants({ layout })} />
+                </ViewTransition>
+              ) : null}
             </Link>
           </li>
         </Fragment>
@@ -80,8 +90,6 @@ function NavList({ layout, action, currentSegment, periodQuery }: NavListProps) 
 
 function CurrentNavList({ layout, action }: { layout: Layout; action?: ReactNode }) {
   const pathname = usePathname();
-  // nuqs, not `useSearchParams`: the period control's update shows here at once, while Next's
-  // search params change only when the server render for the new period ends
   const [period] = useQueryStates(periodParsers);
   const [, , currentSegment = ""] = pathname.split("/");
   const periodQuery = Object.fromEntries(
@@ -98,7 +106,6 @@ function CurrentNavList({ layout, action }: { layout: Layout; action?: ReactNode
   );
 }
 
-// The search params are only known at request time, so the shell shows plain links until then
 export function AppNavLinks({ layout, action }: { layout: Layout; action?: ReactNode }) {
   return (
     <Suspense fallback={<NavList layout={layout} action={action} />}>

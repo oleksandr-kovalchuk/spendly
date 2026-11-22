@@ -1,17 +1,24 @@
 import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 
-import { toPeriodQuery } from "@/features/periods/period";
+import { periodOf, toPeriodQuery } from "@/features/periods/period";
 import { PeriodControl } from "@/features/periods/period-control";
 import { PeriodSwipeArea } from "@/features/periods/period-swipe-area";
 import { PeriodStats } from "@/features/stats/period-stats";
-import { getPeriodTotals, listSpendingByCategory } from "@/features/stats/stats.dal";
+import { daysOf } from "@/features/stats/calendar-days";
+import { SpendingCalendar } from "@/features/stats/spending-calendar";
+import {
+  getPeriodTotals,
+  listSpendingByCategory,
+  listSpendingByDay,
+} from "@/features/stats/stats.dal";
 import { StatsBoundary } from "@/features/stats/stats-boundary";
 import { LatestTransactions } from "@/features/transactions/latest-transactions";
 import { TransactionListBoundary } from "@/features/transactions/transaction-list-boundary";
 import { listTransactions } from "@/features/transactions/transactions.dal";
 import { categoryLabel } from "@/shared/categories/category-label";
 import { categoryColor } from "@/shared/categories/category-look";
+import { monthOf } from "@/shared/lib/time-zone";
 import { Skeleton } from "@/shared/ui/skeleton";
 import { PageHeading } from "@/shared/ui/page-heading";
 import { AddTransactionControl } from "@/views/app-shell/add-transaction-control";
@@ -27,7 +34,7 @@ async function PeriodSection() {
 }
 
 async function PeriodStatsSection({ searchParams }: { searchParams: ScreenSearchParams }) {
-  const [{ period }, tCategories] = await Promise.all([
+  const [{ today, period }, tCategories] = await Promise.all([
     getShownPeriod(searchParams),
     getTranslations("Categories"),
   ]);
@@ -44,13 +51,35 @@ async function PeriodStatsSection({ searchParams }: { searchParams: ScreenSearch
         label: categoryLabel(item.category, tCategories),
         amountKopecks: item.amountKopecks,
         color: categoryColor({ id: item.categoryId, defaultKey: item.category.defaultKey }),
+        transactionsQuery: { ...toPeriodQuery(period, today), category: item.categoryId },
       }))}
       emptyAction={<AddTransactionControl placement="empty" />}
     />
   );
 }
 
-// Its own section: the totals don't wait for the list, and an empty period shows no block
+async function SpendingCalendarSection({ searchParams }: { searchParams: ScreenSearchParams }) {
+  const { today, period } = await getShownPeriod(searchParams);
+  if (period.type === "year") return null;
+
+  const month = monthOf(period.from);
+  const spending = new Map(
+    (await listSpendingByDay(month)).map(({ day, amountKopecks }) => [day, amountKopecks]),
+  );
+  const isMarked = period.type === "day" || period.type === "week";
+
+  return (
+    <SpendingCalendar
+      days={daysOf(month).map((day) => ({
+        day,
+        amountKopecks: spending.get(day) ?? 0,
+        query: toPeriodQuery(periodOf("day", day), today),
+        isSelected: isMarked && period.from <= day && day <= period.to,
+      }))}
+    />
+  );
+}
+
 async function LatestSection({ searchParams }: { searchParams: ScreenSearchParams }) {
   const { today, period } = await getShownPeriod(searchParams);
   const transactions = await listTransactions(period, LATEST_COUNT);
@@ -89,6 +118,11 @@ export async function OverviewPage({ searchParams }: PageProps<"/[locale]">) {
             <StatsBoundary>
               <Suspense fallback={<StatsSkeleton />}>
                 <PeriodStatsSection searchParams={searchParams} />
+              </Suspense>
+            </StatsBoundary>
+            <StatsBoundary>
+              <Suspense fallback={<Skeleton className="h-16 rounded-2xl" />}>
+                <SpendingCalendarSection searchParams={searchParams} />
               </Suspense>
             </StatsBoundary>
             <TransactionListBoundary>

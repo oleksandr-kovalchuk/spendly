@@ -1,8 +1,9 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { cva } from "class-variance-authority";
 import { useTranslations } from "next-intl";
-import { useState, useTransition } from "react";
+import { useState, useTransition, type Ref } from "react";
 import { Controller, useForm, useFormState, useWatch } from "react-hook-form";
 
 import { CATEGORY_TYPES, type CategoryType } from "@/shared/db/app-constants";
@@ -12,6 +13,7 @@ import { Input } from "@/shared/ui/input";
 
 import { addTransaction } from "./add-transaction.action";
 import { amountInputOf } from "./amount";
+import { AmountInput } from "./amount-input";
 import type { CategoryOption } from "./category-option";
 import { CategoryTiles } from "./category-tiles";
 import { TransactionDatePicker } from "./transaction-date-picker";
@@ -23,7 +25,8 @@ import { updateTransaction } from "./update-transaction.action";
 
 type TransactionFormProps = {
   categories: CategoryOption[];
-  onSaved: () => void;
+  onSaved: (values: TransactionValues) => void;
+  amountRef?: Ref<HTMLDivElement>;
 } & (
   | { today: string; transaction?: undefined }
   | { transaction: TransactionDto; today?: undefined }
@@ -33,7 +36,11 @@ type FieldName = "amount" | "categoryId" | "date" | "note";
 
 const FIELD_NAMES = ["amount", "categoryId", "date", "note"] as const satisfies FieldName[];
 
-// The first visit renders with UTC "today" until the time zone cookie is set, so a new "today" remounts the form to reset the date default
+const typeHighlightVariants = cva(
+  "rounded-lg bg-primary shadow-aurora-sm transition-transform duration-300 ease-out-soft",
+  { variants: { type: { expense: "", income: "translate-x-full rtl:-translate-x-full" } } },
+);
+
 export function TransactionForm(props: TransactionFormProps) {
   return <TransactionFormFields key={props.transaction?.id ?? `new-${props.today}`} {...props} />;
 }
@@ -45,7 +52,13 @@ function formErrorOf(serverError: string): FormError {
   return "unknown";
 }
 
-function TransactionFormFields({ categories, today, transaction, onSaved }: TransactionFormProps) {
+function TransactionFormFields({
+  categories,
+  today,
+  transaction,
+  onSaved,
+  amountRef,
+}: TransactionFormProps) {
   const t = useTranslations("Transactions");
   const [formError, setFormError] = useState<FormError>();
   const [isSaving, startSaving] = useTransition();
@@ -76,6 +89,7 @@ function TransactionFormFields({ categories, today, transaction, onSaved }: Tran
   });
   const { errors } = useFormState({ control: form.control });
   const type = useWatch({ control: form.control, name: "type" });
+  const amount = useWatch({ control: form.control, name: "amount" });
   const typeField = form.register("type");
 
   function messageOf(message: string | undefined) {
@@ -83,9 +97,6 @@ function TransactionFormFields({ categories, today, transaction, onSaved }: Tran
     return t(isFieldError(message) ? `errors.${message}` : "errors.unknown");
   }
 
-  // The sheet closes in the commit that shows the saved transaction: closed on its own, its close
-  // animation ends with a synchronous update (Base UI) that can land just as the refreshed screen's
-  // view transition starts, and React then skips the animation of the changed totals and items
   function handleSubmit(values: TransactionValues) {
     setFormError(undefined);
 
@@ -112,19 +123,22 @@ function TransactionFormFields({ categories, today, transaction, onSaved }: Tran
         return;
       }
 
-      startSaving(onSaved);
+      startSaving(() => onSaved(values));
     });
   }
 
   return (
-    <form onSubmit={form.handleSubmit(handleSubmit)} noValidate className="@container grid gap-4">
-      <fieldset className="grid gap-2">
-        <legend className="mb-2 text-sm font-medium">{t("form.type")}</legend>
-        <div className="grid grid-cols-2 gap-2">
+    <form onSubmit={form.handleSubmit(handleSubmit)} noValidate className="@container grid gap-5">
+      <fieldset>
+        <legend className="sr-only">{t("form.type")}</legend>
+        <div className="relative grid grid-cols-2 rounded-xl bg-muted p-1 has-focus-visible:ring-3 has-focus-visible:ring-ring">
+          <span aria-hidden="true" className="absolute inset-1 grid grid-cols-2">
+            <span className={typeHighlightVariants({ type })} />
+          </span>
           {CATEGORY_TYPES.map((value) => (
             <label
               key={value}
-              className="relative flex h-10 cursor-pointer items-center justify-center rounded-xl border border-input bg-card text-sm has-checked:border-primary has-checked:bg-accent has-checked:font-semibold has-checked:text-accent-foreground has-checked:ring-2 has-checked:ring-primary has-focus-visible:ring-3 has-focus-visible:ring-ring"
+              className="relative flex h-10 cursor-pointer items-center justify-center rounded-lg text-sm transition-colors duration-300 has-checked:font-semibold has-checked:text-primary-foreground"
             >
               <input
                 type="radio"
@@ -133,7 +147,6 @@ function TransactionFormFields({ categories, today, transaction, onSaved }: Tran
                 {...typeField}
                 onChange={(event) => {
                   void typeField.onChange(event);
-                  // A category belongs to one type, so the old pick can't stay
                   form.setValue("categoryId", firstCategoryOf(value));
                 }}
               />
@@ -142,19 +155,31 @@ function TransactionFormFields({ categories, today, transaction, onSaved }: Tran
           ))}
         </div>
       </fieldset>
+      <AmountInput
+        ref={amountRef}
+        label={t("form.amount")}
+        placeholder={t("form.amountPlaceholder")}
+        type={type}
+        value={amount}
+        error={messageOf(errors.amount?.message)}
+        registration={form.register("amount")}
+      />
+      <Controller
+        control={form.control}
+        name="categoryId"
+        render={({ field, fieldState }) => (
+          <CategoryTiles
+            legend={t("form.category")}
+            categories={categories.filter((category) => category.type === type)}
+            name={field.name}
+            value={field.value}
+            error={messageOf(fieldState.error?.message)}
+            onChange={field.onChange}
+            onBlur={field.onBlur}
+          />
+        )}
+      />
       <div className="grid gap-4 @md:grid-cols-2">
-        <TransactionField label={t("form.amount")} error={messageOf(errors.amount?.message)}>
-          {(controlProps) => (
-            <Input
-              type="text"
-              inputMode="decimal"
-              autoComplete="off"
-              placeholder={t("form.amountPlaceholder")}
-              {...controlProps}
-              {...form.register("amount")}
-            />
-          )}
-        </TransactionField>
         <Controller
           control={form.control}
           name="date"
@@ -171,27 +196,12 @@ function TransactionFormFields({ categories, today, transaction, onSaved }: Tran
             </TransactionField>
           )}
         />
+        <TransactionField label={t("form.note")} error={messageOf(errors.note?.message)}>
+          {(controlProps) => (
+            <Input type="text" autoComplete="off" {...controlProps} {...form.register("note")} />
+          )}
+        </TransactionField>
       </div>
-      <Controller
-        control={form.control}
-        name="categoryId"
-        render={({ field, fieldState }) => (
-          <CategoryTiles
-            legend={t("form.category")}
-            categories={categories.filter((category) => category.type === type)}
-            name={field.name}
-            value={field.value}
-            error={messageOf(fieldState.error?.message)}
-            onChange={field.onChange}
-            onBlur={field.onBlur}
-          />
-        )}
-      />
-      <TransactionField label={t("form.note")} error={messageOf(errors.note?.message)}>
-        {(controlProps) => (
-          <Input type="text" autoComplete="off" {...controlProps} {...form.register("note")} />
-        )}
-      </TransactionField>
       {formError ? <FieldError>{t(`errors.${formError}`)}</FieldError> : null}
       <Button type="submit" size="xl" disabled={isSaving} focusableWhenDisabled>
         {t(transaction ? "form.save" : "form.submit")}

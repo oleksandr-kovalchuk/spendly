@@ -5,10 +5,8 @@ import { CATEGORY_TYPES, MAX_NOTE_LENGTH } from "@/shared/db/app-constants";
 
 import { parseAmount } from "./amount";
 
-// A date's length (YYYY-MM-DD), the longest valid `period` or `date` value
-const LIST_QUERY_VALUE_MAX_LENGTH = 10;
+const LIST_QUERY_VALUE_MAX_LENGTH = "YYYY-MM-DD".length;
 
-// Messages are codes: the form translates them
 export const transactionSchema = z.object({
   type: z.enum(CATEGORY_TYPES),
   amount: z.string().check(
@@ -22,16 +20,17 @@ export const transactionSchema = z.object({
   note: z.string().check(z.trim(), z.maxLength(MAX_NOTE_LENGTH, "noteTooLong")),
 });
 
-// The type isn't sent: it comes from the category, so the two can't disagree
+// The server takes the type from the category
 export const addTransactionSchema = z.omit(transactionSchema, { type: true });
 
 export const updateTransactionSchema = z.extend(addTransactionSchema, { id: z.uuid() });
-// The list a delete returns to: its language (a Server Action can't read the route's) and its
-// period (the screen's `period` and `date`, which it validates, falling back to today)
-const listQuerySchema = z.partialRecord(
-  z.enum(["period", "date"]),
-  z.string().check(z.maxLength(LIST_QUERY_VALUE_MAX_LENGTH)),
-);
+// The list a delete returns to; the screen validates `period` and `date`, falling back to today
+const listQueryValue = z.string().check(z.maxLength(LIST_QUERY_VALUE_MAX_LENGTH));
+const listQuerySchema = z.object({
+  period: z.optional(listQueryValue),
+  date: z.optional(listQueryValue),
+  category: z.optional(z.uuid()),
+});
 
 export const deleteTransactionSchema = z.object({
   id: z.uuid(),

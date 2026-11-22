@@ -4,18 +4,16 @@ import { ViewTransition } from "react";
 
 import { hryvniasOf, MONEY_FORMAT } from "@/shared/lib/money";
 import { NO_PERIOD_ANIMATION } from "@/shared/lib/period-transition";
+import { totalTarget } from "@/shared/lib/total-target";
 
 import { RollingText } from "./rolling-text";
 
-// The balance is carried over from earlier periods, so it isn't the period's income minus expenses
 type PeriodTotalsProps = { incomeKopecks: number; expenseKopecks: number; balanceKopecks: number };
 
 const TOTAL_ICONS = { income: ArrowUpIcon, expenses: ArrowDownIcon } as const;
 const MAX_SHARE = 1;
 const MONEY_TAIL = new Set<Intl.NumberFormatPartTypes>(["decimal", "fraction"]);
 
-// The balance's whole part is large and the rest smaller: in "36 680,00 ₴" the ",00 ₴",
-// in "₴36,680.00" the ".00"; a currency sign after the fraction follows it
 function BalanceValue({ kopecks }: { kopecks: number }) {
   const locale = useLocale();
   const parts = new Intl.NumberFormat(locale, MONEY_FORMAT).formatToParts(hryvniasOf(kopecks));
@@ -34,15 +32,13 @@ function BalanceValue({ kopecks }: { kopecks: number }) {
   );
 }
 
-// No live region, so a changed value doesn't interrupt a screen reader. White text passes 4.5:1
-// on the gradient and on the frosted panels
 export function PeriodTotals({ incomeKopecks, expenseKopecks, balanceKopecks }: PeriodTotalsProps) {
   const t = useTranslations("Stats");
   const format = useFormatter();
   const share = incomeKopecks > 0 ? expenseKopecks / incomeKopecks : undefined;
   const totals = [
-    { key: "income", kopecks: incomeKopecks },
-    { key: "expenses", kopecks: expenseKopecks },
+    { key: "income", type: "income", kopecks: incomeKopecks },
+    { key: "expenses", type: "expense", kopecks: expenseKopecks },
   ] as const;
 
   return (
@@ -50,11 +46,11 @@ export function PeriodTotals({ incomeKopecks, expenseKopecks, balanceKopecks }: 
       <dl className="grid grid-cols-2 gap-x-2 gap-y-5">
         <div className="col-span-2 grid gap-1">
           <dt className="text-sm font-medium">{t("balance")}</dt>
-          <dd className="text-4xl font-semibold tracking-tighter break-all tabular-nums @sm:text-5xl @3xl:text-6xl">
+          <dd className="font-display text-4xl font-semibold tracking-tight break-all tabular-nums @sm:text-5xl @3xl:text-6xl">
             <BalanceValue kopecks={balanceKopecks} />
           </dd>
         </div>
-        {totals.map(({ key, kopecks }) => {
+        {totals.map(({ key, type, kopecks }) => {
           const Icon = TOTAL_ICONS[key];
           return (
             <div key={key} className="grid gap-0.5 rounded-2xl glass-on-aurora px-3 py-2.5">
@@ -64,7 +60,10 @@ export function PeriodTotals({ incomeKopecks, expenseKopecks, balanceKopecks }: 
                 </span>
                 {t(key)}
               </dt>
-              <dd className="text-lg font-semibold tracking-tight break-all tabular-nums">
+              <dd
+                {...totalTarget(type)}
+                className="text-lg font-semibold tracking-tight break-all tabular-nums"
+              >
                 <ViewTransition
                   key={kopecks}
                   enter={{ ...NO_PERIOD_ANIMATION, default: "total-enter" }}
