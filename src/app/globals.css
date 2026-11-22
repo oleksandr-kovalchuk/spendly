@@ -3,6 +3,8 @@
 @import "shadcn/tailwind.css";
 
 @custom-variant dark (&:is(.dark *));
+/* The app opened from the home screen, where iOS 26 blurs the top edge */
+@custom-variant standalone (@media (display-mode: standalone));
 
 @theme inline {
   --color-background: var(--background);

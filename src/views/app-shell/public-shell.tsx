@@ -12,8 +12,9 @@ import { SessionSignOut } from "./session-sign-out";
 export function PublicShell({ children }: { children: ReactNode }) {
   return (
     <>
+      {/* In the home screen app on a phone the top row starts below iOS's edge blur */}
       <header>
-        <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-2 px-4 py-3 lg:px-8">
+        <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-2 px-4 py-3 lg:px-8 max-lg:standalone:pt-6">
           <HomeLink />
           <div className="ms-auto flex items-center gap-2">
             {/* Keep this runtime part: with a fully static shell, browsers get the 404 page without
