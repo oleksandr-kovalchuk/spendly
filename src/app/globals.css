@@ -63,6 +63,78 @@
   --shadow-aurora: 0 24px 44px -20px var(--aurora-glow);
   --shadow-aurora-sm: 0 8px 20px -10px var(--aurora-glow);
   --ease-out-soft: cubic-bezier(0.2, 0.8, 0.2, 1);
+  /* Damped springs sampled into linear(): ease-spring overshoots by 8%, ease-spring-soft by 1.5%;
+     the tail settles slowly, so give them a longer duration than an ease-out */
+  --ease-spring: linear(
+    0,
+    0.043,
+    0.149,
+    0.29,
+    0.443,
+    0.591,
+    0.725,
+    0.838,
+    0.927,
+    0.994,
+    1.04,
+    1.067,
+    1.081,
+    1.083,
+    1.078,
+    1.069,
+    1.057,
+    1.044,
+    1.032,
+    1.021,
+    1.012,
+    1.005,
+    1,
+    0.996,
+    0.994,
+    0.993,
+    0.993,
+    0.994,
+    0.994,
+    0.996,
+    0.997,
+    0.998,
+    1
+  );
+  --ease-spring-soft: linear(
+    0,
+    0.026,
+    0.091,
+    0.179,
+    0.279,
+    0.381,
+    0.481,
+    0.574,
+    0.657,
+    0.731,
+    0.794,
+    0.846,
+    0.889,
+    0.924,
+    0.951,
+    0.972,
+    0.988,
+    0.999,
+    1.006,
+    1.011,
+    1.014,
+    1.015,
+    1.015,
+    1.014,
+    1.013,
+    1.012,
+    1.01,
+    1.009,
+    1.007,
+    1.006,
+    1.005,
+    1.004,
+    1
+  );
 }
 
 /* Every text color here passes 4.5:1 on the surfaces it sits on, in its theme; the category colors
@@ -115,6 +187,11 @@
   --aurora-cyan: oklch(0.47 0.12 235);
   --aurora-foreground: oklch(1 0 0);
   --aurora-glow: oklch(0.5 0.24 293 / 0.55);
+  --aurora-warm-1: oklch(0.49 0.2 350);
+  --aurora-warm-2: oklch(0.5 0.2 15);
+  --aurora-warm-3: oklch(0.5 0.17 40);
+  --aurora-warm-glow: oklch(0.5 0.15 55);
+  --aurora-warm-low: oklch(0.47 0.2 330);
 }
 
 .dark {
@@ -169,6 +246,10 @@
   }
   html {
     @apply font-sans;
+    /* The overview's balance bar covers the top of a phone's screen */
+    @variant max-lg {
+      scroll-padding-top: 5rem;
+    }
   }
   button:not(:disabled):not([aria-disabled="true"]),
   [role="button"]:not([aria-disabled="true"]),
@@ -192,6 +273,123 @@
       transparent 60%
     ),
     linear-gradient(140deg, var(--aurora-1), var(--aurora-2) 45%, var(--aurora-3));
+}
+
+@utility bg-aurora-warm {
+  background-color: var(--aurora-warm-2);
+  background-image:
+    radial-gradient(
+      120% 90% at 100% 0%,
+      color-mix(in oklch, var(--aurora-warm-glow) 75%, transparent),
+      transparent 55%
+    ),
+    radial-gradient(
+      90% 80% at 0% 100%,
+      color-mix(in oklch, var(--aurora-warm-low) 60%, transparent),
+      transparent 60%
+    ),
+    linear-gradient(140deg, var(--aurora-warm-1), var(--aurora-warm-2) 45%, var(--aurora-warm-3));
+}
+
+/* Under the text and at 12% white, the glare keeps white text at 4.5:1 on every aurora stop */
+@utility tilt-card {
+  position: relative;
+  isolation: isolate;
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background: radial-gradient(
+      circle at var(--pointer-x, 50%) var(--pointer-y, 50%),
+      oklch(1 0 0 / 12%),
+      transparent 55%
+    );
+    opacity: 0;
+    transition: opacity 300ms ease-out;
+  }
+  &[data-tilt]::before {
+    opacity: 1;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    transition: transform 800ms var(--ease-spring);
+    &[data-tilt] {
+      transform: perspective(60rem) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
+      transition: transform 150ms ease-out;
+    }
+  }
+}
+
+/* The balance card and bar follow the card wrapper's view timeline, which their common parent
+   shares; without scroll-driven animations the bar stays hidden */
+@utility balance-scope {
+  timeline-scope: --balance-card;
+}
+
+@utility balance-timeline {
+  view-timeline: --balance-card block;
+  perspective: 60rem;
+}
+
+@utility balance-card-exit {
+  @supports (animation-timeline: view()) {
+    @variant max-lg {
+      @media (prefers-reduced-motion: no-preference) {
+        transform-origin: 50% 100%;
+        animation: balance-card-exit linear both;
+        animation-timeline: --balance-card;
+        animation-range: exit 0% exit 100%;
+      }
+    }
+  }
+}
+
+@keyframes balance-card-exit {
+  to {
+    rotate: x 28deg;
+    scale: 0.92;
+  }
+}
+
+@utility balance-bar {
+  visibility: hidden;
+  translate: 0 calc(-100% - 1.5rem);
+  @supports (animation-timeline: view()) {
+    animation: balance-bar linear both;
+    animation-timeline: --balance-card;
+    animation-range: exit 45% exit 85%;
+    @media (prefers-reduced-motion: reduce) {
+      animation-timing-function: step-end;
+    }
+  }
+}
+
+@keyframes balance-bar {
+  from {
+    visibility: hidden;
+    translate: 0 calc(-100% - 1.5rem);
+  }
+  to {
+    visibility: visible;
+    translate: 0 0;
+  }
+}
+
+/* Each day sets its own delay, so the days fill in as a diagonal wave */
+@utility calendar-wave {
+  @media (prefers-reduced-motion: no-preference) {
+    [data-open] & > li {
+      animation: wave-in 450ms var(--ease-spring) both;
+    }
+  }
+}
+
+@keyframes wave-in {
+  from {
+    opacity: 0;
+    scale: 0.6;
+  }
 }
 
 @utility bg-aurora-button {
@@ -381,8 +579,8 @@
 }
 ::view-transition-group(.nav-slide) {
   z-index: 2;
-  animation-duration: 400ms;
-  animation-timing-function: var(--ease-out-soft);
+  animation-duration: 600ms;
+  animation-timing-function: var(--ease-spring);
 }
 ::view-transition-old(.nav-slide) {
   display: none;
