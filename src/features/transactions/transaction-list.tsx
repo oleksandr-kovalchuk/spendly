@@ -12,7 +12,7 @@ import { Card, CardContent } from "@/shared/ui/card";
 import { Empty, EmptyContent, EmptyHeader, EmptyMedia, EmptyTitle } from "@/shared/ui/empty";
 
 import { amountVariants } from "./amount-variants";
-import { DeleteTransactionButton } from "./delete-transaction-button";
+import { LazyDeleteTransactionButton } from "./lazy-delete-transaction-button";
 import type { DayGroup } from "./group-by-day";
 import { SwipeableRow } from "./swipeable-row";
 
@@ -97,7 +97,7 @@ export function TransactionList({ groups, listQuery, emptyAction }: TransactionL
                           editLabel={t("swipe.edit")}
                           deleteLabel={t("delete.action")}
                           deleteAction={
-                            <DeleteTransactionButton
+                            <LazyDeleteTransactionButton
                               transactionId={transaction.id}
                               label={label}
                               listQuery={listQuery ?? {}}
