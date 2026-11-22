@@ -56,8 +56,9 @@ export async function AppShell({ children }: { children: ReactNode }) {
           </div>
         </header>
         <div className="flex min-w-0 flex-1 flex-col">
+          {/* In the home screen app the top row starts below iOS's edge blur */}
           <header className="lg:hidden">
-            <div className="flex items-center gap-1 px-4 py-2">
+            <div className="flex items-center gap-1 px-4 py-2 standalone:pt-6">
               <HomeLink />
               <div className="ms-auto">
                 <AccountControl placement="bar" />
