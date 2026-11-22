@@ -65,7 +65,7 @@ export async function AppShell({ children }: { children: ReactNode }) {
               </div>
             </div>
           </header>
-          {/* The bottom padding keeps the end of the content above the floating bottom navigation */}
+          {/* pb-28 keeps the content's end above the floating bottom navigation */}
           <ScreenMain className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-4 pt-4 pb-28 outline-none lg:px-8 lg:pt-8 lg:pb-8">
             {children}
           </ScreenMain>

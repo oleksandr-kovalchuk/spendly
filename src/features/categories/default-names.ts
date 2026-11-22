@@ -5,7 +5,7 @@ import { DEFAULT_CATEGORY_KEYS, type DefaultCategoryKey } from "@/shared/db/app-
 
 const MESSAGES = { en, uk } satisfies Record<Locale, typeof en>;
 
-// A default the user hasn't renamed shows its translation, so a name can't repeat it in any language: a switch would show two
+// A name can't match an unrenamed default's translation in any language: a switch would show two
 export function defaultKeysNamed(name: string): DefaultCategoryKey[] {
   const wanted = name.toLowerCase();
 

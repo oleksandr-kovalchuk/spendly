@@ -42,7 +42,7 @@ export function CalendarDisclosure({ heading, month, children }: CalendarDisclos
             </h2>
           </CardTitle>
         </CardHeader>
-        <div id={panelId} className={panelVariants({ isOpen })}>
+        <div id={panelId} data-open={isOpen ? "" : undefined} className={panelVariants({ isOpen })}>
           <div className="min-h-0 overflow-hidden">
             <CardContent className="pt-(--card-spacing)">{children}</CardContent>
           </div>

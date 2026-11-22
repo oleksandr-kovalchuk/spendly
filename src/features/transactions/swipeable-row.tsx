@@ -14,6 +14,8 @@ import {
   type TouchEvent,
 } from "react";
 
+import { ACTION_WIDTH, armedActionOf, OPEN_DISTANCE, pullOf } from "./swipe-pull";
+
 type SwipeableRowProps = {
   editQuery: Record<string, string>;
   editLabel: string;
@@ -24,17 +26,24 @@ type SwipeableRowProps = {
 
 type Gesture = { pointerId: number; x: number; y: number; from: number; axis: "x" | "y" | null };
 
-// Matches the action's w-24
-const ACTION_WIDTH = 96;
 const AXIS_LOCK = 8;
-const OPEN_DISTANCE = 48;
-const MAX_PULL = ACTION_WIDTH * 1.5;
+const HAPTIC_MS = 10;
 
 const surfaceVariants = cva("relative bg-card", {
   variants: {
-    isDragging: { true: "", false: "transition-[translate] duration-300 ease-out-soft" },
+    isDragging: { true: "", false: "transition-[translate] duration-500 ease-spring-soft" },
   },
 });
+
+// Shows that letting go will take the action
+const actionIconVariants = cva("transition-transform duration-500 ease-spring", {
+  variants: { isArmed: { true: "scale-125", false: "" } },
+});
+
+// Safari has no `vibrate`
+function buzz() {
+  if ("vibrate" in navigator) navigator.vibrate(HAPTIC_MS);
+}
 
 // Physical left/right, not logical: the row follows the finger, not the text direction
 export function SwipeableRow({
@@ -49,9 +58,11 @@ export function SwipeableRow({
   const rowRef = useRef<HTMLDivElement>(null);
   const gestureRef = useRef<Gesture | null>(null);
   const hasSwipedRef = useRef(false);
+  const armedRef = useRef<ReturnType<typeof armedActionOf>>(null);
   const [offset, setOffset] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const isOpen = offset === -ACTION_WIDTH && !isDragging;
+  const armed = isDragging ? armedActionOf(offset) : null;
 
   useEffect(() => {
     if (!isOpen) return;
@@ -74,6 +85,7 @@ export function SwipeableRow({
       axis: null,
     };
     hasSwipedRef.current = false;
+    armedRef.current = armedActionOf(offset);
   }
 
   function handlePointerMove(event: PointerEvent<HTMLDivElement>) {
@@ -90,7 +102,11 @@ export function SwipeableRow({
     if (gesture.axis !== "x") return;
 
     hasSwipedRef.current = true;
-    setOffset(Math.min(Math.max(gesture.from + dx, -MAX_PULL), MAX_PULL));
+    const next = pullOf(gesture.from + dx);
+    const nextArmed = armedActionOf(next);
+    if (nextArmed !== null && nextArmed !== armedRef.current) buzz();
+    armedRef.current = nextArmed;
+    setOffset(next);
   }
 
   function handlePointerEnd(event: PointerEvent<HTMLDivElement>) {
@@ -136,14 +152,18 @@ export function SwipeableRow({
         aria-hidden="true"
         className="absolute inset-y-0 left-0 flex w-full items-center gap-2 bg-primary ps-5 text-sm font-medium text-primary-foreground"
       >
-        <PencilIcon className="size-4" />
+        <PencilIcon
+          className={actionIconVariants({ className: "size-4", isArmed: armed === "edit" })}
+        />
         {editLabel}
       </div>
       <div
         aria-hidden="true"
         className="absolute inset-y-0 right-0 flex w-24 flex-col items-center justify-center gap-1 bg-destructive text-xs font-medium text-destructive-foreground"
       >
-        <Trash2Icon className="size-5" />
+        <Trash2Icon
+          className={actionIconVariants({ className: "size-5", isArmed: armed === "delete" })}
+        />
         {deleteLabel}
       </div>
       {isOpen ? <div className="absolute inset-y-0 right-0 flex w-24">{deleteAction}</div> : null}

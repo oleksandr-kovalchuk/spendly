@@ -9,7 +9,6 @@ const SEND_TIMEOUT_MS = 10_000;
 export type EmailMessage = { to: string; subject: string; html: string; text: string };
 type SendResult = { status: "sent" } | { status: "failed"; error: string } | { status: "skipped" };
 
-// One client per process; without a key nothing is sent
 const resend = env.RESEND_API_KEY ? new Resend(env.RESEND_API_KEY) : undefined;
 
 // The SDK returns errors instead of throwing, a timeout included

@@ -13,9 +13,8 @@ const AddTransactionSheet = dynamic(
 
 type AddTransactionSheetHostProps = { today: string; categories: CategoryOption[] };
 
-// Closing returns focus to the button that opened the form, also where a tap doesn't focus it
-// (Safari). An empty state's button is gone once the list has an item, so focus goes to the screen;
-// the sheet would move it on to the screen's first control, so it's moved here and not returned.
+// Focus returns to the opener, even where a tap doesn't focus it (Safari). If it's gone (an empty
+// state's), focus goes to the screen here: returned, the sheet would pass it to its first control
 export function AddTransactionSheetHost({ today, categories }: AddTransactionSheetHostProps) {
   const { isOpen, opener, onOpenChange } = useAddTransaction();
 

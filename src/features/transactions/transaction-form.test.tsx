@@ -258,8 +258,7 @@ describe("editing a transaction", () => {
     const user = renderEditForm(onSaved);
     await user.clear(screen.getByLabelText(/^Amount/));
     await user.type(screen.getByLabelText(/^Amount/), "10,5");
-    // The calendar opens on the transaction's month and closes on a pick; its code loads on the
-    // first open, which a cold test run can take longer than findBy's default second for
+    // The calendar's code loads on the first open, which can exceed findBy's 1 s default on a cold run
     await user.click(dateButton());
     await user.click(
       await screen.findByRole("button", { name: "Saturday, March 7, 2026" }, { timeout: 5000 }),

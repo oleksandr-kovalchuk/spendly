@@ -29,9 +29,8 @@ export function AddTransactionButton({ placement }: { placement: Placement }) {
   const label = t("form.heading");
   const isIconOnly = placement === "bar";
 
-  // An empty state's button goes away once the list has an item, often right after the closing
-  // form has returned focus to it: focus moves to the screen instead of the page's start. A layout
-  // effect's cleanup runs while the button is still in the document.
+  // An empty state's button unmounts once the list has an item, often while focused: focus moves to
+  // the screen, not the page's start. A layout effect's cleanup still sees the button in the document
   useLayoutEffect(() => {
     const button = buttonRef.current;
     return () => {

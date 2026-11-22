@@ -22,6 +22,14 @@ test("signed-out pages show no app navigation", async ({ page }) => {
   await expect(page.getByRole("link", { name: "Transactions" })).toHaveCount(0);
 });
 
+test("a signed-out link moves focus to the new page", async ({ page }) => {
+  await page.goto("/en/sign-in");
+
+  await page.getByRole("link", { name: "Forgot password?" }).click();
+  await expect(page).toHaveURL(/\/en\/forgot-password$/);
+  await expect(page.getByRole("main")).toBeFocused();
+});
+
 for (const { locale, overview, transactions, categories } of [
   {
     locale: "en",

@@ -6,7 +6,10 @@ import { hryvniasOf, MONEY_FORMAT } from "@/shared/lib/money";
 import { NO_PERIOD_ANIMATION } from "@/shared/lib/period-transition";
 import { totalTarget } from "@/shared/lib/total-target";
 
+import { MoodLayer } from "./mood-layer";
 import { RollingText } from "./rolling-text";
+import { spendingMoodOf } from "./spending-mood";
+import { TiltCard } from "./tilt-card";
 
 type PeriodTotalsProps = { incomeKopecks: number; expenseKopecks: number; balanceKopecks: number };
 
@@ -42,7 +45,8 @@ export function PeriodTotals({ incomeKopecks, expenseKopecks, balanceKopecks }: 
   ] as const;
 
   return (
-    <div className="sheen grid h-full content-between gap-5 rounded-3xl bg-aurora p-5 text-aurora-foreground shadow-aurora lg:p-7">
+    <TiltCard className="sheen grid h-full balance-card-exit content-between gap-5 rounded-3xl bg-aurora p-5 text-aurora-foreground shadow-aurora lg:p-7">
+      <MoodLayer mood={spendingMoodOf(incomeKopecks, expenseKopecks)} />
       <dl className="grid grid-cols-2 gap-x-2 gap-y-5">
         <div className="col-span-2 grid gap-1">
           <dt className="text-sm font-medium">{t("balance")}</dt>
@@ -95,6 +99,6 @@ export function PeriodTotals({ incomeKopecks, expenseKopecks, balanceKopecks }: 
           </p>
         </div>
       )}
-    </div>
+    </TiltCard>
   );
 }

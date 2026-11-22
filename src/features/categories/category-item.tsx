@@ -39,7 +39,6 @@ export function CategoryItem({
   // The name the sheet opened with: a save's refresh brings the new one while the sheet closes
   const [editedLabel, setEditedLabel] = useState(label);
   const editButtonRef = useRef<HTMLButtonElement>(null);
-  // A default category only gets a new name
   const action = defaultKey === null ? "edit" : "rename";
 
   function handleEdit() {

@@ -13,7 +13,7 @@ export default function GlobalError({ retry }: { retry: () => void }) {
           <br />
           <span lang="uk">Щось пішло не так</span>
         </h1>
-        {/* Not the shared Button: Next loads this page's code on every route, where Base UI then came twice */}
+        {/* Not the shared Button: this page's code loads on every route and would bring Base UI twice */}
         <button
           type="button"
           className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-primary px-2.5 text-sm font-medium text-primary-foreground outline-none hover:bg-primary-hover focus-visible:ring-3 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"

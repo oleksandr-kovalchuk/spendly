@@ -27,6 +27,8 @@ const FIRST_COLUMNS = [
   "col-start-7",
 ] as const;
 const COMPACT_MONEY = { ...MONEY_FORMAT, notation: "compact", maximumFractionDigits: 1 } as const;
+const WEEK_LENGTH = 7;
+const WAVE_STEP_MS = 25;
 
 type DayFormat = Pick<Intl.DateTimeFormatOptions, "weekday" | "day" | "month" | "year">;
 
@@ -69,6 +71,7 @@ export function SpendingCalendar({ days }: { days: CalendarDay[] }) {
   if (first === undefined) return null;
 
   const maxKopecks = Math.max(...days.map((day) => day.amountKopecks));
+  const firstColumn = weekColumnOf(first.day) - 1;
   const dateOf = (day: string, options: DayFormat) =>
     format.dateTime(utcDateOf(day), { timeZone: DAY_TIME_ZONE, ...options });
 
@@ -86,15 +89,18 @@ export function SpendingCalendar({ days }: { days: CalendarDay[] }) {
             <span key={day}>{dateOf(day, { weekday: "short" })}</span>
           ))}
         </div>
-        <ol className="grid grid-cols-7 gap-1">
+        <ol className="grid calendar-wave grid-cols-7 gap-1">
           {days.map(({ day, amountKopecks, query, isSelected }, index) => {
             const date = dateOf(day, { weekday: "long", day: "numeric", month: "long" });
             const hryvnias = hryvniasOf(amountKopecks);
+            const cell = firstColumn + index;
+            const diagonal = Math.floor(cell / WEEK_LENGTH) + (cell % WEEK_LENGTH);
 
             return (
               <li
                 key={day}
-                className={index === 0 ? FIRST_COLUMNS[weekColumnOf(day) - 1] : undefined}
+                className={index === 0 ? FIRST_COLUMNS[firstColumn] : undefined}
+                style={{ animationDelay: `${diagonal * WAVE_STEP_MS}ms` }}
               >
                 <Link
                   href={{ pathname: `/${locale}`, query }}

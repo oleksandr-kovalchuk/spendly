@@ -16,9 +16,16 @@ const STROKE = 10;
 const CAP = (STROKE / 2 / (2 * Math.PI * RADIUS)) * RING_LENGTH;
 const GAP = CAP * 2 + 1.5;
 
-const segmentVariants = cva("cursor-pointer fill-none transition-opacity duration-200", {
-  variants: { isMuted: { true: "opacity-30", false: "" } },
-});
+// stroke-12 stays within the mask's STROKE + 4
+const segmentVariants = cva(
+  "cursor-pointer fill-none transition-[opacity,stroke-width] duration-500 ease-spring",
+  {
+    variants: {
+      isActive: { true: "stroke-12", false: "" },
+      isMuted: { true: "opacity-30", false: "" },
+    },
+  },
+);
 
 type SpendingDonutProps = {
   items: SpendingItem[];
@@ -68,7 +75,10 @@ export function SpendingDonut({ items, activeId, onActiveChange }: SpendingDonut
               strokeDasharray={`${length} ${RING_LENGTH - length}`}
               strokeDashoffset={-offset}
               className={cn(
-                segmentVariants({ isMuted: active !== undefined && active.id !== item.id }),
+                segmentVariants({
+                  isActive: active?.id === item.id,
+                  isMuted: active !== undefined && active.id !== item.id,
+                }),
                 categoryStrokeVariants({ color: item.color }),
               )}
               onPointerEnter={() => onActiveChange(item.id)}
