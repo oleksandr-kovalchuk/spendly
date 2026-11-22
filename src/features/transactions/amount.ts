@@ -3,7 +3,6 @@ import { MAX_AMOUNT_KOPECKS } from "@/shared/db/app-constants";
 type AmountError = "amountRequired" | "amountInvalid" | "amountTooLarge";
 export type ParsedAmount = { kopecks: number } | { error: AmountError };
 
-// Digits with an optional decimal part of 1 or 2 digits; a comma is accepted as the decimal sign
 const AMOUNT_PATTERN = /^(\d+)(?:[.,](\d{1,2}))?$/;
 const KOPECKS_PER_HRYVNIA = 100;
 

@@ -1,3 +1,4 @@
+import { cn } from "cn";
 import type { Metadata, Viewport } from "next";
 import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { getMessages, getTranslations } from "next-intl/server";
@@ -63,7 +64,12 @@ export default async function RootLayout({ children }: LayoutProps<"/[locale]">)
   return (
     <html
       lang={current}
-      className={`${geistSans.variable} ${geistMono.variable} ${unbounded.variable} h-full antialiased max-lg:scroll-pb-24`}
+      className={cn(
+        geistSans.variable,
+        geistMono.variable,
+        unbounded.variable,
+        "h-full antialiased max-lg:scroll-pb-24",
+      )}
       suppressHydrationWarning
     >
       <body className="flex min-h-full flex-col">
