@@ -9,15 +9,14 @@ import { buildResetPasswordMessage } from "./reset-password-message";
 
 const MAX_RESET_EMAILS_PER_HOUR = 3;
 
-// The link carries the reset page the form asked for, such as /uk/reset-password
+// The link's callbackURL is the reset page the form asked for, such as /uk/reset-password
 function localeOf(url: string) {
   const callbackURL = new URL(url).searchParams.get("callbackURL") ?? "";
   const [locale] = callbackURL.split("/").filter(Boolean);
   return hasLocale(routing.locales, locale) ? locale : routing.defaultLocale;
 }
 
-// Better Auth's sendResetPassword, run in the background so its work can't reveal which emails
-// have an account. For an account that signs in only with Google, the reset adds its first password.
+// In the background, so timing can't reveal accounts; a Google-only account gets a first password
 export async function sendResetPasswordEmail({
   user,
   url,

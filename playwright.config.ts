@@ -28,8 +28,7 @@ export default defineConfig({
     command: `pnpm start --port ${PORT}`,
     url: `http://localhost:${PORT}/en`,
     reuseExistingServer: !process.env.CI,
-    // Emails stay pending in the outbox instead of going to Resend; .env doesn't override them.
-    // The app treats TODAY as today, so the tests' dates don't depend on the day they run
+    // No Resend key keeps emails in the outbox (.env doesn't override it); TODAY fixes today
     env: { RESEND_API_KEY: "", E2E_TODAY: TODAY },
   },
 });

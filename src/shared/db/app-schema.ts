@@ -37,8 +37,7 @@ const updatedAt = () =>
 export const CATEGORY_NAME_UNIQUE_INDEX = "categories_user_type_name_unique";
 export const TRANSACTION_CATEGORY_FOREIGN_KEY = "transactions_category_owner_fkey";
 
-// A default category has a `defaultKey` and no name until the user renames it; its icon comes
-// from the key, so only the user's own categories store one
+// A default has a `defaultKey`, no name until renamed, and no icon (it comes from the key)
 export const categories = pgTable(
   "categories",
   {

@@ -1,6 +1,6 @@
 import type { Messages } from "next-intl";
 
-// The message namespaces client components translate with; only these go to the browser
+// Only these namespaces go to the browser
 export const CLIENT_NAMESPACES = [
   "Header",
   "Auth",

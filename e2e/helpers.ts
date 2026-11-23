@@ -27,14 +27,13 @@ export const TEXTS = {
     overview: "Overview",
     transactions: "Transactions",
     categories: "Categories",
-    expense: "Expense",
-    income: "Income",
     amount: "Amount (UAH)",
     category: "Category",
     date: "Date",
     note: "Note (optional)",
     add: "Add",
-    addTransaction: "Add transaction",
+    addButton: { expense: "Add expense", income: "Add income" },
+    addSheet: { expense: "New expense", income: "New income" },
     empty: "No transactions in this period.",
     amountRequired: "Enter an amount.",
     food: "Food",
@@ -104,14 +103,13 @@ export const TEXTS = {
     overview: "Огляд",
     transactions: "Транзакції",
     categories: "Категорії",
-    expense: "Витрата",
-    income: "Дохід",
     amount: "Сума (грн)",
     category: "Категорія",
     date: "Дата",
     note: "Примітка (необов'язково)",
     add: "Додати",
-    addTransaction: "Додати транзакцію",
+    addButton: { expense: "Додати витрату", income: "Додати дохід" },
+    addSheet: { expense: "Нова витрата", income: "Новий дохід" },
     empty: "У цьому періоді немає транзакцій.",
     amountRequired: "Введіть суму.",
     food: "Їжа",
@@ -285,19 +283,24 @@ export async function openAccountMenu(page: Page, locale: Locale) {
   return panel;
 }
 
-export function navAddButton(page: Page, locale: Locale) {
-  return page.locator("header, nav").getByRole("button", { name: TEXTS[locale].addTransaction });
+type TransactionType = keyof (typeof TEXTS)[Locale]["addButton"];
+
+export function navAddButton(page: Page, locale: Locale, type: TransactionType = "expense") {
+  return page
+    .locator("header, nav")
+    .getByRole("button", { name: TEXTS[locale].addButton[type], exact: true });
 }
 
 // Retries a click lost before hydration
 export async function openAddSheet(
   page: Page,
   locale: Locale,
-  button = navAddButton(page, locale),
+  { type = "expense", button }: { type?: TransactionType; button?: Locator } = {},
 ) {
-  const sheet = page.getByRole("dialog", { name: TEXTS[locale].addTransaction });
+  const sheet = page.getByRole("dialog", { name: TEXTS[locale].addSheet[type] });
+  const opener = button ?? navAddButton(page, locale, type);
   await expect(async () => {
-    if (!(await sheet.isVisible())) await button.click({ timeout: 1000 });
+    if (!(await sheet.isVisible())) await opener.click({ timeout: 1000 });
     await expect(sheet).toBeVisible({ timeout: 1000 });
   }).toPass();
 

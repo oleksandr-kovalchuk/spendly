@@ -5,6 +5,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
 import en from "@/i18n/messages/en.json";
+import type { CategoryType } from "@/shared/db/app-constants";
 
 import type { CategoryOption } from "./category-option";
 import { TransactionForm } from "./transaction-form";
@@ -60,32 +61,44 @@ function categoryNames() {
     .map((radio) => radio.closest("label")?.textContent);
 }
 
-function renderForm(onSaved = vi.fn()) {
+function renderForm(onSaved = vi.fn(), type: CategoryType = "expense") {
   render(
     <NextIntlClientProvider locale="en" messages={en}>
-      <TransactionForm categories={CATEGORIES} today="2026-03-10" onSaved={onSaved} />
+      <TransactionForm categories={CATEGORIES} type={type} today="2026-03-10" onSaved={onSaved} />
     </NextIntlClientProvider>,
   );
 
   return userEvent.setup();
 }
 
-test("starts as an expense dated today, with the expense categories", () => {
+test("a new expense is dated today, with the expense categories and no type switch", () => {
   renderForm();
 
-  expect(screen.getByLabelText("Expense")).toBeChecked();
+  expect(screen.queryByRole("radio", { name: "Expense" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("radio", { name: "Income" })).not.toBeInTheDocument();
   expect(dateButton()).toHaveAccessibleName("Date: March 10, 2026");
   expect(categoryNames()).toEqual(["Food", "Transport"]);
   expect(categoryGroup().getByRole("radio", { name: "Food" })).toBeChecked();
 });
 
-test("switching to income shows the income categories and selects the first", async () => {
-  const user = renderForm();
-  await user.click(categoryGroup().getByRole("radio", { name: "Transport" }));
-  await user.click(screen.getByLabelText("Income"));
+test("a new income shows the income categories and is sent as income", async () => {
+  addTransaction.mockResolvedValue({});
+  const user = renderForm(vi.fn(), "income");
 
   expect(categoryNames()).toEqual(["Salary"]);
   expect(categoryGroup().getByRole("radio", { name: "Salary" })).toBeChecked();
+  await user.type(screen.getByLabelText(/^Amount/), "5");
+  await user.click(screen.getByRole("button", { name: "Add" }));
+
+  expect(addTransaction).toHaveBeenCalledWith(
+    expect.objectContaining({ type: "income", categoryId: CATEGORIES[2]?.id }),
+  );
+});
+
+test("the amount shows the currency after the number", () => {
+  renderForm();
+
+  expect(screen.getByLabelText(/^Amount/).closest("div")).toHaveTextContent(/0\s*₴$/);
 });
 
 test("a type without categories links to the Categories page and sends nothing", async () => {
@@ -93,13 +106,13 @@ test("a type without categories links to the Categories page and sends nothing",
     <NextIntlClientProvider locale="en" messages={en}>
       <TransactionForm
         categories={CATEGORIES.filter((category) => category.type === "expense")}
+        type="income"
         today="2026-03-10"
         onSaved={vi.fn()}
       />
     </NextIntlClientProvider>,
   );
   const user = userEvent.setup();
-  await user.click(screen.getByLabelText("Income"));
   await user.type(screen.getByLabelText(/^Amount/), "5");
   await user.click(screen.getByRole("button", { name: "Add" }));
 
@@ -210,7 +223,7 @@ test("a failed request shows the unknown error", async () => {
 test("a new today from the server replaces the date default", () => {
   const ui = (today: string) => (
     <NextIntlClientProvider locale="en" messages={en}>
-      <TransactionForm categories={CATEGORIES} today={today} onSaved={vi.fn()} />
+      <TransactionForm categories={CATEGORIES} type="expense" today={today} onSaved={vi.fn()} />
     </NextIntlClientProvider>
   );
   const { rerender } = render(ui("2026-03-10"));
@@ -250,6 +263,14 @@ describe("editing a transaction", () => {
     expect(categoryGroup().getByRole("radio", { name: "Salary" })).toBeChecked();
     expect(screen.getByLabelText(/^Note/)).toHaveValue("march");
     expect(screen.queryByRole("button", { name: "Add" })).not.toBeInTheDocument();
+  });
+
+  test("switching the type shows its categories and selects the first", async () => {
+    const user = renderEditForm();
+    await user.click(screen.getByLabelText("Expense"));
+
+    expect(categoryNames()).toEqual(["Food", "Transport"]);
+    expect(categoryGroup().getByRole("radio", { name: "Food" })).toBeChecked();
   });
 
   test("saves the changes with the id and closes", async () => {

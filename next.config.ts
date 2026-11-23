@@ -1,8 +1,6 @@
 import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
 
-import { routing } from "./src/i18n/routing";
-
 const isDevelopment = process.env.NODE_ENV === "development";
 
 const CONTENT_SECURITY_POLICY = [
@@ -48,17 +46,6 @@ const nextConfig: NextConfig = {
         loaders: ["@tailwindcss/turbopack"],
       },
     },
-  },
-  // Edit links used to open on the home page; Next passes the query (edit, period, date) through
-  async redirects() {
-    return [
-      {
-        source: `/:locale(${routing.locales.join("|")})`,
-        has: [{ type: "query", key: "edit" }],
-        destination: "/:locale/transactions",
-        permanent: false,
-      },
-    ];
   },
   async headers() {
     return [{ source: "/(.*)", headers: SECURITY_HEADERS }];

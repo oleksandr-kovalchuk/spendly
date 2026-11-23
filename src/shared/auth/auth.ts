@@ -18,7 +18,7 @@ const AUTH_ATTEMPTS_PER_WINDOW = 10;
 const RESET_REQUESTS_PER_WINDOW = 3;
 const RESET_LINK_LIFETIME_SECONDS = 60 * 60;
 
-// Preview deployments have no BETTER_AUTH_URL: their own Vercel hosts are the base URL and a trusted origin
+// Previews have no BETTER_AUTH_URL: their Vercel hosts are the base URL and trusted origins
 const previewOrigins = [env.VERCEL_BRANCH_URL, env.VERCEL_URL]
   .filter((host) => host !== undefined)
   .map((host) => `https://${host}`);
@@ -44,8 +44,7 @@ function hasPasswordInBody(body: unknown) {
   return typeof body.password === "string" && body.password !== "";
 }
 
-// Better Auth deletes without the password when the session is under a day old; an account with
-// a password must give it, so a stolen session can't delete it. Google accounts keep that rule.
+// Better Auth skips the password for a day-old session; accounts with one must still give it
 const requirePasswordToDelete = createAuthMiddleware(async (ctx) => {
   if (ctx.path !== "/delete-user" || hasPasswordInBody(ctx.body)) return;
 
@@ -76,8 +75,7 @@ export const auth = betterAuth({
     resetPasswordTokenExpiresIn: RESET_LINK_LIFETIME_SECONDS,
     sendResetPassword: sendResetPasswordEmail,
   },
-  // Account linking keeps its default requireLocalEmailVerified: the app doesn't verify emails,
-  // so linking Google to a password account would hand it to whoever registered that email
+  // Keep default requireLocalEmailVerified: with unverified emails, linking could hijack accounts
   socialProviders: google ? { google } : {},
   // The user's rows in the app's tables go with it: their foreign keys cascade
   user: { deleteUser: { enabled: true } },
@@ -101,8 +99,7 @@ export const auth = betterAuth({
   // Vercel overwrites this header with the client's address, so it can't be spoofed
   advanced: {
     ipAddress: { ipAddressHeaders: ["x-real-ip"] },
-    // Work such as the reset email runs after the response, so its time reveals nothing about the
-    // account (see decision 0009)
+    // After the response, so timing reveals nothing about the account (decision 0009)
     backgroundTasks: { handler: (task) => after(task) },
   },
   databaseHooks: {

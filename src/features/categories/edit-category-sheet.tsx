@@ -19,7 +19,7 @@ type EditCategorySheetProps = {
   finalFocus: () => HTMLElement | null;
 };
 
-// The toast waits until the sheet has closed, as AddTransactionSheet explains
+// Toast after the sheet closes (see AGENTS.md)
 export function EditCategorySheet({
   id,
   label,

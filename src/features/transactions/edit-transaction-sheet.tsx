@@ -10,20 +10,22 @@ import { toast } from "@/shared/ui/toast";
 
 import { DeleteTransactionButton } from "./delete-transaction-button";
 import type { CategoryOption } from "./category-option";
+import { listUrlOf, type ListScreen } from "./list-url";
 import { TransactionForm } from "./transaction-form";
 import type { TransactionDto } from "./transactions.dal";
 
 type EditTransactionSheetProps = {
   categories: CategoryOption[];
   transaction: TransactionDto;
+  screen: ListScreen;
   listQuery: Record<string, string>;
 };
 
-// The URL names the transaction being edited, so the sheet opens with the page. Closing animates
-// first and then drops it from the URL, keeping the period.
+// Opens from the URL's `edit`; closing animates first, then drops it from the URL
 export function EditTransactionSheet({
   categories,
   transaction,
+  screen,
   listQuery,
 }: EditTransactionSheetProps) {
   const t = useTranslations("Transactions");
@@ -38,14 +40,11 @@ export function EditTransactionSheet({
     setIsOpen(false);
   }
 
-  // The toast waits until the sheet has closed, as AddTransactionSheet explains
+  // Toast after the sheet closes (see AGENTS.md)
   function handleOpenChangeComplete(open: boolean) {
     if (open) return;
     if (isSavedRef.current) toast.add({ type: "success", title: t("toast.updated") });
-    const query = new URLSearchParams(listQuery);
-    router.replace(`/${locale}/transactions${query.size > 0 ? `?${query.toString()}` : ""}`, {
-      scroll: false,
-    });
+    router.replace(listUrlOf(locale, screen, listQuery), { scroll: false });
   }
 
   return (
@@ -59,6 +58,7 @@ export function EditTransactionSheet({
       <DeleteTransactionButton
         transactionId={transaction.id}
         label={categoryLabel(transaction.category, tCategories)}
+        screen={screen}
         listQuery={listQuery}
       />
     </ResponsiveSheet>

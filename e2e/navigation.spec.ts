@@ -134,7 +134,8 @@ test("Tab reaches every control, and the bottom navigation covers none", async (
   }
   await page.reload();
   await expect(page.getByRole("listitem").filter({ hasText: "third" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Add transaction" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Add expense" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Add income" })).toBeVisible();
 
   const navTop = isPhone(page)
     ? ((await page.getByRole("navigation").boundingBox())?.y ?? 0)
@@ -169,7 +170,8 @@ test("Tab reaches every control, and the bottom navigation covers none", async (
       "Transactions",
       "Categories",
       expect.stringContaining("Account"),
-      "Add transaction",
+      "Add expense",
+      "Add income",
     ]),
   );
   expect(reached.filter((name) => /^Food\s?(first|second|third)/.test(name))).toHaveLength(3);

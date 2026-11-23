@@ -74,13 +74,18 @@ The Overview screen SHALL chart the shown period's expenses by category as a rin
 
 ### Requirement: Latest transactions
 
-The Overview screen SHALL show up to five of the shown period's newest transactions, with a link to all of them on the Transactions screen for the same period.
+The Overview screen SHALL show up to five of the shown period's newest transactions, with a link to all of them on the Transactions screen for the same period; each SHALL open its edit form over the Overview and swipe like an item on the Transactions screen.
 
 #### Scenario: Latest
 
 - **GIVEN** seven transactions in the shown month
 - **WHEN** the Overview screen opens
 - **THEN** it shows the five newest with category, note and signed amount, and a link that opens Transactions for that month
+
+#### Scenario: Edit from the Overview
+
+- **WHEN** the user opens a latest transaction, changes it and saves, or deletes it
+- **THEN** the form closes, the Overview stays open with its period, and its totals and list show the change
 
 #### Scenario: None
 

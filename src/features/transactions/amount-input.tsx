@@ -52,13 +52,10 @@ function moneyPartsOf(locale: string, type: CategoryType) {
   const parts = new Intl.NumberFormat(locale, SIGNED_MONEY_FORMAT).formatToParts(
     type === "expense" ? -1 : 1,
   );
-  const indexOf = (partType: Intl.NumberFormatPartTypes) =>
-    parts.findIndex((part) => part.type === partType);
 
   return {
     sign: parts.find((part) => part.type === "minusSign" || part.type === "plusSign")?.value,
-    currency: parts[indexOf("currency")]?.value,
-    isCurrencyFirst: indexOf("currency") < indexOf("integer"),
+    currency: parts.find((part) => part.type === "currency")?.value,
   };
 }
 
@@ -75,12 +72,7 @@ export function AmountInput({
   const id = useId();
   const errorId = `${id}-error`;
   const size = sizeOf(Math.max(value.length, placeholder.length));
-  const { sign, currency, isCurrencyFirst } = moneyPartsOf(locale, type);
-  const currencyMark = (
-    <span aria-hidden="true" className={currencyVariants({ size })}>
-      {currency}
-    </span>
-  );
+  const { sign, currency } = moneyPartsOf(locale, type);
 
   return (
     <div className="grid justify-items-center gap-2">
@@ -94,7 +86,6 @@ export function AmountInput({
         })}
       >
         <span aria-hidden="true">{sign}</span>
-        {isCurrencyFirst ? currencyMark : null}
         <span className="relative min-w-0">
           <span aria-hidden="true" className="invisible px-px whitespace-pre">
             {value === "" ? placeholder : value}
@@ -107,11 +98,14 @@ export function AmountInput({
             placeholder={placeholder}
             aria-invalid={Boolean(error)}
             aria-describedby={error ? errorId : undefined}
-            className="absolute inset-0 size-full bg-transparent text-center outline-none placeholder:text-muted-foreground"
+            className="absolute inset-0 size-full bg-transparent text-center outline-none placeholder:text-muted-foreground focus:placeholder:text-transparent"
             {...registration}
           />
         </span>
-        {isCurrencyFirst ? null : currencyMark}
+        {/* After the number in every language: before it, it crowds the sign */}
+        <span aria-hidden="true" className={currencyVariants({ size })}>
+          {currency}
+        </span>
       </div>
       {error ? (
         <FieldError id={errorId} className="text-center">

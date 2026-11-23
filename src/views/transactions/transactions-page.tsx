@@ -12,26 +12,19 @@ import { groupByDay } from "@/features/transactions/group-by-day";
 import { TransactionList } from "@/features/transactions/transaction-list";
 import { TransactionListBoundary } from "@/features/transactions/transaction-list-boundary";
 import { findTransaction, listTransactions } from "@/features/transactions/transactions.dal";
-import { categoryLabel } from "@/shared/categories/category-label";
-import { listCategories } from "@/shared/categories/categories.dal";
 import { Skeleton } from "@/shared/ui/skeleton";
 import { PageHeading } from "@/shared/ui/page-heading";
 import { AddTransactionControl } from "@/views/app-shell/add-transaction-control";
 import { PageTransition } from "@/views/app-shell/page-transition";
 import { PeriodSkeleton } from "@/views/app-shell/period-skeleton";
 import { PeriodSlide } from "@/views/app-shell/period-slide";
-import { getShownPeriod, getToday, type ScreenSearchParams } from "@/views/app-shell/screen-data";
-
-async function getEditingId(searchParams: ScreenSearchParams) {
-  const { edit } = await searchParams;
-  if (edit === undefined) return undefined;
-
-  const parsed = z.uuid().safeParse(edit);
-  if (!parsed.success) notFound();
-  return parsed.data;
-}
-
-const getCategories = cache(listCategories);
+import {
+  getCategoryOptions,
+  getEditingId,
+  getShownPeriod,
+  getToday,
+  type ScreenSearchParams,
+} from "@/views/app-shell/screen-data";
 
 const getShownList = cache(async (searchParams: ScreenSearchParams) => {
   const [{ today, period }, { category: rawCategory }] = await Promise.all([
@@ -42,7 +35,7 @@ const getShownList = cache(async (searchParams: ScreenSearchParams) => {
   const category =
     categoryId === undefined
       ? undefined
-      : (await getCategories()).find((candidate) => candidate.id === categoryId);
+      : (await getCategoryOptions()).find((candidate) => candidate.id === categoryId);
   const periodQuery = toPeriodQuery(period, today);
   const listQuery = category ? { ...periodQuery, category: category.id } : periodQuery;
 
@@ -53,10 +46,9 @@ async function EditSheetSection({ searchParams }: { searchParams: ScreenSearchPa
   const editingId = await getEditingId(searchParams);
   if (editingId === undefined) return null;
 
-  const [{ listQuery }, tCategories, categories, transaction] = await Promise.all([
+  const [{ listQuery }, categories, transaction] = await Promise.all([
     getShownList(searchParams),
-    getTranslations("Categories"),
-    getCategories(),
+    getCategoryOptions(),
     findTransaction(editingId),
   ]);
   if (!transaction) notFound();
@@ -64,37 +56,19 @@ async function EditSheetSection({ searchParams }: { searchParams: ScreenSearchPa
   return (
     <LazyEditTransactionSheet
       key={transaction.id}
-      categories={categories.map((category) => ({
-        id: category.id,
-        type: category.type,
-        defaultKey: category.defaultKey,
-        icon: category.icon,
-        label: categoryLabel(category, tCategories),
-      }))}
+      categories={categories}
       transaction={transaction}
+      screen="transactions"
       listQuery={listQuery}
     />
   );
 }
 
 async function CategoryFilterSection({ searchParams }: { searchParams: ScreenSearchParams }) {
-  const [{ category, periodQuery }, tCategories] = await Promise.all([
-    getShownList(searchParams),
-    getTranslations("Categories"),
-  ]);
+  const { category, periodQuery } = await getShownList(searchParams);
   if (!category) return null;
 
-  return (
-    <CategoryFilter
-      category={{
-        id: category.id,
-        defaultKey: category.defaultKey,
-        icon: category.icon,
-        label: categoryLabel(category, tCategories),
-      }}
-      clearQuery={periodQuery}
-    />
-  );
+  return <CategoryFilter category={category} clearQuery={periodQuery} />;
 }
 
 async function PeriodSection() {
@@ -109,7 +83,7 @@ async function PeriodTransactions({ searchParams }: { searchParams: ScreenSearch
     <TransactionList
       groups={groupByDay(transactions)}
       listQuery={listQuery}
-      emptyAction={<AddTransactionControl placement="empty" />}
+      emptyAction={<AddTransactionControl />}
     />
   );
 }

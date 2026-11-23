@@ -2,7 +2,6 @@
 
 import { cva } from "class-variance-authority";
 import { PencilIcon, Trash2Icon } from "lucide-react";
-import { useLocale } from "next-intl";
 import { useRouter } from "next/navigation";
 import {
   useEffect,
@@ -14,10 +13,11 @@ import {
   type TouchEvent,
 } from "react";
 
+import type { ListUrl } from "./list-url";
 import { ACTION_WIDTH, armedActionOf, OPEN_DISTANCE, pullOf } from "./swipe-pull";
 
 type SwipeableRowProps = {
-  editQuery: Record<string, string>;
+  editHref: ListUrl;
   editLabel: string;
   deleteLabel: string;
   deleteAction: ReactNode;
@@ -35,7 +35,6 @@ const surfaceVariants = cva("relative bg-card", {
   },
 });
 
-// Shows that letting go will take the action
 const actionIconVariants = cva("transition-transform duration-500 ease-spring", {
   variants: { isArmed: { true: "scale-125", false: "" } },
 });
@@ -47,14 +46,13 @@ function buzz() {
 
 // Physical left/right, not logical: the row follows the finger, not the text direction
 export function SwipeableRow({
-  editQuery,
+  editHref,
   editLabel,
   deleteLabel,
   deleteAction,
   children,
 }: SwipeableRowProps) {
   const router = useRouter();
-  const locale = useLocale();
   const rowRef = useRef<HTMLDivElement>(null);
   const gestureRef = useRef<Gesture | null>(null);
   const hasSwipedRef = useRef(false);
@@ -118,9 +116,7 @@ export function SwipeableRow({
     const end = gesture.from + event.clientX - gesture.x;
     if (event.type === "pointerup" && end >= ACTION_WIDTH) {
       setOffset(0);
-      router.push(`/${locale}/transactions?${new URLSearchParams(editQuery).toString()}`, {
-        scroll: false,
-      });
+      router.push(editHref, { scroll: false });
     } else {
       setOffset(end <= -OPEN_DISTANCE ? -ACTION_WIDTH : 0);
     }

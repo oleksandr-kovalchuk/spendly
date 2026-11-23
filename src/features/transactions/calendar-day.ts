@@ -1,5 +1,4 @@
-// A transaction's day ("YYYY-MM-DD") has no time zone. The calendar works with local-midnight
-// dates, and display formats a UTC date with `timeZone: "UTC"`, so no zone shifts the day.
+// A day (`YYYY-MM-DD`) has no zone: local midnight for the calendar, `timeZone: "UTC"` for display
 const DAY_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
 
 function partsOf(day: string) {
@@ -16,7 +15,7 @@ export function localDateOf(day: string): Date | undefined {
   const parts = partsOf(day);
   if (!parts) return undefined;
   const date = new Date(0);
-  // `setFullYear` keeps years below 100, which the Date constructor would move to the 1900s
+  // The Date constructor would move years below 100 to the 1900s
   date.setFullYear(parts.year, parts.monthIndex, parts.day);
   date.setHours(0, 0, 0, 0);
   return date;

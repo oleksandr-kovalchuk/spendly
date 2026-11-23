@@ -12,13 +12,18 @@ A user SHALL add an income or expense with an amount, a category of the same typ
 
 #### Scenario: Add expense
 
-- **WHEN** the user presses Add and saves an expense of 125.50 in Food for today
+- **WHEN** the user presses Add expense and saves an expense of 125.50 in Food for today
 - **THEN** the form closes and the expense shows on the Transactions screen under today as a minus amount in Food
 
 #### Scenario: Form defaults
 
-- **WHEN** the add form opens
-- **THEN** the type is expense, the date is today in the user's time zone, and the category list shows only expense categories
+- **WHEN** the user presses Add expense or Add income
+- **THEN** the form opens titled New expense or New income, with no type switch, the date today in the user's time zone, the category list showing only that type's categories, and focus not on the amount
+
+#### Scenario: Amount field
+
+- **WHEN** the add or edit form shows its amount field
+- **THEN** the currency sign follows the number in every language, and the placeholder hides while the field has focus
 
 #### Scenario: Invalid amount
 
@@ -27,7 +32,7 @@ A user SHALL add an income or expense with an amount, a category of the same typ
 
 ### Requirement: Edit transaction
 
-A user SHALL change any field of their transaction.
+A user SHALL change any field of their transaction, its type included.
 
 #### Scenario: Edit amount and date
 
@@ -97,23 +102,18 @@ Adding and editing SHALL happen in one form that opens over the current screen: 
 
 #### Scenario: Open from any screen
 
-- **WHEN** the user presses Add on the Overview, Transactions or Categories screen
+- **WHEN** the user presses Add expense or Add income on the Overview, Transactions or Categories screen
 - **THEN** the add form opens over that screen, and the screen stays as it was after saving or closing
 
 #### Scenario: Close
 
 - **WHEN** the user presses Escape in the open form
-- **THEN** it closes without saving and focus returns to the Add button
+- **THEN** it closes without saving and focus returns to the button that opened it
 
 #### Scenario: Linkable edit
 
-- **WHEN** the user opens a URL of the Transactions screen with a transaction to edit
-- **THEN** the screen opens with that transaction's form open, and closing it removes the transaction from the URL and keeps the period
-
-#### Scenario: Old edit link
-
-- **WHEN** the user opens the home page URL with a transaction to edit
-- **THEN** the Transactions screen opens with that transaction's form open and the same period
+- **WHEN** the user opens a URL of the Transactions or the Overview screen with a transaction to edit
+- **THEN** that screen opens with that transaction's form open, and closing it removes the transaction from the URL and keeps the screen and its period
 
 ### Requirement: Form controls
 

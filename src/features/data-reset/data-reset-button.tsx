@@ -44,16 +44,14 @@ export function DataResetButton({ kind }: { kind: Kind }) {
     setHasFailed(false);
   }
 
-  // The toast waits for the dialog's close: added as the refreshed screen's view transition
-  // starts, it makes React skip that transition
+  // Toast after the dialog closes (see AGENTS.md)
   function handleOpenChangeComplete(open: boolean) {
     if (open || !isDoneRef.current) return;
     isDoneRef.current = false;
     toast.add({ type: "success", title: t(`${kind}.toast`) });
   }
 
-  // The dialog closes in the commit that shows the refreshed data, as the action's transition
-  // ends; closed on its own, it can make React skip the refresh's view transition
+  // Close in the action's transition (see AGENTS.md)
   function handleConfirm() {
     setHasFailed(false);
     startTransition(async () => {

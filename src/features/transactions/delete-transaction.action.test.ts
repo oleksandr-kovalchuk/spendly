@@ -43,6 +43,7 @@ describe("deleteTransaction", () => {
       deleteTransaction({
         id: stored.id,
         locale: "uk",
+        screen: "transactions",
         listQuery: { period: "week", date: "2026-03-09" },
       }),
     ).rejects.toMatchObject(redirectTo("/uk/transactions?period=week&date=2026-03-09"));
@@ -56,11 +57,26 @@ describe("deleteTransaction", () => {
       deleteTransaction({
         id: stored.id,
         locale: "en",
+        screen: "transactions",
         listQuery: { period: "month", category: stored.categoryId },
       }),
     ).rejects.toMatchObject(
       redirectTo(`/en/transactions?period=month&category=${stored.categoryId}`),
     );
+  });
+
+  test("returns to the Overview when deleted there", async () => {
+    const { stored } = await signedIn();
+
+    await expect(
+      deleteTransaction({
+        id: stored.id,
+        locale: "en",
+        screen: "overview",
+        listQuery: { period: "week", date: "2026-03-09" },
+      }),
+    ).rejects.toMatchObject(redirectTo("/en?period=week&date=2026-03-09"));
+    expect(await listTransactions(RANGE)).toEqual([]);
   });
 
   test("a category that is not a UUID is rejected", async () => {
@@ -69,6 +85,7 @@ describe("deleteTransaction", () => {
     const result = await deleteTransaction({
       id: stored.id,
       locale: "uk",
+      screen: "transactions",
       listQuery: { category: "not-an-id" },
     });
 
@@ -79,16 +96,16 @@ describe("deleteTransaction", () => {
   test("without a period it returns to the list's default", async () => {
     const { stored } = await signedIn();
 
-    await expect(deleteTransaction({ id: stored.id, locale: "uk" })).rejects.toMatchObject(
-      redirectTo("/uk/transactions"),
-    );
+    await expect(
+      deleteTransaction({ id: stored.id, locale: "uk", screen: "transactions" }),
+    ).rejects.toMatchObject(redirectTo("/uk/transactions"));
   });
 
   test("an unknown language is rejected", async () => {
     const { stored } = await signedIn();
 
     // @ts-expect-error -- a client can send any string
-    const result = await deleteTransaction({ id: stored.id, locale: "de" });
+    const result = await deleteTransaction({ id: stored.id, locale: "de", screen: "transactions" });
 
     expect(result.validationErrors).toBeDefined();
     expect(await listTransactions(RANGE)).toEqual([stored]);
@@ -100,6 +117,7 @@ describe("deleteTransaction", () => {
     const result = await deleteTransaction({
       id: stored.id,
       locale: "uk",
+      screen: "transactions",
       listQuery: { period: "x".repeat(11) },
     });
 
@@ -109,11 +127,11 @@ describe("deleteTransaction", () => {
 
   test("a second delete of the same transaction is rejected", async () => {
     const { stored } = await signedIn();
-    await expect(deleteTransaction({ id: stored.id, locale: "uk" })).rejects.toMatchObject(
-      redirectTo("/uk/transactions"),
-    );
+    await expect(
+      deleteTransaction({ id: stored.id, locale: "uk", screen: "transactions" }),
+    ).rejects.toMatchObject(redirectTo("/uk/transactions"));
 
-    const result = await deleteTransaction({ id: stored.id, locale: "uk" });
+    const result = await deleteTransaction({ id: stored.id, locale: "uk", screen: "transactions" });
 
     expect(result.serverError).toBe("transactionNotFound");
   });
@@ -122,7 +140,11 @@ describe("deleteTransaction", () => {
     const owner = await signedIn();
     await signedIn();
 
-    const result = await deleteTransaction({ id: owner.stored.id, locale: "en" });
+    const result = await deleteTransaction({
+      id: owner.stored.id,
+      locale: "en",
+      screen: "transactions",
+    });
 
     expect(result.serverError).toBe("transactionNotFound");
     requestHeaders.current = new Headers({ cookie: owner.cookie });
@@ -132,13 +154,21 @@ describe("deleteTransaction", () => {
   test("an id that is not a UUID is rejected", async () => {
     await signedIn();
 
-    const result = await deleteTransaction({ id: "not-an-id", locale: "en" });
+    const result = await deleteTransaction({
+      id: "not-an-id",
+      locale: "en",
+      screen: "transactions",
+    });
 
     expect(result.validationErrors).toBeDefined();
   });
 
   test("rejects a request without a session", async () => {
-    const result = await deleteTransaction({ id: MISSING_ID, locale: "en" });
+    const result = await deleteTransaction({
+      id: MISSING_ID,
+      locale: "en",
+      screen: "transactions",
+    });
 
     expect(result.serverError).toBe(UNAUTHORIZED_ERROR);
   });

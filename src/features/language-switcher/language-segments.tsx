@@ -10,8 +10,7 @@ import { LANGUAGE_CODES, LANGUAGE_NAMES } from "./language-names";
 const SEGMENT =
   "inline-flex h-full min-w-9 items-center justify-center rounded-full px-2 text-xs font-semibold";
 
-// The short code is what shows; the name follows for screen readers, so voice control
-// still finds the link by the code it sees
+// The name follows the visible code for screen readers; voice control finds the link by the code
 export function LanguageSegments<T extends string>({ targetHref }: { targetHref: Route<T> }) {
   const t = useTranslations("Header");
   const locale = useLocale();

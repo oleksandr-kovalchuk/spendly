@@ -1,11 +1,17 @@
 import "server-only";
 
+import { getTranslations } from "next-intl/server";
 import { cookies } from "next/headers";
+import { notFound } from "next/navigation";
 import { connection } from "next/server";
+import { cache } from "react";
+import { z } from "zod";
 
 import { env } from "@/env";
 import { parsePeriod } from "@/features/periods/period";
 import { loadPeriodSearch } from "@/features/periods/period-search";
+import { categoryLabel } from "@/shared/categories/category-label";
+import { listCategories } from "@/shared/categories/categories.dal";
 import { resolveTimeZone, TIME_ZONE_COOKIE, todayIn } from "@/shared/lib/time-zone";
 
 export async function getToday() {
@@ -25,3 +31,27 @@ export async function getShownPeriod(searchParams: ScreenSearchParams) {
   ]);
   return { today, period: parsePeriod(search, today) };
 }
+
+export async function getEditingId(searchParams: ScreenSearchParams) {
+  const { edit } = await searchParams;
+  if (edit === undefined) return undefined;
+
+  const parsed = z.uuid().safeParse(edit);
+  if (!parsed.success) notFound();
+  return parsed.data;
+}
+
+export const getCategoryOptions = cache(async () => {
+  const [tCategories, categories] = await Promise.all([
+    getTranslations("Categories"),
+    listCategories(),
+  ]);
+
+  return categories.map((category) => ({
+    id: category.id,
+    type: category.type,
+    defaultKey: category.defaultKey,
+    icon: category.icon,
+    label: categoryLabel(category, tCategories),
+  }));
+});

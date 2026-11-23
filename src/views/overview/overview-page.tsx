@@ -1,7 +1,8 @@
 import { getTranslations } from "next-intl/server";
+import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
-import { periodOf, toPeriodQuery } from "@/features/periods/period";
+import { directionTo, periodOf, toPeriodQuery } from "@/features/periods/period";
 import { PeriodControl } from "@/features/periods/period-control";
 import { PeriodSwipeArea } from "@/features/periods/period-swipe-area";
 import { PeriodStats } from "@/features/stats/period-stats";
@@ -14,8 +15,9 @@ import {
 } from "@/features/stats/stats.dal";
 import { StatsBoundary } from "@/features/stats/stats-boundary";
 import { LatestTransactions } from "@/features/transactions/latest-transactions";
+import { LazyEditTransactionSheet } from "@/features/transactions/lazy-edit-transaction-sheet";
 import { TransactionListBoundary } from "@/features/transactions/transaction-list-boundary";
-import { listTransactions } from "@/features/transactions/transactions.dal";
+import { findTransaction, listTransactions } from "@/features/transactions/transactions.dal";
 import { categoryLabel } from "@/shared/categories/category-label";
 import { categoryColor } from "@/shared/categories/category-look";
 import { monthOf } from "@/shared/lib/time-zone";
@@ -25,7 +27,13 @@ import { AddTransactionControl } from "@/views/app-shell/add-transaction-control
 import { PageTransition } from "@/views/app-shell/page-transition";
 import { PeriodSkeleton } from "@/views/app-shell/period-skeleton";
 import { PeriodSlide } from "@/views/app-shell/period-slide";
-import { getShownPeriod, getToday, type ScreenSearchParams } from "@/views/app-shell/screen-data";
+import {
+  getCategoryOptions,
+  getEditingId,
+  getShownPeriod,
+  getToday,
+  type ScreenSearchParams,
+} from "@/views/app-shell/screen-data";
 
 const LATEST_COUNT = 5;
 
@@ -53,7 +61,7 @@ async function PeriodStatsSection({ searchParams }: { searchParams: ScreenSearch
         color: categoryColor({ id: item.categoryId, defaultKey: item.category.defaultKey }),
         transactionsQuery: { ...toPeriodQuery(period, today), category: item.categoryId },
       }))}
-      emptyAction={<AddTransactionControl placement="empty" />}
+      emptyAction={<AddTransactionControl />}
     />
   );
 }
@@ -74,6 +82,7 @@ async function SpendingCalendarSection({ searchParams }: { searchParams: ScreenS
         day,
         amountKopecks: spending.get(day) ?? 0,
         query: toPeriodQuery(periodOf("day", day), today),
+        direction: directionTo(day, period),
         isSelected: isMarked && period.from <= day && day <= period.to,
       }))}
     />
@@ -87,6 +96,28 @@ async function LatestSection({ searchParams }: { searchParams: ScreenSearchParam
 
   return (
     <LatestTransactions transactions={transactions} periodQuery={toPeriodQuery(period, today)} />
+  );
+}
+
+async function EditSheetSection({ searchParams }: { searchParams: ScreenSearchParams }) {
+  const editingId = await getEditingId(searchParams);
+  if (editingId === undefined) return null;
+
+  const [{ today, period }, categories, transaction] = await Promise.all([
+    getShownPeriod(searchParams),
+    getCategoryOptions(),
+    findTransaction(editingId),
+  ]);
+  if (!transaction) notFound();
+
+  return (
+    <LazyEditTransactionSheet
+      key={transaction.id}
+      categories={categories}
+      transaction={transaction}
+      screen="overview"
+      listQuery={toPeriodQuery(period, today)}
+    />
   );
 }
 
@@ -113,6 +144,9 @@ export async function OverviewPage({ searchParams }: PageProps<"/[locale]">) {
             <PeriodSection />
           </Suspense>
         </div>
+        <Suspense fallback={null}>
+          <EditSheetSection searchParams={searchParams} />
+        </Suspense>
         <PeriodSwipeArea>
           <PeriodSlide>
             <StatsBoundary>

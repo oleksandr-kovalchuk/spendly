@@ -1,5 +1,4 @@
-// A day ("YYYY-MM-DD") has no time zone: as a UTC midnight, formatted in `DAY_TIME_ZONE`,
-// it shows the same calendar day everywhere
+// A day has no time zone: a UTC midnight formatted in UTC shows the same day everywhere
 export const DAY_TIME_ZONE = "UTC";
 
 export function utcDateOf(day: string) {

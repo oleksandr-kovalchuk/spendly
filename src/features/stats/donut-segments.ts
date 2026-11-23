@@ -1,6 +1,6 @@
 import type { SpendingItem } from "./spending-item";
 
-// The ring's length in SVG path units (its pathLength), so a share maps straight to a length
+// SVG `pathLength`, so a share maps straight to a length
 export const RING_LENGTH = 100;
 
 // A zero-length arc with round caps is a dot
@@ -8,8 +8,7 @@ const DOT_LENGTH = 0.01;
 
 export type DonutSegment = { item: SpendingItem; offset: number; length: number };
 
-// Each category's part of the ring: its share, but at least `minArc`, so a tiny share's dot doesn't
-// run into its neighbours; the larger parts give up the difference in proportion
+// Share of the ring, at least `minArc`; the larger parts give up the difference in proportion
 function arcsOf(shares: number[], minArc: number) {
   if (shares.length * minArc >= RING_LENGTH) return shares.map(() => RING_LENGTH / shares.length);
 
@@ -25,8 +24,6 @@ function arcsOf(shares: number[], minArc: number) {
   }
 }
 
-// An arc per category in the given order; `gap` is left between arcs, half on each side, except
-// when one category fills the whole ring
 export function donutSegments(items: SpendingItem[], gap: number): DonutSegment[] {
   const total = items.reduce((sum, item) => sum + item.amountKopecks, 0);
   if (total === 0) return [];

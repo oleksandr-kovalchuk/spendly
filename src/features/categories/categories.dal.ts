@@ -24,8 +24,7 @@ type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 const NAME_TAKEN = { isSaved: false, error: "nameTaken" } as const;
 const SAVED = { isSaved: true } as const;
 
-// The unique index covers stored names; a default without one is named by its translations.
-// Called under lockCategoryNames, so no other write changes the answer before the commit
+// The unique index can't see unrenamed defaults' translations; call under lockCategoryNames
 async function hasDefaultNamed(
   tx: Transaction,
   userId: string,
@@ -120,8 +119,7 @@ async function otherCategoryId(tx: Transaction, userId: string, type: CategoryTy
   return other.id;
 }
 
-// The category's transactions move to Other of its type; Other itself goes only when empty,
-// since its transactions would have nowhere to go
+// Transactions move to the type's Other; Other itself is deleted only when empty
 export async function deleteCategory(userId: string, categoryId: string): Promise<DeleteResult> {
   return db.transaction(async (tx) => {
     // The lock holds a transaction added to this category meanwhile, which then fails

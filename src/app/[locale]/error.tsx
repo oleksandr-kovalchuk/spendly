@@ -2,7 +2,7 @@
 
 import { ErrorPage } from "@/views/error/error-page";
 
-// Only for a failing route group layout: the groups' own error pages keep their top bar or navigation
+// Only for a failing group layout: the groups' own error pages keep their navigation
 export default function Error({ retry }: { retry: () => void }) {
   return (
     <main

@@ -16,8 +16,6 @@ const { addTransaction } = vi.hoisted(() => ({ addTransaction: vi.fn() }));
 vi.mock("./add-transaction.action", () => ({ addTransaction }));
 vi.mock("./update-transaction.action", () => ({ updateTransaction: vi.fn() }));
 
-type Placement = "bar" | "sidebar" | "empty";
-
 const CATEGORIES: CategoryOption[] = [
   {
     id: "0198a8c0-0000-7000-8000-000000000001",
@@ -25,6 +23,13 @@ const CATEGORIES: CategoryOption[] = [
     defaultKey: "food",
     icon: null,
     label: "Food",
+  },
+  {
+    id: "0198a8c0-0000-7000-8000-000000000002",
+    type: "income",
+    defaultKey: "salary",
+    icon: null,
+    label: "Salary",
   },
 ];
 
@@ -51,12 +56,17 @@ beforeEach(() => {
   addTransaction.mockReset();
 });
 
-function Screen({ placement, hasButton = true }: { placement: Placement; hasButton?: boolean }) {
+function Screen({ hasButton = true }: { hasButton?: boolean }) {
   return (
     <NextIntlClientProvider locale="en" messages={en}>
       <AddTransactionProvider>
         <main tabIndex={-1}>
-          {hasButton ? <AddTransactionButton placement={placement} /> : null}
+          {hasButton ? (
+            <>
+              <AddTransactionButton type="expense" />
+              <AddTransactionButton type="income" />
+            </>
+          ) : null}
         </main>
         <AddTransactionSheetHost today="2026-03-10" categories={CATEGORIES} />
       </AddTransactionProvider>
@@ -69,27 +79,56 @@ function notifications() {
   return within(screen.getByRole("region", { name: "Notifications" }));
 }
 
-function renderButton(placement: Placement) {
-  const { rerender } = render(<Screen placement={placement} />);
+function renderButton() {
+  const { rerender } = render(<Screen />);
 
   return { user: userEvent.setup(), rerender };
 }
 
 describe.each([
-  ["the bottom navigation", false, "bar"],
-  ["the sidebar", true, "sidebar"],
-  ["an empty state", false, "empty"],
-] as const)("from %s", (_placement, isDesktop, placement) => {
+  ["a phone", false],
+  ["a desktop", true],
+] as const)("on %s", (_screen, isDesktop) => {
   beforeEach(() => {
     stubScreen(isDesktop);
   });
 
-  test("Escape closes the form without saving and focus returns to Add", async () => {
-    const { user } = renderButton(placement);
-    const add = screen.getByRole("button", { name: "Add transaction" });
+  // A focused amount shows its error on blur and opens the phone's keyboard
+  test("the form opens with focus inside it, not on the amount", async () => {
+    const { user } = renderButton();
+    await user.click(screen.getByRole("button", { name: "Add expense" }));
+
+    const sheet = await screen.findByRole("dialog", { name: "New expense" });
+    await vi.waitFor(() => {
+      expect(sheet.contains(document.activeElement)).toBe(true);
+    });
+    expect(screen.getByLabelText(/^Amount/)).not.toHaveFocus();
+  });
+
+  test("Add income opens the income form and saves an income", async () => {
+    addTransaction.mockResolvedValue({});
+    const { user } = renderButton();
+    const add = screen.getByRole("button", { name: "Add income" });
     await user.click(add);
 
-    const sheet = await screen.findByRole("dialog", { name: "Add transaction" });
+    const sheet = await screen.findByRole("dialog", { name: "New income" });
+    expect(within(sheet).getByRole("radio", { name: "Salary" })).toBeChecked();
+    await user.type(within(sheet).getByLabelText(/^Amount/), "5");
+    await user.click(within(sheet).getByRole("button", { name: "Add" }));
+
+    await vi.waitFor(() => {
+      expect(screen.queryByRole("dialog", { name: "New income" })).not.toBeInTheDocument();
+    });
+    expect(addTransaction).toHaveBeenCalledWith(expect.objectContaining({ type: "income" }));
+    expect(add).toHaveFocus();
+  });
+
+  test("Escape closes the form without saving and focus returns to Add", async () => {
+    const { user } = renderButton();
+    const add = screen.getByRole("button", { name: "Add expense" });
+    await user.click(add);
+
+    const sheet = await screen.findByRole("dialog", { name: "New expense" });
     expect(sheet).toBeVisible();
     await user.type(screen.getByLabelText(/^Amount/), "5");
     await user.keyboard("{Escape}");
@@ -103,44 +142,44 @@ describe.each([
   });
 
   test("the close button closes the form", async () => {
-    const { user } = renderButton(placement);
-    await user.click(screen.getByRole("button", { name: "Add transaction" }));
+    const { user } = renderButton();
+    await user.click(screen.getByRole("button", { name: "Add expense" }));
     await user.click(await screen.findByRole("button", { name: "Close" }));
 
     await vi.waitFor(() => {
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
-    expect(screen.getByRole("button", { name: "Add transaction" })).toHaveFocus();
+    expect(screen.getByRole("button", { name: "Add expense" })).toHaveFocus();
   });
 
   test("saving closes the form with a toast, and it opens empty again", async () => {
     addTransaction.mockResolvedValue({});
-    const { user } = renderButton(placement);
-    await user.click(screen.getByRole("button", { name: "Add transaction" }));
+    const { user } = renderButton();
+    await user.click(screen.getByRole("button", { name: "Add expense" }));
     await user.type(await screen.findByLabelText(/^Amount/), "5");
     await user.click(screen.getByRole("button", { name: "Add" }));
 
     // A toast is a dialog too
     await vi.waitFor(() => {
-      expect(screen.queryByRole("dialog", { name: "Add transaction" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("dialog", { name: "New expense" })).not.toBeInTheDocument();
     });
     expect(addTransaction).toHaveBeenCalledOnce();
     expect(await notifications().findByText("Transaction added.")).toBeVisible();
 
-    await user.click(screen.getByRole("button", { name: "Add transaction" }));
+    await user.click(screen.getByRole("button", { name: "Add expense" }));
     expect(await screen.findByLabelText(/^Amount/)).toHaveValue("");
   });
 });
 
 test("closing moves focus to the screen when the button that opened the form is gone", async () => {
   stubScreen(false);
-  const { user, rerender } = renderButton("empty");
-  await user.click(screen.getByRole("button", { name: "Add transaction" }));
-  await screen.findByRole("dialog", { name: "Add transaction" });
+  const { user, rerender } = renderButton();
+  await user.click(screen.getByRole("button", { name: "Add expense" }));
+  await screen.findByRole("dialog", { name: "New expense" });
 
   // An empty list's button goes away once the list has an item; the form stays open
-  rerender(<Screen placement="empty" hasButton={false} />);
-  expect(screen.getByRole("dialog", { name: "Add transaction" })).toBeVisible();
+  rerender(<Screen hasButton={false} />);
+  expect(screen.getByRole("dialog", { name: "New expense" })).toBeVisible();
   await user.keyboard("{Escape}");
 
   await vi.waitFor(() => {
@@ -151,14 +190,14 @@ test("closing moves focus to the screen when the button that opened the form is 
 
 test("focus moves to the screen when the focused button goes away", async () => {
   stubScreen(false);
-  const { user, rerender } = renderButton("empty");
-  await user.click(screen.getByRole("button", { name: "Add transaction" }));
+  const { user, rerender } = renderButton();
+  await user.click(screen.getByRole("button", { name: "Add expense" }));
   await user.keyboard("{Escape}");
   await vi.waitFor(() => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
-  expect(screen.getByRole("button", { name: "Add transaction" })).toHaveFocus();
+  expect(screen.getByRole("button", { name: "Add expense" })).toHaveFocus();
 
-  rerender(<Screen placement="empty" hasButton={false} />);
+  rerender(<Screen hasButton={false} />);
   expect(screen.getByRole("main")).toHaveFocus();
 });

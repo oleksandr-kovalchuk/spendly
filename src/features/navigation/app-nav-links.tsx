@@ -26,9 +26,11 @@ type NavListProps = {
 const ACTION_INDEX = 2;
 
 const listVariants = cva("", {
-  variants: {
-    layout: { bar: "grid auto-cols-fr grid-flow-col items-center", sidebar: "grid gap-1" },
-  },
+  variants: { layout: { bar: "flex items-center", sidebar: "grid gap-1" } },
+});
+
+const itemVariants = cva("", {
+  variants: { layout: { bar: "min-w-0 flex-1", sidebar: "" } },
 });
 
 const linkVariants = cva(
@@ -62,9 +64,9 @@ function NavList({ layout, action, currentSegment, periodQuery }: NavListProps) 
       {SCREENS.map(({ name, segment, icon: Icon, hasPeriod }, index) => (
         <Fragment key={name}>
           {action !== undefined && index === ACTION_INDEX ? (
-            <li className="flex justify-center">{action}</li>
+            <li className="flex shrink-0 justify-center px-1">{action}</li>
           ) : null}
-          <li>
+          <li className={itemVariants({ layout })}>
             <Link
               href={{
                 pathname: segment ? `/${locale}/${segment}` : `/${locale}`,

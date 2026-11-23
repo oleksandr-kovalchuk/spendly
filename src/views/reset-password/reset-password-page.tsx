@@ -18,8 +18,7 @@ const searchParamsSchema = z.object({
 async function ResetPasswordContent({ searchParams }: { searchParams: Promise<unknown> }) {
   const { token, error } = searchParamsSchema.parse(await searchParams);
 
-  // The emailed link brings ?error= instead of a token once the token is used or expired;
-  // Next keeps a visited page mounted, so a new token needs a fresh form
+  // A used or expired link brings ?error=; Next keeps the page mounted, so a new token resets it
   return <ResetPasswordForm key={token ?? ""} token={error ? undefined : token} />;
 }
 

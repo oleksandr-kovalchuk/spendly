@@ -30,7 +30,7 @@ export function todayIn(timeZone: string, now: Date) {
 
 export function monthOf(day: string) {
   const [year = 0, month = 0] = day.split("-").map(Number);
-  // Day 0 of the next month (the 1-based `month` as a 0-based index) is this month's last day
+  // Day 0 of the next month is this month's last day
   const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
   const prefix = day.slice(0, "YYYY-MM".length);
 

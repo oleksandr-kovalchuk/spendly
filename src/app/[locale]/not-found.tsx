@@ -10,8 +10,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return { title: pageTitle(t("title")) };
 }
 
-// Only the root not-found sets its title, so it lives outside the route groups with its own
-// signed-out top bar; Next loads its Client Components on every page, as both layouts do anyway
+// Only the root not-found sets its title, so it sits outside the route groups with its own top bar
 export default function NotFound() {
   return (
     <PublicShell>

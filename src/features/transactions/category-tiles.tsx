@@ -19,8 +19,7 @@ type CategoryTilesProps = {
   onBlur: () => void;
 };
 
-// The radio is visually hidden, its tile is what a user taps; the checked tile has a ring and
-// bold text, so it isn't marked by color alone
+// The radio is hidden, its tile is tapped; the checked tile has a ring and bold text, not color alone
 export function CategoryTiles({
   legend,
   categories,

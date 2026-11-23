@@ -99,12 +99,12 @@ A signed-in user SHALL move between the Overview, Transactions and Categories sc
 #### Scenario: Phone
 
 - **WHEN** a signed-in user opens any screen on a 360 px wide screen
-- **THEN** a bottom navigation shows Overview, Transactions, Categories and an Add button, and stays in view while the page scrolls
+- **THEN** a bottom navigation shows Overview, Transactions, Categories and the Add expense and Add income buttons, and stays in view while the page scrolls
 
 #### Scenario: Desktop
 
 - **WHEN** a signed-in user opens any screen on a 1024 px or wider screen
-- **THEN** a sidebar shows the same items, the Add button and the account button, and no bottom navigation shows
+- **THEN** a sidebar shows the same items, the Add expense and Add income buttons and the account button, and no bottom navigation shows
 
 #### Scenario: Current screen
 

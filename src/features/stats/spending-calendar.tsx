@@ -1,8 +1,10 @@
 import { cva } from "class-variance-authority";
+import { cn } from "cn";
 import { useFormatter, useLocale, useTranslations } from "next-intl";
 import Link from "next/link";
 
 import { hryvniasOf, MONEY_FORMAT } from "@/shared/lib/money";
+import type { PeriodDirection } from "@/shared/lib/period-transition";
 import { DAY_TIME_ZONE, utcDateOf } from "@/shared/lib/utc-date";
 
 import { CalendarDisclosure } from "./calendar-disclosure";
@@ -12,6 +14,7 @@ export type CalendarDay = {
   day: string;
   amountKopecks: number;
   query: Record<string, string>;
+  direction: PeriodDirection | undefined;
   isSelected: boolean;
 };
 
@@ -33,7 +36,7 @@ const WAVE_STEP_MS = 25;
 type DayFormat = Pick<Intl.DateTimeFormatOptions, "weekday" | "day" | "month" | "year">;
 
 const dayVariants = cva(
-  "flex aspect-square flex-col items-center justify-center gap-0.5 rounded-lg text-sm tabular-nums outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring @xl:aspect-auto @xl:h-16 @xl:items-start @xl:justify-between @xl:p-2",
+  "flex aspect-square flex-col items-center justify-center gap-0.5 rounded-lg text-sm tabular-nums outline-none transition-[color,background-color,scale,box-shadow] duration-200 ease-out hover:shadow-soft focus-visible:ring-3 focus-visible:ring-ring motion-safe:hover:scale-105 @xl:aspect-auto @xl:h-16 @xl:items-start @xl:justify-between @xl:p-2",
   {
     variants: {
       level: {
@@ -90,21 +93,23 @@ export function SpendingCalendar({ days }: { days: CalendarDay[] }) {
           ))}
         </div>
         <ol className="grid calendar-wave grid-cols-7 gap-1">
-          {days.map(({ day, amountKopecks, query, isSelected }, index) => {
+          {days.map(({ day, amountKopecks, query, direction, isSelected }, index) => {
             const date = dateOf(day, { weekday: "long", day: "numeric", month: "long" });
             const hryvnias = hryvniasOf(amountKopecks);
             const cell = firstColumn + index;
             const diagonal = Math.floor(cell / WEEK_LENGTH) + (cell % WEEK_LENGTH);
 
             return (
+              // Raised while hovered, or the grown day goes under the next one
               <li
                 key={day}
-                className={index === 0 ? FIRST_COLUMNS[firstColumn] : undefined}
+                className={cn("relative hover:z-10", index === 0 && FIRST_COLUMNS[firstColumn])}
                 style={{ animationDelay: `${diagonal * WAVE_STEP_MS}ms` }}
               >
                 <Link
                   href={{ pathname: `/${locale}`, query }}
                   scroll={false}
+                  transitionTypes={direction ? [direction] : undefined}
                   aria-current={isSelected ? "date" : undefined}
                   className={dayVariants({
                     level: spendingLevelOf(amountKopecks, maxKopecks),

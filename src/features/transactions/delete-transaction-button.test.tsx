@@ -21,7 +21,12 @@ beforeEach(() => {
 function renderButton() {
   render(
     <NextIntlClientProvider locale="en" messages={en}>
-      <DeleteTransactionButton transactionId={ID} label="Food" listQuery={{ period: "week" }} />
+      <DeleteTransactionButton
+        transactionId={ID}
+        label="Food"
+        screen="overview"
+        listQuery={{ period: "week" }}
+      />
     </NextIntlClientProvider>,
   );
 
@@ -52,6 +57,7 @@ test("confirming deletes by id and returns to the list's period", async () => {
   expect(deleteTransaction).toHaveBeenCalledWith({
     id: ID,
     locale: "en",
+    screen: "overview",
     listQuery: { period: "week" },
   });
 });
@@ -101,7 +107,12 @@ function DeleteScreen({ hasButton }: { hasButton: boolean }) {
   return (
     <NextIntlClientProvider locale="en" messages={en}>
       {hasButton ? (
-        <DeleteTransactionButton transactionId={ID} label="Food" listQuery={{ period: "week" }} />
+        <DeleteTransactionButton
+          transactionId={ID}
+          label="Food"
+          screen="overview"
+          listQuery={{ period: "week" }}
+        />
       ) : null}
       <Toaster regionLabel="Notifications" closeLabel="Close notification" />
     </NextIntlClientProvider>

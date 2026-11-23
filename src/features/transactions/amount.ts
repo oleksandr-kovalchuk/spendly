@@ -6,7 +6,7 @@ export type ParsedAmount = { kopecks: number } | { error: AmountError };
 const AMOUNT_PATTERN = /^(\d+)(?:[.,](\d{1,2}))?$/;
 const KOPECKS_PER_HRYVNIA = 100;
 
-// Exact: the text is split into whole and fractional digits, so no float is involved
+// Splits the digits, so no float is involved
 export function parseAmount(input: string): ParsedAmount {
   const text = input.trim();
   if (text === "") return { error: "amountRequired" };

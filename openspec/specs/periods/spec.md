@@ -44,6 +44,11 @@ The user SHALL step to the previous or next period of the same type, also by swi
 - **WHEN** the user steps to the next period
 - **THEN** the content slides out to the left and the next period's comes in from the right, and the other way round for the previous period
 
+#### Scenario: Day from the calendar
+
+- **WHEN** the user picks a day in the Overview's spending calendar before or after the shown period
+- **THEN** the content slides as for a step to an earlier or a later period; a day inside the shown period doesn't slide
+
 #### Scenario: Swipe
 
 - **GIVEN** a touch screen

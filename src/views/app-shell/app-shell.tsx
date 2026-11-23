@@ -37,8 +37,7 @@ function AccountControl({ placement }: { placement: Placement }) {
   );
 }
 
-// Only the phone's or the desktop's bar and navigation is displayed, so screen readers find one
-// banner and one navigation
+// Only one bar and navigation is displayed per viewport: screen readers find one of each
 export async function AppShell({ children }: { children: ReactNode }) {
   const t = await getTranslations("Header");
 
@@ -47,10 +46,12 @@ export async function AppShell({ children }: { children: ReactNode }) {
       <div className="flex flex-1">
         <header className="sticky top-0 hidden h-svh w-64 shrink-0 flex-col gap-6 border-e border-sidebar-border bg-sidebar px-4 py-5 text-sidebar-foreground app-nav-anchor lg:flex">
           <HomeLink className="self-start" />
-          <AddTransactionControl placement="sidebar" />
           <nav aria-label={t("nav")}>
             <AppNavLinks layout="sidebar" />
           </nav>
+          <div className="border-t border-sidebar-border pt-6">
+            <AddTransactionControl />
+          </div>
           <div className="mt-auto border-t border-sidebar-border pt-3">
             <AccountControl placement="sidebar" />
           </div>
@@ -70,13 +71,12 @@ export async function AppShell({ children }: { children: ReactNode }) {
             {children}
           </ScreenMain>
         </div>
-        {/* Nearly opaque, without a costly backdrop blur: its labels keep their contrast over the
-            gradient card scrolling under it */}
+        {/* Nearly opaque, not a costly blur: labels keep contrast over the gradient card */}
         <nav
           aria-label={t("nav")}
           className="fixed inset-x-3 bottom-3 z-40 rounded-3xl bg-card/95 shadow-soft app-nav-anchor lg:hidden"
         >
-          <AppNavLinks layout="bar" action={<AddTransactionControl placement="bar" />} />
+          <AppNavLinks layout="bar" action={<AddTransactionControl />} />
         </nav>
       </div>
       <AddTransactionSheetSection />
