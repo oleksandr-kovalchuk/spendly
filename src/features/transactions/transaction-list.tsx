@@ -1,20 +1,15 @@
 import { ReceiptTextIcon } from "lucide-react";
-import { useFormatter, useLocale, useTranslations } from "next-intl";
-import Link from "next/link";
+import { useFormatter, useTranslations } from "next-intl";
 import { ViewTransition, type ReactNode } from "react";
 
 import { DAY_TIME_ZONE, utcDateOf } from "@/shared/lib/utc-date";
-import { CategoryIcon } from "@/shared/categories/category-icon";
-import { categoryLabel } from "@/shared/categories/category-label";
 import { hryvniasOf, SIGNED_MONEY_FORMAT } from "@/shared/lib/money";
 import { NO_PERIOD_ANIMATION } from "@/shared/lib/period-transition";
 import { Card, CardContent } from "@/shared/ui/card";
 import { Empty, EmptyContent, EmptyHeader, EmptyMedia, EmptyTitle } from "@/shared/ui/empty";
 
-import { amountVariants } from "./amount-variants";
-import { LazyDeleteTransactionButton } from "./lazy-delete-transaction-button";
 import type { DayGroup } from "./group-by-day";
-import { SwipeableRow } from "./swipeable-row";
+import { TransactionRow } from "./transaction-row";
 
 type TransactionListProps = {
   groups: DayGroup[];
@@ -22,10 +17,8 @@ type TransactionListProps = {
   emptyAction: ReactNode;
 };
 
-export function TransactionList({ groups, listQuery, emptyAction }: TransactionListProps) {
+export function TransactionList({ groups, listQuery = {}, emptyAction }: TransactionListProps) {
   const t = useTranslations("Transactions");
-  const locale = useLocale();
-  const tCategories = useTranslations("Categories");
   const format = useFormatter();
 
   return (
@@ -79,68 +72,23 @@ export function TransactionList({ groups, listQuery, emptyAction }: TransactionL
             </p>
             <Card className="col-span-2 py-1">
               <ul className="divide-y divide-border">
-                {group.transactions.map((transaction) => {
-                  const sign = transaction.type === "income" ? 1 : -1;
-                  const editQuery = { ...listQuery, edit: transaction.id };
-                  const label = categoryLabel(transaction.category, tCategories);
-
-                  return (
-                    <ViewTransition
-                      key={transaction.id}
-                      enter={{ ...NO_PERIOD_ANIMATION, default: "item-enter" }}
-                      exit={{ ...NO_PERIOD_ANIMATION, default: "item-exit" }}
-                      default="none"
-                    >
-                      <li>
-                        <SwipeableRow
-                          editQuery={editQuery}
-                          editLabel={t("swipe.edit")}
-                          deleteLabel={t("delete.action")}
-                          deleteAction={
-                            <LazyDeleteTransactionButton
-                              transactionId={transaction.id}
-                              label={label}
-                              listQuery={listQuery ?? {}}
-                              placement="row"
-                            />
-                          }
-                        >
-                          <Link
-                            href={{ pathname: `/${locale}/transactions`, query: editQuery }}
-                            scroll={false}
-                            className="group flex items-center gap-3 px-5 py-3 outline-none focus-visible:ring-3 focus-visible:ring-ring focus-visible:ring-inset"
-                          >
-                            <span className="shrink-0 transition-transform duration-200 ease-out group-hover:scale-110">
-                              <CategoryIcon
-                                category={{
-                                  id: transaction.categoryId,
-                                  defaultKey: transaction.category.defaultKey,
-                                  icon: transaction.category.icon,
-                                }}
-                              />
-                            </span>
-                            <span className="grid min-w-0 flex-1">
-                              <span className="font-medium transition-colors group-hover:text-primary">
-                                {label}
-                              </span>
-                              {transaction.note ? (
-                                <span className="text-sm break-words text-muted-foreground">
-                                  {transaction.note}
-                                </span>
-                              ) : null}
-                            </span>
-                            <span className={amountVariants({ type: transaction.type })}>
-                              {format.number(
-                                hryvniasOf(sign * transaction.amountKopecks),
-                                SIGNED_MONEY_FORMAT,
-                              )}
-                            </span>
-                          </Link>
-                        </SwipeableRow>
-                      </li>
-                    </ViewTransition>
-                  );
-                })}
+                {group.transactions.map((transaction) => (
+                  <ViewTransition
+                    key={transaction.id}
+                    enter={{ ...NO_PERIOD_ANIMATION, default: "item-enter" }}
+                    exit={{ ...NO_PERIOD_ANIMATION, default: "item-exit" }}
+                    default="none"
+                  >
+                    <li>
+                      <TransactionRow
+                        transaction={transaction}
+                        screen="transactions"
+                        listQuery={listQuery}
+                        detail={transaction.note}
+                      />
+                    </li>
+                  </ViewTransition>
+                ))}
               </ul>
             </Card>
           </div>

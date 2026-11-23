@@ -41,8 +41,7 @@ async function recordEmail({ userId, kind, locale, maxPerHour }: Omit<OutboxEmai
   });
 }
 
-// Records the email, then sends it, unless the user got `maxPerHour` of its kind in the last
-// hour; the row keeps only IDs and the delivery status
+// Skipped past `maxPerHour` per user and kind; the row keeps only IDs and the status
 export async function sendOutboxEmail({ message, ...email }: OutboxEmail) {
   const id = await recordEmail(email);
   if (id === undefined) return undefined;

@@ -86,7 +86,7 @@ function toDto({
   };
 }
 
-// Both ends are days (`YYYY-MM-DD`) and are included; a limit keeps only the newest ones
+// Inclusive `YYYY-MM-DD` days; a limit keeps the newest
 export async function listTransactions(
   filter: { from: string; to: string; categoryId?: string },
   limit?: number,

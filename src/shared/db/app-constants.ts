@@ -1,5 +1,4 @@
-// Values the browser needs too (form schemas, labels): app-schema.ts loads the ORM, which
-// would ship to every screen that imports a constant from it
+// For browser code: importing app-schema.ts would ship the ORM (see AGENTS.md)
 export const CATEGORY_TYPES = ["expense", "income"] as const;
 export type CategoryType = (typeof CATEGORY_TYPES)[number];
 

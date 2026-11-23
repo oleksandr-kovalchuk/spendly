@@ -4,13 +4,11 @@ import { useRef, type ReactNode, type TouchEvent } from "react";
 
 import { PERIOD_SWIPE_EVENT } from "./period-swipe-event";
 
-// A swipe this long, and at least twice as far sideways as up or down, changes the period
+// A swipe this long, and twice as far sideways as vertically, changes the period
 const SWIPE_DISTANCE = 60;
 
 type Point = { x: number; y: number };
 
-// On a touch screen, swiping the content left shows the next period and right the previous one,
-// like the control's arrows. The wrapper has no box, so the content keeps its layout
 export function PeriodSwipeArea({ children }: { children: ReactNode }) {
   const startRef = useRef<Point | null>(null);
 

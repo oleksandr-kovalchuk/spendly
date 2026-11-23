@@ -45,7 +45,7 @@ export function SignInForm({ defaultEmail = "", notice, googleError }: SignInFor
       return;
     }
 
-    // A client navigation would reuse the signed-out redirect that Next prefetched for the main page
+    // A client navigation would reuse the prefetched signed-out redirect (decision 0004)
     window.location.assign(`/${locale}`);
   }
 

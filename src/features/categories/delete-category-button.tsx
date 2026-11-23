@@ -56,8 +56,7 @@ export function DeleteCategoryButton({
   // Other's transactions would have nowhere to go
   const isBlocked = isOther && transactionCount > 0;
 
-  // The refresh that ends a delete unmounts this row, its dialog and the focused button: the toast
-  // shows then, and focus goes to the list's heading instead of the page's start
+  // The delete's refresh unmounts this row: toast then, and focus the list heading, not the page start
   useEffect(
     () => () => {
       if (!isDeletingRef.current) return;

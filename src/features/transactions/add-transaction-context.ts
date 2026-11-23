@@ -2,8 +2,10 @@
 
 import { createContext, use } from "react";
 
+import type { CategoryType } from "@/shared/db/app-constants";
+
 // The button that opened the add form: its id marks it as expanded, its element gets focus back
-export type AddFormOpener = { id: string; element: HTMLElement };
+export type AddFormOpener = { id: string; element: HTMLElement; type: CategoryType };
 
 type AddTransactionState = {
   isOpen: boolean;

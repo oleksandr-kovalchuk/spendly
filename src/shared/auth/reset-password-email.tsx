@@ -8,8 +8,7 @@ type ResetPasswordEmailProps = {
   texts: { preview: string; heading: string; body: string; action: string; ignore: string };
 };
 
-// Email clients drop stylesheets and ignore CSS variables, so the styles are inline and the colors
-// are the light theme's values
+// Email clients drop stylesheets and CSS variables: inline styles, the light theme's colors
 const BODY_STYLE = {
   backgroundColor: "#ffffff",
   color: "#0a0a0a",

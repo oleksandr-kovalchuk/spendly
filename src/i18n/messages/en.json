@@ -280,7 +280,14 @@
       "clear": "Remove the {category} filter"
     },
     "form": {
-      "heading": "Add transaction",
+      "heading": {
+        "expense": "New expense",
+        "income": "New income"
+      },
+      "add": {
+        "expense": "Add expense",
+        "income": "Add income"
+      },
       "type": "Type",
       "expense": "Expense",
       "income": "Income",

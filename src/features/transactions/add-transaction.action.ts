@@ -21,6 +21,6 @@ export const addTransaction = authedAction
     });
     if (!result.isAdded) returnServerError(result.error);
 
-    // The list reads uncached data, so the router has to fetch it again
+    // The list reads uncached data, so the router must refetch it
     refresh();
   });

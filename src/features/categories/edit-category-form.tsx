@@ -45,7 +45,7 @@ export function EditCategoryForm({ id, label, defaultKey, icon, onDone }: EditCa
   const { errors } = useFormState({ control: form.control });
   const nameError = errors.name?.message;
 
-  // The sheet closes in the commit that shows the change, as TransactionForm explains
+  // Close in the commit that shows the change (see TransactionForm)
   function handleSubmit(values: OwnCategoryValues) {
     // Saving an unchanged default would store its name and stop its translation
     if (values.name === label && (isDefault || values.icon === currentIcon)) {

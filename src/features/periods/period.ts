@@ -1,3 +1,4 @@
+import { PERIOD_EARLIER, PERIOD_LATER, type PeriodDirection } from "@/shared/lib/period-transition";
 import { monthOf } from "@/shared/lib/time-zone";
 
 export const PERIOD_TYPES = ["day", "week", "month", "year"] as const;
@@ -10,15 +11,14 @@ const MIN_YEAR = 1;
 const MAX_YEAR = 9999;
 const DAY_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
 
-// Both ends are days (`YYYY-MM-DD`) and are included
+// Inclusive `YYYY-MM-DD` days
 export type Period = { type: PeriodType; from: string; to: string };
 
 // The URL's raw values: a repeated key arrives as an array
 type RawValue = string | string[] | null | undefined;
 export type PeriodSearch = { period: PeriodType | null; date: string | null };
 
-// Calendar days are computed on UTC dates, so no time zone or DST shifts them;
-// `setUTCFullYear` keeps years below 100, which `Date.UTC` would move to the 1900s
+// `Date.UTC` would move years below 100 to the 1900s
 function toDate(year: number, monthIndex: number, day: number) {
   const date = new Date(0);
   date.setUTCFullYear(year, monthIndex, day);
@@ -37,7 +37,6 @@ function parseDay(day: string) {
   return toDate(Number(year), Number(month) - 1, Number(date));
 }
 
-// A real calendar day in the supported years, written as `YYYY-MM-DD`
 export function isCalendarDay(value: string) {
   const match = DAY_PATTERN.exec(value);
   if (!match) return false;
@@ -46,7 +45,6 @@ export function isCalendarDay(value: string) {
   return year >= MIN_YEAR && year <= MAX_YEAR && toDay(parseDay(value)) === value;
 }
 
-// Weeks run Monday to Sunday
 export function periodOf(type: PeriodType, day: string): Period {
   const date = parseDay(day);
   const year = date.getUTCFullYear();
@@ -93,6 +91,12 @@ export function parsePeriod(search: { period?: RawValue; date?: RawValue }, toda
   if (!type || date === undefined || !isCalendarDay(date)) return fallback;
 
   return periodOf(type, date);
+}
+
+export function directionTo(day: string, period: Period): PeriodDirection | undefined {
+  if (day < period.from) return PERIOD_EARLIER;
+  if (day > period.to) return PERIOD_LATER;
+  return undefined;
 }
 
 export function isCurrentPeriod(period: Period, today: string) {

@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
+import { PERIOD_EARLIER, PERIOD_LATER } from "@/shared/lib/period-transition";
+
 import {
+  directionTo,
   isCalendarDay,
   isCurrentPeriod,
   parsePeriod,
@@ -171,5 +174,19 @@ describe("isCurrentPeriod", () => {
   it("holds today", () => {
     expect(isCurrentPeriod(periodOf("year", TODAY), TODAY)).toBe(true);
     expect(isCurrentPeriod(periodOf("day", "2026-11-19"), TODAY)).toBe(false);
+  });
+});
+
+describe("directionTo", () => {
+  it.each([
+    ["2026-11-19", PERIOD_EARLIER],
+    ["2026-11-21", PERIOD_LATER],
+    ["2026-11-20", undefined],
+  ])("goes from the shown day to %s as %s", (day, direction) => {
+    expect(directionTo(day, periodOf("day", TODAY))).toBe(direction);
+  });
+
+  it("doesn't move to a day inside the shown period", () => {
+    expect(directionTo("2026-11-03", periodOf("month", TODAY))).toBeUndefined();
   });
 });

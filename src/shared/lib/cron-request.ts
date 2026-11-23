@@ -8,8 +8,7 @@ function digest(value: string) {
   return createHash("sha256").update(value).digest();
 }
 
-// Vercel Cron sends `Authorization: Bearer <CRON_SECRET>`; the digests have equal lengths,
-// which timingSafeEqual requires
+// Digests, since timingSafeEqual needs equal lengths
 export function isCronRequest(request: Request) {
   const authorization = request.headers.get("authorization");
   if (!env.CRON_SECRET || !authorization) return false;

@@ -1,6 +1,5 @@
-// Checks each route's JS against the budget in lighthouserc.json, on the production build:
-// run `pnpm build` and `pnpm db:migrate` first, and install Playwright's Chromium.
-// Knip can't see `lhci`, which runs through `pnpm exec`: knip.json ignores @lhci/cli.
+// Run `pnpm build` and `pnpm db:migrate` and install Playwright's Chromium first
+// knip.json ignores @lhci/cli: Knip can't see `lhci` behind `pnpm exec`
 import { spawn, type ChildProcess } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { once } from "node:events";
@@ -11,8 +10,7 @@ import { join } from "node:path";
 import { chromium, type BrowserContext } from "@playwright/test";
 import { z } from "zod";
 
-// The same port as Playwright's server, which BETTER_AUTH_URL names in CI.
-// A standalone script: the app's env module needs the secrets it doesn't use
+// Playwright's port (BETTER_AUTH_URL in CI); the env module would demand unused secrets
 // oxlint-disable-next-line node/no-process-env
 const PORT = z.coerce.number().int().positive().default(3210).parse(process.env.PORT);
 const BASE_URL = `http://localhost:${PORT}`;
@@ -65,8 +63,7 @@ async function waitForDebuggingPort() {
   throw new Error("Chrome didn't report its debugging port");
 }
 
-// Through the browser's own cookie store: a Cookie header from Lighthouse reaches only the page
-// itself, not the router's requests after it, which the proxy then redirects to sign-in
+// Via the browser's cookie store: Lighthouse's Cookie header skips the router's later requests
 async function signInNewUser(context: BrowserContext) {
   const email = `lighthouse-${randomUUID()}@example.com`;
   // Better Auth rejects a request with cookies from another origin

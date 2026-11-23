@@ -56,8 +56,7 @@ async function signInSocial(params: {
   return url ? { error: null, url } : { error: { status: result.status } };
 }
 
-// Better Auth's own HTTP routes, called with fetch: its rate limiter counts only these requests
-// (decision 0003), and its browser client would add ~14 KB to every screen with a sign-out button
+// fetch, not Better Auth's client: ~14 KB less, and its rate limiter counts these (decision 0003)
 export const authClient = {
   signIn: {
     email: (credentials: { email: string; password: string }) =>
@@ -69,7 +68,7 @@ export const authClient = {
       post("/sign-up/email", account),
   },
   signOut: () => post("/sign-out"),
-  // Answers the same whether or not the email has an account
+  // Same answer whether or not the email has an account
   requestPasswordReset: (request: { email: string; redirectTo: string }) =>
     post("/request-password-reset", request),
   resetPassword: (reset: { token: string; newPassword: string }) => post("/reset-password", reset),

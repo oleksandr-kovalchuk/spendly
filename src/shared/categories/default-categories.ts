@@ -17,8 +17,7 @@ export const DEFAULT_CATEGORIES = [
   { type: "income", defaultKey: "other" },
 ] as const satisfies readonly { type: CategoryType; defaultKey: DefaultCategoryKey }[];
 
-// Not `server-only`: Better Auth's hook calls it, and its CLI loads the auth config outside Next.
-// A reset passes its transaction
+// Not `server-only`: Better Auth's CLI loads the auth config, which calls it, outside Next
 export async function createDefaultCategories(
   userId: string,
   executor: Pick<typeof db, "insert"> = db,

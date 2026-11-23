@@ -11,8 +11,7 @@ type IconPickerProps = {
   onChange: (icon: CategoryIconKey) => void;
 };
 
-// A radio per icon: the radio is visually hidden and named by the icon's text, its tile is what a
-// user taps; the checked tile has a ring, so it isn't marked by color alone
+// The radio is hidden; the checked tile has a ring, so color isn't the only mark
 export function IconPicker({ name, value, onChange }: IconPickerProps) {
   const t = useTranslations("Categories");
 

@@ -24,8 +24,7 @@ export const ownCategorySchema = z.extend(categoryNameSchema, {
 
 export const createCategorySchema = z.extend(ownCategorySchema, { type: z.enum(CATEGORY_TYPES) });
 
-// No type: a category keeps the type it was created with. A default category's icon can't
-// change, so the server ignores one sent for it
+// No type: it never changes; the server ignores an icon sent for a default category
 export const updateCategorySchema = z.extend(categoryNameSchema, {
   id: z.uuid(),
   icon: z.optional(z.enum(CATEGORY_ICON_KEYS)),

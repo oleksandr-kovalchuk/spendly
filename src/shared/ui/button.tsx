@@ -17,6 +17,11 @@ const buttonVariants = cva(
         ghost:
           "hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-muted/50",
         destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+        // text-background keeps 4.5:1 in both themes, hover included
+        expense:
+          "bg-expense text-background hover:brightness-95 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+        income:
+          "bg-income text-background hover:brightness-95 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {

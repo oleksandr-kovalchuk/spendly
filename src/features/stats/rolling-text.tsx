@@ -1,7 +1,6 @@
 const DIGIT = /^\d$/;
 
-// CSS draws the characters, so this has no text of its own: the caller puts the real value
-// next to it
+// CSS draws the characters; the caller puts the real value next to it
 export function RollingText({ text }: { text: string }) {
   // A formatted number has no characters outside one code point
   const chars = Array.from(text);

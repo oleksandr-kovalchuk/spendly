@@ -21,7 +21,7 @@ function renderRow() {
   render(
     <NextIntlClientProvider locale="en" messages={en}>
       <SwipeableRow
-        editQuery={{ period: "week", edit: "42" }}
+        editHref="/en?period=week&edit=42"
         editLabel="Edit"
         deleteLabel="Delete"
         deleteAction={<button type="button">Delete</button>}
@@ -58,7 +58,7 @@ test("a swipe right past the action's width opens the edit form", () => {
 
   swipe(row, 120);
 
-  expect(push).toHaveBeenCalledWith("/en/transactions?period=week&edit=42", { scroll: false });
+  expect(push).toHaveBeenCalledWith("/en?period=week&edit=42", { scroll: false });
 });
 
 test("a short swipe right springs back without opening anything", () => {

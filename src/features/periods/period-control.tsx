@@ -66,7 +66,6 @@ export function PeriodControl({ today }: { today: string }) {
   const next = stepPeriod(period, 1);
   const isCurrent = isCurrentPeriod(period, today);
 
-  // With a direction, the navigation's transition carries it, so the content slides that way
   function handleShow(target: Period, direction?: PeriodDirection) {
     void setSearch(
       toPeriodSearch(target, today),
@@ -107,7 +106,6 @@ export function PeriodControl({ today }: { today: string }) {
 
   return (
     <div className="flex w-full items-center gap-1 rounded-full bg-muted p-1 lg:w-auto lg:min-w-80">
-      {/* Buttons that disable themselves when pressed stay focusable: a native `disabled` drops focus to the body */}
       <Button
         variant="outline"
         size="icon-lg"

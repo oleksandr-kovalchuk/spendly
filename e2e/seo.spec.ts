@@ -6,8 +6,7 @@ for (const locale of ["en", "uk"] as const) {
   }) => {
     await page.goto(`/${locale}/sign-in`);
 
-    // The links come twice, from the prerendered shell and the streamed page, like the robots meta;
-    // the host is the app's public URL (metadataBase), not necessarily the test server's
+    // Twice (shell + streamed page); the host is metadataBase, not the test server
     const canonical = page.locator('head link[rel="canonical"]');
     await expect(canonical.first()).toBeAttached();
     for (const link of await canonical.all()) {

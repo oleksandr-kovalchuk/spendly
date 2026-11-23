@@ -3,8 +3,7 @@
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, type ReactNode } from "react";
 
-// Next leaves focus on the clicked link, so focus moves to the new screen; only a new path
-// counts, not a period or an edit link (search params)
+// Next leaves focus on the clicked link: focus the new screen on a path change, not a search one
 export function ScreenMain({ className, children }: { className: string; children: ReactNode }) {
   const pathname = usePathname();
   const mainRef = useRef<HTMLElement>(null);

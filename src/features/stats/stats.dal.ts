@@ -22,7 +22,7 @@ export type CategorySpending = {
 
 export type DaySpending = { day: string; amountKopecks: number };
 
-// Both ends are days (`YYYY-MM-DD`) and are included
+// Inclusive `YYYY-MM-DD` days
 type Range = { from: string; to: string };
 
 function inRange(userId: string, range: Range) {

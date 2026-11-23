@@ -117,8 +117,7 @@ describe("the backfill migration", () => {
     let found: { type: string; defaultKey: string | null }[] = [];
     let signedUpCount = 0;
 
-    // Rolled back: it gives every user each default they lack, so committed it would bring back
-    // the categories that tests running alongside delete
+    // Rolled back: it restores defaults for every user, including ones parallel tests delete
     await db
       .transaction(async (tx) => {
         await tx.execute(sql);

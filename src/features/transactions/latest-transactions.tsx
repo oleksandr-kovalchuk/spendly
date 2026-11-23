@@ -4,13 +4,10 @@ import Link from "next/link";
 import { useId } from "react";
 
 import { DAY_TIME_ZONE, utcDateOf } from "@/shared/lib/utc-date";
-import { CategoryIcon } from "@/shared/categories/category-icon";
-import { categoryLabel } from "@/shared/categories/category-label";
-import { hryvniasOf, SIGNED_MONEY_FORMAT } from "@/shared/lib/money";
 import { buttonVariants } from "@/shared/ui/button";
-import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/shared/ui/card";
+import { Card, CardAction, CardHeader, CardTitle } from "@/shared/ui/card";
 
-import { amountVariants } from "./amount-variants";
+import { TransactionRow } from "./transaction-row";
 import type { TransactionDto } from "./transactions.dal";
 
 type LatestTransactionsProps = {
@@ -20,14 +17,14 @@ type LatestTransactionsProps = {
 
 export function LatestTransactions({ transactions, periodQuery }: LatestTransactionsProps) {
   const t = useTranslations("Transactions");
-  const tCategories = useTranslations("Categories");
   const locale = useLocale();
   const format = useFormatter();
   const headingId = useId();
 
   return (
     <section aria-labelledby={headingId}>
-      <Card>
+      {/* No CardContent: swiped rows reach the card's edges */}
+      <Card className="pb-1">
         <CardHeader>
           <CardTitle>
             <h2 id={headingId}>{t("latest.heading")}</h2>
@@ -42,46 +39,28 @@ export function LatestTransactions({ transactions, periodQuery }: LatestTransact
             </Link>
           </CardAction>
         </CardHeader>
-        <CardContent>
-          <ul className="divide-y divide-border">
-            {transactions.map((transaction) => {
-              const isIncome = transaction.type === "income";
-              const day = format.dateTime(utcDateOf(transaction.occurredOn), {
-                timeZone: DAY_TIME_ZONE,
-                day: "numeric",
-                month: "long",
-              });
+        <ul className="divide-y divide-border">
+          {transactions.map((transaction) => {
+            const day = format.dateTime(utcDateOf(transaction.occurredOn), {
+              timeZone: DAY_TIME_ZONE,
+              day: "numeric",
+              month: "long",
+            });
 
-              return (
-                <li key={transaction.id} className="flex items-center gap-3 py-3">
-                  <CategoryIcon
-                    category={{
-                      id: transaction.categoryId,
-                      defaultKey: transaction.category.defaultKey,
-                      icon: transaction.category.icon,
-                    }}
-                  />
-                  <span className="grid min-w-0 flex-1">
-                    <span className="font-medium">
-                      {categoryLabel(transaction.category, tCategories)}
-                    </span>
-                    <span className="text-sm wrap-break-word text-muted-foreground">
-                      {transaction.note
-                        ? t("latest.noteAndDay", { note: transaction.note, day })
-                        : day}
-                    </span>
-                  </span>
-                  <span className={amountVariants({ type: transaction.type })}>
-                    {format.number(
-                      hryvniasOf((isIncome ? 1 : -1) * transaction.amountKopecks),
-                      SIGNED_MONEY_FORMAT,
-                    )}
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-        </CardContent>
+            return (
+              <li key={transaction.id}>
+                <TransactionRow
+                  transaction={transaction}
+                  screen="overview"
+                  listQuery={periodQuery}
+                  detail={
+                    transaction.note ? t("latest.noteAndDay", { note: transaction.note, day }) : day
+                  }
+                />
+              </li>
+            );
+          })}
+        </ul>
       </Card>
     </section>
   );

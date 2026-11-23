@@ -28,8 +28,8 @@ type TransactionFormProps = {
   onSaved: (values: TransactionValues) => void;
   amountRef?: Ref<HTMLDivElement>;
 } & (
-  | { today: string; transaction?: undefined }
-  | { transaction: TransactionDto; today?: undefined }
+  | { type: CategoryType; today: string; transaction?: undefined }
+  | { transaction: TransactionDto; type?: undefined; today?: undefined }
 );
 type FormError = "categoryNotFound" | "transactionNotFound" | "unknown";
 type FieldName = "amount" | "categoryId" | "date" | "note";
@@ -42,7 +42,12 @@ const typeHighlightVariants = cva(
 );
 
 export function TransactionForm(props: TransactionFormProps) {
-  return <TransactionFormFields key={props.transaction?.id ?? `new-${props.today}`} {...props} />;
+  return (
+    <TransactionFormFields
+      key={props.transaction?.id ?? `new-${props.type}-${props.today}`}
+      {...props}
+    />
+  );
 }
 
 function formErrorOf(serverError: string): FormError {
@@ -52,13 +57,8 @@ function formErrorOf(serverError: string): FormError {
   return "unknown";
 }
 
-function TransactionFormFields({
-  categories,
-  today,
-  transaction,
-  onSaved,
-  amountRef,
-}: TransactionFormProps) {
+function TransactionFormFields(props: TransactionFormProps) {
+  const { categories, transaction, onSaved, amountRef } = props;
   const t = useTranslations("Transactions");
   const [formError, setFormError] = useState<FormError>();
   const [isSaving, startSaving] = useTransition();
@@ -71,19 +71,19 @@ function TransactionFormFields({
     resolver: zodResolver(transactionSchema),
     mode: "onBlur",
     reValidateMode: "onChange",
-    defaultValues: transaction
+    defaultValues: props.transaction
       ? {
-          type: transaction.type,
-          amount: amountInputOf(transaction.amountKopecks),
-          categoryId: transaction.categoryId,
-          date: transaction.occurredOn,
-          note: transaction.note ?? "",
+          type: props.transaction.type,
+          amount: amountInputOf(props.transaction.amountKopecks),
+          categoryId: props.transaction.categoryId,
+          date: props.transaction.occurredOn,
+          note: props.transaction.note ?? "",
         }
       : {
-          type: "expense",
+          type: props.type,
           amount: "",
-          categoryId: firstCategoryOf("expense"),
-          date: today ?? "",
+          categoryId: firstCategoryOf(props.type),
+          date: props.today,
           note: "",
         },
   });
@@ -129,32 +129,35 @@ function TransactionFormFields({
 
   return (
     <form onSubmit={form.handleSubmit(handleSubmit)} noValidate className="@container grid gap-5">
-      <fieldset>
-        <legend className="sr-only">{t("form.type")}</legend>
-        <div className="relative grid grid-cols-2 rounded-xl bg-muted p-1 has-focus-visible:ring-3 has-focus-visible:ring-ring">
-          <span aria-hidden="true" className="absolute inset-1 grid grid-cols-2">
-            <span className={typeHighlightVariants({ type })} />
-          </span>
-          {CATEGORY_TYPES.map((value) => (
-            <label
-              key={value}
-              className="relative flex h-10 cursor-pointer items-center justify-center rounded-lg text-sm transition-colors duration-300 has-checked:font-semibold has-checked:text-primary-foreground"
-            >
-              <input
-                type="radio"
-                value={value}
-                className="sr-only"
-                {...typeField}
-                onChange={(event) => {
-                  void typeField.onChange(event);
-                  form.setValue("categoryId", firstCategoryOf(value));
-                }}
-              />
-              {t(`form.${value}`)}
-            </label>
-          ))}
-        </div>
-      </fieldset>
+      {/* A new transaction's type comes from its Add button */}
+      {transaction ? (
+        <fieldset>
+          <legend className="sr-only">{t("form.type")}</legend>
+          <div className="relative grid grid-cols-2 rounded-xl bg-muted p-1 has-focus-visible:ring-3 has-focus-visible:ring-ring">
+            <span aria-hidden="true" className="absolute inset-1 grid grid-cols-2">
+              <span className={typeHighlightVariants({ type })} />
+            </span>
+            {CATEGORY_TYPES.map((value) => (
+              <label
+                key={value}
+                className="relative flex h-10 cursor-pointer items-center justify-center rounded-lg text-sm transition-colors duration-300 has-checked:font-semibold has-checked:text-primary-foreground"
+              >
+                <input
+                  type="radio"
+                  value={value}
+                  className="sr-only"
+                  {...typeField}
+                  onChange={(event) => {
+                    void typeField.onChange(event);
+                    form.setValue("categoryId", firstCategoryOf(value));
+                  }}
+                />
+                {t(`form.${value}`)}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      ) : null}
       <AmountInput
         ref={amountRef}
         label={t("form.amount")}

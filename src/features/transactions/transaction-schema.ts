@@ -4,6 +4,7 @@ import { routing } from "@/i18n/routing";
 import { CATEGORY_TYPES, MAX_NOTE_LENGTH } from "@/shared/db/app-constants";
 
 import { parseAmount } from "./amount";
+import { LIST_SCREENS } from "./list-url";
 
 const LIST_QUERY_VALUE_MAX_LENGTH = "YYYY-MM-DD".length;
 
@@ -35,6 +36,7 @@ const listQuerySchema = z.object({
 export const deleteTransactionSchema = z.object({
   id: z.uuid(),
   locale: z.enum(routing.locales),
+  screen: z.enum(LIST_SCREENS),
   listQuery: z.optional(listQuerySchema),
 });
 

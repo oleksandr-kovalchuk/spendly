@@ -32,7 +32,7 @@ export function CreateCategoryForm({ type, onSaved }: CreateCategoryFormProps) {
   const { errors } = useFormState({ control: form.control });
   const nameError = errors.name?.message;
 
-  // The sheet closes in the commit that shows the new category, as TransactionForm explains
+  // Close in the commit that shows the new category (see TransactionForm)
   function handleSubmit(values: OwnCategoryValues) {
     setHasFailed(false);
 

@@ -18,7 +18,6 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   return { id: session.user.id, email: session.user.email };
 });
 
-// The data access layer reads only the signed-in user's data; without a session, sign in first.
 // Not for Server Actions, where getLocale throws: they get the user from authedAction
 export async function requireUser(): Promise<CurrentUser> {
   const user = await getCurrentUser();

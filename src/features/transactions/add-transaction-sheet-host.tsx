@@ -13,8 +13,7 @@ const AddTransactionSheet = dynamic(
 
 type AddTransactionSheetHostProps = { today: string; categories: CategoryOption[] };
 
-// Focus returns to the opener, even where a tap doesn't focus it (Safari). If it's gone (an empty
-// state's), focus goes to the screen here: returned, the sheet would pass it to its first control
+// Focus returns to the opener; if it's gone, to <main>, or the sheet would focus its first control
 export function AddTransactionSheetHost({ today, categories }: AddTransactionSheetHostProps) {
   const { isOpen, opener, onOpenChange } = useAddTransaction();
 
@@ -31,6 +30,7 @@ export function AddTransactionSheetHost({ today, categories }: AddTransactionShe
       open={isOpen}
       onOpenChange={onOpenChange}
       finalFocus={handleFinalFocus}
+      type={opener.type}
       today={today}
       categories={categories}
     />

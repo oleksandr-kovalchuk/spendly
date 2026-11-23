@@ -22,12 +22,14 @@ import { FieldError } from "@/shared/ui/field";
 import { toast } from "@/shared/ui/toast";
 
 import { deleteTransaction } from "./delete-transaction.action";
+import type { ListScreen } from "./list-url";
 
 type Placement = "sheet" | "row";
 
 type DeleteTransactionButtonProps = {
   transactionId: string;
   label: string;
+  screen: ListScreen;
   listQuery: Record<string, string>;
   placement?: Placement;
 };
@@ -41,6 +43,7 @@ const triggerVariants = cva("", {
 export function DeleteTransactionButton({
   transactionId,
   label,
+  screen,
   listQuery,
   placement = "sheet",
 }: DeleteTransactionButtonProps) {
@@ -65,7 +68,7 @@ export function DeleteTransactionButton({
 
   function handleDelete() {
     isDeletingRef.current = true;
-    execute({ id: transactionId, locale, listQuery });
+    execute({ id: transactionId, locale, screen, listQuery });
   }
 
   function handleOpenChange(open: boolean) {

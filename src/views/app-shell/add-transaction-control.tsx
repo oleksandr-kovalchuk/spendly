@@ -1,47 +1,22 @@
-import { cva } from "class-variance-authority";
-import { getTranslations } from "next-intl/server";
 import { cache, Suspense } from "react";
 
 import { AddTransactionButton } from "@/features/transactions/add-transaction-button";
 import { AddTransactionSheetHost } from "@/features/transactions/add-transaction-sheet-host";
-import { categoryLabel } from "@/shared/categories/category-label";
-import { listCategories } from "@/shared/categories/categories.dal";
+import { CATEGORY_TYPES } from "@/shared/db/app-constants";
 import { Skeleton } from "@/shared/ui/skeleton";
 
-import { getToday } from "./screen-data";
-
-type Placement = "bar" | "sidebar" | "empty";
-
-const skeletonVariants = cva("", {
-  variants: {
-    placement: { bar: "size-12 rounded-full", sidebar: "h-9 w-full", empty: "h-9 w-40" },
-  },
-});
+import { getCategoryOptions, getToday } from "./screen-data";
 
 // The form and every Add button render from one query
 const getAddFormData = cache(async () => {
-  const [today, tCategories, categories] = await Promise.all([
-    getToday(),
-    getTranslations("Categories"),
-    listCategories(),
-  ]);
-
-  return {
-    today,
-    categories: categories.map((category) => ({
-      id: category.id,
-      type: category.type,
-      defaultKey: category.defaultKey,
-      icon: category.icon,
-      label: categoryLabel(category, tCategories),
-    })),
-  };
+  const [today, categories] = await Promise.all([getToday(), getCategoryOptions()]);
+  return { today, categories };
 });
 
-async function AddTransaction({ placement }: { placement: Placement }) {
+async function AddTransaction() {
   await getAddFormData();
 
-  return <AddTransactionButton placement={placement} />;
+  return CATEGORY_TYPES.map((type) => <AddTransactionButton key={type} type={type} />);
 }
 
 async function AddTransactionSheetData() {
@@ -50,13 +25,18 @@ async function AddTransactionSheetData() {
   return <AddTransactionSheetHost today={today} categories={categories} />;
 }
 
-// The form needs the user's categories and today in their time zone, both request data: an Add
-// button shows with them, so a tap on it opens a ready form
-export function AddTransactionControl({ placement }: { placement: Placement }) {
+// The buttons wait for the form's request data, so a tap opens a ready form
+export function AddTransactionControl() {
   return (
-    <Suspense fallback={<Skeleton className={skeletonVariants({ placement })} />}>
-      <AddTransaction placement={placement} />
-    </Suspense>
+    <div className="flex justify-center gap-2">
+      <Suspense
+        fallback={CATEGORY_TYPES.map((type) => (
+          <Skeleton key={type} className="size-11 rounded-full" />
+        ))}
+      >
+        <AddTransaction />
+      </Suspense>
+    </div>
   );
 }
 

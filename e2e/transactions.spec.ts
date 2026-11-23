@@ -49,11 +49,7 @@ type NewTransaction = {
 
 async function addTransaction(page: Page, locale: Locale, values: NewTransaction) {
   const text = TEXTS[locale];
-  const sheet = await openAddSheet(page, locale);
-  if (values.isIncome) {
-    await sheet.locator("label").filter({ hasText: text.income }).click();
-    await expect(sheet.getByLabel(text.income, { exact: true })).toBeChecked();
-  }
+  const sheet = await openAddSheet(page, locale, { type: values.isIncome ? "income" : "expense" });
   await field(page, text.amount).fill(values.amount);
   if (values.note !== undefined) await field(page, text.note).fill(values.note);
   if (values.category !== undefined) {
@@ -119,7 +115,6 @@ for (const locale of ["en", "uk"] as const) {
     await expect(dateButton(sheet, locale)).toHaveAccessibleName(
       `${text.date}: ${shownDay(locale, TODAY)}`,
     );
-    await expect(sheet.getByLabel(text.expense, { exact: true })).toBeChecked();
     await sheet.getByRole("button", { name: text.add, exact: true }).click();
     await expect(sheet.getByText(text.amountRequired)).toBeVisible();
     await expectNoViolations(page);
@@ -176,16 +171,15 @@ test("the Transactions screen with a long note fits a small screen", async ({ pa
   expect(overflow).toBeLessThanOrEqual(0);
 });
 
-test("Add opens the form over the screen ready to type the amount, and Escape returns focus to Add", async ({
+test("Add expense opens the form over the screen without focusing the amount, and Escape returns focus to it", async ({
   page,
 }, testInfo) => {
   await signUpAndIn(page, "en", testInfo);
   const add = navAddButton(page, "en");
 
   const sheet = await openAddSheet(page, "en");
-  await expect(field(page, TEXTS.en.amount)).toBeFocused();
-  await page.keyboard.type("5");
-  await expect(field(page, TEXTS.en.amount)).toHaveValue("5");
+  await expect(field(page, TEXTS.en.amount)).not.toBeFocused();
+  await field(page, TEXTS.en.amount).fill("5");
   await page.keyboard.press("Escape");
 
   await expect(sheet).toHaveCount(0);
@@ -422,24 +416,54 @@ for (const locale of ["en", "uk"] as const) {
   });
 }
 
-test("an old edit link on the home page opens the Transactions screen with its period", async ({
+test("an edit link on the home page opens the form over the Overview with its period", async ({
   page,
 }, testInfo) => {
   await signUpAndIn(page, "en", testInfo);
   await openScreen(page, "en", "transactions");
-  await addTransaction(page, "en", { amount: "7", note: "old-link" });
-  await openEditSheet(page, "en", "old-link");
+  await addTransaction(page, "en", { amount: "7", note: "home-link" });
+  await openEditSheet(page, "en", "home-link");
   const id = new URL(page.url()).searchParams.get("edit") ?? "";
 
-  const response = await page.request.get(`/en?period=year&edit=${id}`, { maxRedirects: 0 });
-  expect(response.status()).toBe(307);
-  expect(response.headers().location).toBe(`/en/transactions?period=year&edit=${id}`);
-
   await page.goto(`/en?period=year&edit=${id}`);
-  await expect(page).toHaveURL(new RegExp(`/en/transactions\\?period=year&edit=${id}$`));
+  await expect(page).toHaveURL(new RegExp(`/en\\?period=year&edit=${id}$`));
   await expect(page.getByRole("dialog", { name: TEXTS.en.editHeading })).toBeVisible();
-  await expect(field(page, TEXTS.en.note)).toHaveValue("old-link");
+  await expect(field(page, TEXTS.en.note)).toHaveValue("home-link");
   await expect(page.locator('[aria-live="polite"]').filter({ visible: true })).toHaveText(YEAR);
+});
+
+test("the Overview's latest transactions are edited and deleted there", async ({
+  page,
+}, testInfo) => {
+  await signUpAndIn(page, "en", testInfo);
+  await addTransaction(page, "en", { amount: "30", note: "latest" });
+  const latest = page.getByRole("region", { name: "Latest transactions" });
+
+  await latest.getByRole("link", { name: /latest/ }).click();
+  await expect(page).toHaveURL(/\/en\?edit=/);
+  let sheet = page.getByRole("dialog", { name: TEXTS.en.editHeading });
+  await expect(sheet).toBeVisible();
+  await field(page, TEXTS.en.amount).fill("45");
+  await sheet.getByRole("button", { name: TEXTS.en.save }).click();
+  await expect(sheet).toHaveCount(0);
+  await expect(page).toHaveURL(/\/en$/);
+  await expect(latest.getByRole("listitem").filter({ hasText: "latest" })).toContainText(
+    money("en", -45),
+  );
+  await expect(total(page, TEXTS.en.expensesTotal)).toHaveText(money("en", 45));
+
+  // On a phone the toast covers the row, and a pointer over it keeps it open
+  await expect(latest.getByRole("link", { name: /latest/ })).toBeFocused();
+  await page.keyboard.press("Enter");
+  sheet = page.getByRole("dialog", { name: TEXTS.en.editHeading });
+  await sheet.getByRole("button", { name: TEXTS.en.del, exact: true }).click();
+  const confirm = page.getByRole("alertdialog", { name: TEXTS.en.deleteTitle });
+  await expect(confirm).toBeVisible();
+  await confirm.getByRole("button", { name: TEXTS.en.del, exact: true }).click();
+  await expect(sheet).toHaveCount(0);
+  await expect(page).toHaveURL(/\/en$/);
+  await expect(latest).toHaveCount(0);
+  await expect(total(page, TEXTS.en.expensesTotal)).toHaveText(money("en", 0));
 });
 
 for (const locale of ["en", "uk"] as const) {
@@ -555,6 +579,30 @@ for (const reducedMotion of ["no-preference", "reduce"] as const) {
     await transitions.expectAnimation("slide-from-end");
   });
 
+  test(`a day picked in the calendar slides the content toward it with reduced motion ${reducedMotion}`, async ({
+    page,
+  }, testInfo) => {
+    await page.emulateMedia({ reducedMotion });
+    await page.addInitScript(recordViewTransitions);
+    await signUpAndIn(page, "en", testInfo);
+    await addTransaction(page, "en", { amount: "20", note: "earlier", date: OTHER_DAY });
+    const transitions = viewTransitions(page, reducedMotion);
+    const calendar = page.getByRole("region", { name: TEXTS.en.spendingByDay });
+    const day = (date: string) =>
+      calendar.getByRole("link", { name: new RegExp(`^${calendarDay(date)}:`) });
+    await calendar.getByRole("button", { name: new RegExp(`^${TEXTS.en.spendingByDay}`) }).click();
+
+    await transitions.clear();
+    await day(OTHER_DAY).click();
+    await expect(total(page, TEXTS.en.expensesTotal)).toHaveText(money("en", 20));
+    await transitions.expectAnimation("slide-from-start");
+
+    await transitions.clear();
+    await day(TODAY).click();
+    await expect(total(page, TEXTS.en.expensesTotal)).toHaveText(money("en", 0));
+    await transitions.expectAnimation("slide-from-end");
+  });
+
   test(`days rise into place as the list scrolls with reduced motion ${reducedMotion}`, async ({
     page,
   }, testInfo) => {
@@ -618,11 +666,9 @@ for (const reducedMotion of ["no-preference", "reduce"] as const) {
     await expect(total(page, TEXTS.en.expensesTotal)).toHaveText(money("en", 0));
 
     await transitions.clear();
-    const sheet = await openAddSheet(
-      page,
-      "en",
-      spending.getByRole("button", { name: TEXTS.en.addTransaction }),
-    );
+    const sheet = await openAddSheet(page, "en", {
+      button: spending.getByRole("button", { name: TEXTS.en.addButton.expense }),
+    });
     await field(page, TEXTS.en.amount).fill("300");
     await sheet.getByRole("button", { name: TEXTS.en.add, exact: true }).click();
     await expect(sheet).toHaveCount(0);
